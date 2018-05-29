@@ -1,0 +1,4 @@
+01234567891011
+Solution found at 11
+Sequence = 111
+position is = 0
