@@ -16,6 +16,11 @@
 '''
 
 def check(y, x):
+    '''
+    Check if a given solution realy solves the original problem
+
+    This function is a extra check to ensure the found solution is correct
+    '''
     success = False
 
     try:
