@@ -9,7 +9,7 @@
     
     conditions:
     x must be a number
-    y <10
+    0 >= y < 10
 
     for a given y, what is the value for x?
 
