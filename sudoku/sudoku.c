@@ -143,7 +143,9 @@ int solve_next(struct piece **pieces,struct piece **solution,int pos) {
     if (solution[pos] != NULL && solution[pos]->current_state == given) {
         if (pos < 80) {
             result = solve_next(pieces,solution,pos + 1);
-        } 
+        } else {
+            return 1;
+        }
     } else {
         int start = (pos / 9 ) * 9;
         int end = ((pos / 9) +1) * 9;
@@ -211,7 +213,6 @@ void load_puzzle(char* input_file,struct piece **pieces,struct piece **solution)
 }
 
 void print_solution(struct piece **solution) {
-
     for (int i = 0; i  < 9; i++) { 
         if (i%3 == 0 ) {
             printf("\n");
@@ -221,14 +222,15 @@ void print_solution(struct piece **solution) {
             if (j%3 == 0 ) {
                 printf("  ");
             }
-            printf(" %d ",solution[pos]->num);
+            if (solution[pos] != NULL) {
+                printf(" %d ",solution[pos]->num);
+            } else {
+                printf(" %d ",0);
+            }
         }
         printf("\n");
-
     }
-
     printf("\n");
-
 }
 
 
@@ -237,7 +239,12 @@ int main(int argc, char **argv) {
     struct piece **pieces = make_pieces();
 
     struct piece *solution[81] = { NULL };
+
     char *input_file = "./puzzles/sample.txt";
+    if (argc>1) {
+        input_file = argv[1];
+    }
+    
 
     load_puzzle(input_file,pieces,solution);
 
@@ -253,11 +260,10 @@ int main(int argc, char **argv) {
     result = check_complete(solution);
     if (result == 1) {
         printf("Solution is complete\n");
-        print_solution(solution);
     } else if (result == 0) {
         printf("Solution is not complete\n");
     }
 
-    result = check_col(solution,1);
+    print_solution(solution);
 
 }
