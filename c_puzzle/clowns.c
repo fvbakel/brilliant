@@ -169,12 +169,7 @@ int check_two(struct piece *one,struct piece *two,enum directions direction) {
             } else if (one->right.part == tail && two->left.part != head) {
                 return 0;
             } else {
-                if (DEBUG) {
-
-                    printf("Match in direction %d piece %d with %d\n",direction,one->id,two->id);
-                    printf("Color %d %d \n",one->right.color,two->left.color);
-                    printf("Part %d %d \n",one->right.part,two->left.part);
-                }
+                // this must be a match!
             }
         } else if (direction == down) {
             if (one->down.color != two->up.color) {
@@ -301,7 +296,6 @@ int main(int argc, char **argv) {
 
     solve_next(pieces,solution,0);
 
-    DEBUG = 1;
     result = check_correct(solution);
     if (result == 1) {
         printf("Solution is correct\n");
