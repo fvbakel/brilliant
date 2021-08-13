@@ -104,7 +104,9 @@ int check_square(struct piece **solution, int square) {
     return result;
 }
 
+int counter = 0;
 int check_correct(struct piece **solution) {
+    counter++;
     int result = 1;
     for (int i = 0; i < 9; i++) {
         result = check_row(solution,i);
@@ -251,6 +253,8 @@ int main(int argc, char **argv) {
     solve_next(pieces,solution,0);
 
     result = check_correct(solution);
+
+    printf("Tried %d solutions.\n",counter -1);
     if (result == 1) {
         printf("Solution is correct\n");
     } else if (result == 0) {
