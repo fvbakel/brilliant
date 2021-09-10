@@ -36,11 +36,18 @@ Constraint::Constraint(enum direction direction,std::vector<int> *blacks) {
     }
 }
 
+void Constraint::add_location(Location *location) {
+    m_locations.push_back(location);
+}
+
 Constraint::~Constraint() {
 
     for (Segment* segment : m_segments) {
         delete segment;
     }
     m_segments.clear();
+
+    // locations are not owned here
+    m_locations.clear();
     return;
 }

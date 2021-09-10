@@ -1,16 +1,29 @@
 #include <stdio.h>
 #include <vector>
+#include <assert.h>
 
 #include <Piece.h>
 #include <Segment.h>
 #include <Constraint.h>
 #include <Nonogram.h>
+#include <Location.h>
 #include <constants.h>
+
+
+void test_Location () {
+    printf("Start %s\n",__FUNCTION__);
+    Location *location = new Location(1,2);
+    delete location;
+
+    printf("End %s\n",__FUNCTION__);
+}
 
 void test_Nonegram () {
     printf("Start %s\n",__FUNCTION__);
     string filename = string("./puzzles/small.txt");
     Nonogram *nonogram = new Nonogram(filename);
+    nonogram->print();
+    assert(!nonogram->isSolved());
     delete nonogram;
     printf("End %s\n",__FUNCTION__);
 }
@@ -41,7 +54,7 @@ void test_segment() {
 
 void test_piece() {
     printf("Start %s\n",__FUNCTION__);
-    Piece *piece = new Piece(1,1,white);
+    Piece *piece = new Piece(white);
     delete piece;
     printf("End %s\n",__FUNCTION__);
 }
@@ -49,14 +62,13 @@ void test_piece() {
 int main() {
     printf("Started\n");
 
-    printf("0 \n");
+    
     test_piece();
-    printf("1 \n");
     test_segment();
-    printf("2 \n");
     test_constraint();
-    printf("3 \n");
+    test_Location();
     test_Nonegram();
+    
 
     printf("Ready\n");
     return 0;

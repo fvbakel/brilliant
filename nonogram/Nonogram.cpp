@@ -3,6 +3,7 @@
 #include <sstream>
 
 #include <Nonogram.h>
+#include <Piece.h>
 
 
 Nonogram::Nonogram() {
@@ -12,18 +13,6 @@ Nonogram::Nonogram() {
 Nonogram::Nonogram(const string &filename) {
     m_filename = string(filename);
     this->read_file();
-}
-
-Nonogram::~Nonogram() {
-    for (Constraint* constraint : m_x_contraints) {
-        delete constraint;
-    }
-    m_x_contraints.clear();
-
-    for (Constraint* constraint : m_y_contraints) {
-        delete constraint;
-    }
-    m_y_contraints.clear();
 }
 
 void Nonogram::line_to_int_array(const string &line,std::vector<int> *result) {
@@ -79,8 +68,101 @@ void Nonogram::read_file() {
 
             m_x_size = m_x_contraints.size();
             m_y_size = m_y_contraints.size();
+
+            create_locations();
         } else {
             cout << "ERROR: Unable to open file: " << m_filename << "\n";
         }
     }
+}
+
+void Nonogram::create_locations() {
+    for (int x_index = 0; x_index < m_x_size; x_index++) {
+        for (int y_index = 0; y_index < m_y_size; y_index++) {
+            m_locations.push_back(new Location(x_index, y_index));
+        }    
+    }
+
+    for (int x_index = 0; x_index < m_x_size; x_index++) {
+        Constraint *constraint = m_x_contraints.at(x_index);
+        for (int y_index = 0; y_index < m_y_size; y_index++) {
+            Location *location = get_Location(x_index,y_index);
+            constraint->add_location(location);
+        }
+    }
+
+    for (int y_index = 0; y_index < m_y_size; y_index++) {
+        Constraint *constraint = m_y_contraints.at(y_index);
+        for (int x_index = 0; x_index < m_x_size; x_index++) {
+            Location *location = get_Location(x_index,y_index);
+            constraint->add_location(location);
+        }
+    }
+}
+
+Location* Nonogram::get_Location(const int x, const int y) {
+    if (x < m_x_size && y < m_y_size) {
+        int index = x + y * m_x_size;
+        return m_locations.at(index);
+    } else {
+        printf("ERROR: Location %d,%d does not exists.\n", x, y);
+        return nullptr;
+    }
+}
+
+
+bool Nonogram::isSolved() {
+    return isConsistent() && isComplete();
+}
+
+bool Nonogram::isConsistent() {
+    // TODO
+    return false;
+}
+
+bool Nonogram::isComplete() {
+    bool complete = true;
+    for (Location *location : m_locations) {
+        if (!location->isSolved()) {
+            complete = false;
+            break;
+        }
+    }
+    return complete;
+}
+
+void Nonogram::print() {
+    printf("\n");
+    for (int x_index = 0; x_index < m_x_size; x_index++) {
+        for (int y_index = 0; y_index < m_y_size; y_index++) {
+             Location *location = get_Location(x_index, y_index);
+            Piece *piece = location->get_piece();
+            if (piece == nullptr) {
+                printf("U");
+            } else if (piece->get_color() == black) {
+                printf("X");
+            } else {
+                printf(" ");
+            }
+        }
+        printf("\n");
+    }
+
+}
+
+Nonogram::~Nonogram() {
+    for (Constraint* constraint : m_x_contraints) {
+        delete constraint;
+    }
+    m_x_contraints.clear();
+
+    for (Constraint* constraint : m_y_contraints) {
+        delete constraint;
+    }
+    m_y_contraints.clear();
+
+    for (Location *location : m_locations) {
+        delete location;
+    }
+    m_locations.clear();
 }

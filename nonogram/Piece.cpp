@@ -1,10 +1,12 @@
 #include <Piece.h>
 #include <stdio.h>
 
-Piece::Piece(const int x,const int y,const enum color current_color) {
-    m_x = x;
-    m_y = y;
+Piece::Piece(const enum color current_color) {
     m_color = current_color;
+}
+
+enum color Piece::get_color() {
+    return m_color;
 }
 
 Piece::~Piece() {
