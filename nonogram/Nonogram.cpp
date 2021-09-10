@@ -79,10 +79,10 @@ void Nonogram::fill_sizes() {
     m_y_size = m_y_contraints.size();
 
     for (Constraint *constraint : m_x_contraints) {
-        constraint->set_max_size(m_y_size);
+        constraint->set_size(m_y_size);
     }
     for (Constraint *constraint : m_y_contraints) {
-        constraint->set_max_size(m_x_size);
+        constraint->set_size(m_x_size);
     }
 }
 

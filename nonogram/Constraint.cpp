@@ -40,11 +40,27 @@ void Constraint::add_location(Location *location) {
     m_locations.push_back(location);
 }
 
-int Constraint::get_max_size() {
-    return m_max_size;
+int Constraint::get_size() {
+    return m_size;
 }
-void Constraint::set_max_size(const int size) {
-    m_max_size = size;
+void Constraint::set_size(const int size) {
+    int min_size = 0;
+    int max_white_size = size;
+
+    m_size = size;
+    
+    for (Segment *segment : m_segments) {
+        min_size = segment->get_min_size();
+    }
+
+    m_white_var = m_size - min_size;
+    max_white_size = 1 + m_white_var;
+
+    for (Segment *segment : m_segments) {
+        if (segment->get_color() == white) {
+            segment->set_max_size(max_white_size);
+        }
+    }
 }
 
 bool Constraint::is_passed() {
