@@ -37,6 +37,8 @@ class Segment {
 
         void set_after(Segment *after);
         Segment *get_after();
+
+        bool is_size_allowed(const int size);
 };
 
 typedef std::vector<Segment*>    segments;

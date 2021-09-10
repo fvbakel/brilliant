@@ -66,13 +66,23 @@ void Nonogram::read_file() {
             }
             input_file.close();
 
-            m_x_size = m_x_contraints.size();
-            m_y_size = m_y_contraints.size();
-
+            fill_sizes();
             create_locations();
         } else {
             cout << "ERROR: Unable to open file: " << m_filename << "\n";
         }
+    }
+}
+
+void Nonogram::fill_sizes() {
+    m_x_size = m_x_contraints.size();
+    m_y_size = m_y_contraints.size();
+
+    for (Constraint *constraint : m_x_contraints) {
+        constraint->set_max_size(m_y_size);
+    }
+    for (Constraint *constraint : m_y_contraints) {
+        constraint->set_max_size(m_x_size);
     }
 }
 
@@ -111,19 +121,28 @@ Location* Nonogram::get_Location(const int x, const int y) {
 }
 
 
-bool Nonogram::isSolved() {
-    return isConsistent() && isComplete();
+bool Nonogram::is_solved() {
+    return is_consistent() && is_complete();
 }
 
-bool Nonogram::isConsistent() {
-    // TODO
-    return false;
+bool Nonogram::is_consistent() {
+    for (Constraint *constraint : m_x_contraints) {
+        if (!constraint->is_passed()) {
+            return false;
+        }
+    }
+    for (Constraint *constraint : m_y_contraints) {
+        if (!constraint->is_passed()) {
+            return false;
+        }
+    }
+    return true;
 }
 
-bool Nonogram::isComplete() {
+bool Nonogram::is_complete() {
     bool complete = true;
     for (Location *location : m_locations) {
-        if (!location->isSolved()) {
+        if (!location->is_solved()) {
             complete = false;
             break;
         }

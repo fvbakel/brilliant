@@ -24,7 +24,7 @@ class Location {
         Piece *get_piece();
         void set_piece(Piece *piece);
 
-        bool isSolved();
+        bool is_solved();
 
 };
 

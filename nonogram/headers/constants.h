@@ -1,7 +1,7 @@
 #ifndef _CONSTANTS_H
 #define _CONSTANTS_H	1
 
-enum color {black,white};
+enum color {no_color,black,white};
 enum direction {x_dir,y_dir};
 
 const int SIZE_UNKNOWN = -1;

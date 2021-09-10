@@ -18,6 +18,7 @@ class Nonogram {
         locations       m_locations;
 
         void read_file();
+        void fill_sizes();
         void create_locations();
 
         void line_to_int_array(const string &line,std::vector<int> *result);
@@ -29,9 +30,9 @@ class Nonogram {
 
         Location *get_Location(const int x, const int y);
 
-        bool isSolved();
-        bool isConsistent();
-        bool isComplete();
+        bool is_solved();
+        bool is_consistent();
+        bool is_complete();
 
         void print();
 };

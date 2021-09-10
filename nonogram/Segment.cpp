@@ -11,11 +11,7 @@ Segment::Segment(
     if (color == black) {
         m_max_size = min_size;
         m_size = min_size;
-    }
-}
-
-Segment::~Segment() {
-    return;
+    } 
 }
 
 void Segment::set_min_size(const int min_size) {
@@ -58,4 +54,12 @@ void Segment::set_after(Segment *after) {
 }
 Segment* Segment::get_after() {
     return m_after;
+}
+
+bool Segment::is_size_allowed(const int size) {
+    return size >= m_min_size && size <= m_max_size;
+}
+
+Segment::~Segment() {
+    return;
 }

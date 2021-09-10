@@ -6,7 +6,7 @@
 
 class Piece {
     private:
-        enum color m_color = white;
+        enum color m_color = no_color;
 
     public:
         Piece(const enum color current_color);

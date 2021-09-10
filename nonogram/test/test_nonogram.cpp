@@ -23,7 +23,10 @@ void test_Nonegram () {
     string filename = string("./puzzles/small.txt");
     Nonogram *nonogram = new Nonogram(filename);
     nonogram->print();
-    assert(!nonogram->isSolved());
+    assert(nonogram->is_consistent());
+    assert(!nonogram->is_complete());
+    assert(!nonogram->is_solved());
+
     delete nonogram;
     printf("End %s\n",__FUNCTION__);
 }
