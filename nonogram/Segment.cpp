@@ -1,4 +1,5 @@
 #include <Segment.h>
+#include <stdio.h>
 
 Segment::Segment(
     const enum color      color,
@@ -60,7 +61,7 @@ Segment* Segment::get_after() {
 }
 
 bool Segment::is_size_allowed(const int size) {
-    return size >= m_min_size && size <= m_max_size;
+    return (size >= m_min_size) && (size <= m_max_size);
 }
 
 Segment::~Segment() {

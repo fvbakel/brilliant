@@ -17,12 +17,14 @@ class Constraint {
         segments            m_segments;
         locations           m_locations;
 
+        void update_size();
+
     public:
         Constraint(enum direction direction,std::vector<int> *blacks);
         ~Constraint();
        
         int get_size();
-        void set_size(const int size);
+        int get_white_var(); 
 
         void add_location(Location *location);
         bool is_passed();

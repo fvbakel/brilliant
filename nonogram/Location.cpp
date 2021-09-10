@@ -27,7 +27,7 @@ void Location::set_piece(Piece *piece) {
 }
 
 bool Location::is_solved() {
-    return m_piece != nullptr;
+    return (m_piece != nullptr);
 }
 
 Location::~Location() {

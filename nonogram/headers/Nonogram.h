@@ -5,11 +5,13 @@
 #include <Location.h>
 #include <string>
 #include <vector>
+#include <Piece.h>
 
 using namespace std;
 
 class Nonogram {
     private:
+        Piece          *m_pieces[2]     = {new Piece(black),new Piece(white)};
         string          m_filename      = "";
         int             m_x_size        = SIZE_UNKNOWN;
         int             m_y_size        = SIZE_UNKNOWN;
@@ -18,7 +20,7 @@ class Nonogram {
         locations       m_locations;
 
         void read_file();
-        void fill_sizes();
+        //void fill_sizes();
         void create_locations();
 
         void line_to_int_array(const string &line,std::vector<int> *result);
@@ -27,6 +29,8 @@ class Nonogram {
         Nonogram();
         Nonogram(const string &filename);
         ~Nonogram();
+
+        bool solve_location_backtrack(int location_index = 0);
 
         Location *get_Location(const int x, const int y);
 

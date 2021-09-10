@@ -5,7 +5,6 @@
 #include <Nonogram.h>
 #include <Piece.h>
 
-
 Nonogram::Nonogram() {
     return;
 }
@@ -66,14 +65,17 @@ void Nonogram::read_file() {
             }
             input_file.close();
 
-            fill_sizes();
+            m_x_size = m_x_contraints.size();
+            m_y_size = m_y_contraints.size();
             create_locations();
+
         } else {
             cout << "ERROR: Unable to open file: " << m_filename << "\n";
         }
     }
 }
 
+/*
 void Nonogram::fill_sizes() {
     m_x_size = m_x_contraints.size();
     m_y_size = m_y_contraints.size();
@@ -85,6 +87,7 @@ void Nonogram::fill_sizes() {
         constraint->set_size(m_x_size);
     }
 }
+*/
 
 void Nonogram::create_locations() {
     for (int x_index = 0; x_index < m_x_size; x_index++) {
@@ -143,8 +146,11 @@ bool Nonogram::is_complete() {
     bool complete = true;
     for (Location *location : m_locations) {
         if (!location->is_solved()) {
+            printf("location is not solved");
             complete = false;
             break;
+        } else {
+            printf("location is solved");
         }
     }
     return complete;
@@ -169,6 +175,28 @@ void Nonogram::print() {
 
 }
 
+bool Nonogram::solve_location_backtrack(int location_index) {
+    bool result = false;
+    if (location_index < m_locations.size()) {
+        int next_location = location_index + 1;
+        for (int piece_index = 0; piece_index < 2; piece_index++) {
+            m_locations[location_index]->set_piece(m_pieces[piece_index]);
+
+            printf("Checking solution:");
+            print();
+
+            if (is_consistent()) {
+                result = solve_location_backtrack(next_location);
+                if (result) {
+                    return result;
+                }
+            }
+            m_locations[location_index]->set_piece(nullptr);
+        }
+    } 
+    return result;
+}
+
 Nonogram::~Nonogram() {
     for (Constraint* constraint : m_x_contraints) {
         delete constraint;
@@ -184,4 +212,7 @@ Nonogram::~Nonogram() {
         delete location;
     }
     m_locations.clear();
+
+    delete m_pieces[0];
+    delete m_pieces[1];
 }
