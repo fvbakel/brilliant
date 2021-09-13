@@ -18,6 +18,53 @@ void test_Location () {
     printf("End %s\n",__FUNCTION__);
 }
 
+void test_filled(Nonogram *nonogram) {
+    Piece          *pieces[2]     = {new Piece(white),new Piece(black)};
+    
+    nonogram->get_Location(0,0)->set_piece(pieces[1]);
+    nonogram->get_Location(1,0)->set_piece(pieces[1]);
+    nonogram->get_Location(2,0)->set_piece(pieces[0]);
+    nonogram->get_Location(3,0)->set_piece(pieces[0]);
+    nonogram->get_Location(4,0)->set_piece(pieces[0]);
+    nonogram->get_Location(5,0)->set_piece(pieces[1]);
+
+    nonogram->get_Location(0,1)->set_piece(pieces[0]);
+    nonogram->get_Location(1,1)->set_piece(pieces[1]);
+    nonogram->get_Location(2,1)->set_piece(pieces[0]);
+    nonogram->get_Location(3,1)->set_piece(pieces[1]);
+    nonogram->get_Location(4,1)->set_piece(pieces[1]);
+    nonogram->get_Location(5,1)->set_piece(pieces[1]);
+
+    nonogram->get_Location(0,2)->set_piece(pieces[0]);
+    nonogram->get_Location(1,2)->set_piece(pieces[1]);
+    nonogram->get_Location(2,2)->set_piece(pieces[0]);
+    nonogram->get_Location(3,2)->set_piece(pieces[1]);
+    nonogram->get_Location(4,2)->set_piece(pieces[1]);
+    nonogram->get_Location(5,2)->set_piece(pieces[0]);
+
+    nonogram->get_Location(0,3)->set_piece(pieces[0]);
+    nonogram->get_Location(1,3)->set_piece(pieces[1]);
+    nonogram->get_Location(2,3)->set_piece(pieces[1]);
+    nonogram->get_Location(3,3)->set_piece(pieces[1]);
+    nonogram->get_Location(4,3)->set_piece(pieces[0]);
+    nonogram->get_Location(5,3)->set_piece(pieces[0]);
+
+    nonogram->get_Location(0,4)->set_piece(pieces[0]);
+    nonogram->get_Location(1,4)->set_piece(pieces[1]);
+    nonogram->get_Location(2,4)->set_piece(pieces[1]);
+    nonogram->get_Location(3,4)->set_piece(pieces[1]);
+    nonogram->get_Location(4,4)->set_piece(pieces[1]);
+    nonogram->get_Location(5,4)->set_piece(pieces[0]);
+
+    nonogram->get_Location(0,5)->set_piece(pieces[0]);
+    nonogram->get_Location(1,5)->set_piece(pieces[0]);
+    nonogram->get_Location(2,5)->set_piece(pieces[0]);
+    nonogram->get_Location(3,5)->set_piece(pieces[1]);
+    nonogram->get_Location(4,5)->set_piece(pieces[0]);
+    nonogram->get_Location(5,5)->set_piece(pieces[0]);
+
+}
+
 void test_Nonegram () {
     printf("Start %s\n",__FUNCTION__);
     string filename = string("./puzzles/small.txt");
@@ -27,6 +74,15 @@ void test_Nonegram () {
     
     assert(nonogram->is_consistent());
     assert(!nonogram->is_complete());
+    assert(!nonogram->is_solved());
+
+    test_filled(nonogram);
+    nonogram->print();
+    assert(nonogram->is_consistent());
+    assert(nonogram->is_complete());
+    assert(nonogram->is_solved());
+
+    nonogram->reset();
     assert(!nonogram->is_solved());
 
     nonogram->solve_location_backtrack();
@@ -94,9 +150,59 @@ void test_constraint () {
 
     assert(!constraint->is_passed());
 
+    location[0]->set_piece(pieces[1]);
+    location[1]->set_piece(pieces[0]);
+    location[2]->set_piece(pieces[1]);
+    location[3]->set_piece(pieces[0]);
+
+    assert(!constraint->is_passed());
+
+    // 5 locations
+    constraint->add_location(location[4]);
+
+    location[0]->set_piece(pieces[1]);
+    location[1]->set_piece(pieces[1]);
+    location[2]->set_piece(pieces[0]);
+    location[3]->set_piece(pieces[1]);
+    location[4]->set_piece(pieces[0]);
+
+    assert(constraint->is_passed());
+
+    location[0]->set_piece(pieces[0]);
+    location[1]->set_piece(pieces[1]);
+    location[2]->set_piece(pieces[1]);
+    location[3]->set_piece(pieces[0]);
+    location[4]->set_piece(pieces[1]);
+
+    assert(constraint->is_passed());
+
+    location[0]->set_piece(pieces[0]);
+    location[1]->set_piece(pieces[1]);
+    location[2]->set_piece(pieces[1]);
+    location[3]->set_piece(pieces[0]);
+    location[4]->set_piece(nullptr);
+
+    assert(constraint->is_passed());
+
 
     delete constraint;
+    std::vector<int> blacks_2({5});
+    constraint = new Constraint(x_dir,&blacks_2);
 
+    for (int i = 0; i < 6; i++) {
+        constraint->add_location(location[i]);
+    }
+
+    location[0]->set_piece(pieces[1]);
+    location[1]->set_piece(pieces[1]);
+    location[2]->set_piece(pieces[1]);
+    location[3]->set_piece(pieces[1]);
+    location[4]->set_piece(pieces[1]);
+    location[5]->set_piece(pieces[0]);
+    
+    assert(constraint->is_passed());
+
+    delete constraint;
     for (int i = 0; i < 8; i++) {
         delete location[i];
     }

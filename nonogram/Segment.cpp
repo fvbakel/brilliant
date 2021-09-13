@@ -61,6 +61,8 @@ Segment* Segment::get_after() {
 }
 
 bool Segment::is_size_allowed(const int size) {
+ //   printf("(size >= m_min_size)=%d\n",(size >= m_min_size));
+ //   printf("(size <= m_max_size)=%d\n)",(size <= m_max_size));
     return (size >= m_min_size) && (size <= m_max_size);
 }
 

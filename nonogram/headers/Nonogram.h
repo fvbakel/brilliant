@@ -39,6 +39,8 @@ class Nonogram {
         bool is_complete();
 
         void print();
+
+        void reset();
 };
 
 #endif

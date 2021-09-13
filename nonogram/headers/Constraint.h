@@ -29,6 +29,8 @@ class Constraint {
         void add_location(Location *location);
         bool is_passed();
 
+        void print();
+
 };
 
 typedef std::vector<Constraint*>    constraints;

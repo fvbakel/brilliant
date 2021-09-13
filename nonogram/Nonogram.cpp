@@ -60,8 +60,6 @@ void Nonogram::read_file() {
                         cout << "Warning: More than one empty line\n";
                     }
                 }
-                
-
             }
             input_file.close();
 
@@ -72,6 +70,12 @@ void Nonogram::read_file() {
         } else {
             cout << "ERROR: Unable to open file: " << m_filename << "\n";
         }
+    }
+}
+
+void Nonogram::reset() {
+    for (Location *location : m_locations) {
+        location->set_piece(nullptr);
     }
 }
 
@@ -131,14 +135,19 @@ bool Nonogram::is_solved() {
 bool Nonogram::is_consistent() {
     for (Constraint *constraint : m_x_contraints) {
         if (!constraint->is_passed()) {
+//            constraint->print();
             return false;
         }
     }
+//    printf("X-passed\n");
     for (Constraint *constraint : m_y_contraints) {
         if (!constraint->is_passed()) {
+//            constraint->print();
             return false;
         }
+
     }
+//     printf("Y-passed\n");
     return true;
 }
 
@@ -146,11 +155,8 @@ bool Nonogram::is_complete() {
     bool complete = true;
     for (Location *location : m_locations) {
         if (!location->is_solved()) {
-            printf("location is not solved");
             complete = false;
             break;
-        } else {
-            printf("location is solved");
         }
     }
     return complete;
@@ -158,17 +164,10 @@ bool Nonogram::is_complete() {
 
 void Nonogram::print() {
     printf("\n");
-    for (int x_index = 0; x_index < m_x_size; x_index++) {
-        for (int y_index = 0; y_index < m_y_size; y_index++) {
-             Location *location = get_Location(x_index, y_index);
-            Piece *piece = location->get_piece();
-            if (piece == nullptr) {
-                printf("U");
-            } else if (piece->get_color() == black) {
-                printf("X");
-            } else {
-                printf(" ");
-            }
+    for (int y_index = 0; y_index < m_y_size; y_index++) {
+        for (int x_index = 0; x_index < m_x_size; x_index++) {
+            Location *location = get_Location(x_index, y_index);
+            location->print();
         }
         printf("\n");
     }
@@ -182,18 +181,22 @@ bool Nonogram::solve_location_backtrack(int location_index) {
         for (int piece_index = 0; piece_index < 2; piece_index++) {
             m_locations[location_index]->set_piece(m_pieces[piece_index]);
 
-            printf("Checking solution:");
-            print();
+    //        printf("Checking solution:\n");
+    //        print();
 
             if (is_consistent()) {
+    //            printf("Still consistent\n");
                 result = solve_location_backtrack(next_location);
                 if (result) {
                     return result;
                 }
             }
+    //        printf("Solution not ok\n");
             m_locations[location_index]->set_piece(nullptr);
         }
-    } 
+    } else {
+        result = true;
+    }
     return result;
 }
 

@@ -26,6 +26,8 @@ class Location {
 
         bool is_solved();
 
+        void print();
+
 };
 
 typedef std::vector<Location*>    locations;

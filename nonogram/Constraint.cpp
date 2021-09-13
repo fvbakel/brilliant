@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <cstdlib>
-
+#include <assert.h>
 
 
 #include <Constraint.h>
@@ -73,20 +73,24 @@ bool Constraint::is_passed() {
     bool foundFirst = false;
     bool all_filled = false;
     Segment *current_segment = m_segments.at(0);
+    assert(current_segment != nullptr);
     Segment *next_segment = current_segment->get_after();
+    assert(next_segment != nullptr);
     enum color current_color = no_color;
     int current_count = 0;
 
     for (int current_pos = 0; current_pos < m_locations.size(); current_pos++) {
+        //printf("Getting location %d\n",current_pos);
         Location *location = m_locations.at(current_pos);
         Piece *piece = location->get_piece();
         if (piece != nullptr) {
             enum color piece_color = piece->get_color();
-            if (current_color==black) {
+    /*        if (piece_color==black) {
                 printf("piece_color= black\n");
             } else {
                 printf("piece_color!= black\n");
             }
+    */
             if (current_pos == (m_locations.size() -1)) {
                 all_filled = true;
             }
@@ -98,19 +102,20 @@ bool Constraint::is_passed() {
             }
 
             if (piece_color == no_color) {
-                printf("Not Ok because piece has no color\n");
+        //        printf("Not Ok because piece has no color\n");
                 passed = false;
                 break;
             } else if (piece_color != current_color) {
-                printf("Segment switch\n");
+        /*        printf("Segment switch\n");
                 if (current_color==black) {
                     printf("current_color= black\n");
                 } else {
                     printf("current_color!= black\n");
                 }
+        */
                 // check if count matches
                 if ( !current_segment->is_size_allowed(current_count)) {
-                    printf("Not Ok because exceed segment size in switch. current_count=%d, min_size=%d, max_size=%d\n",current_count,current_segment->get_min_size(),current_segment->get_max_size());
+            //        printf("Not Ok because exceed segment size in switch. current_count=%d, min_size=%d, max_size=%d\n",current_count,current_segment->get_min_size(),current_segment->get_max_size());
                     passed = false;
                     break;
                 }
@@ -121,29 +126,42 @@ bool Constraint::is_passed() {
                     passed = false;
                     break;
                 } else {
-                    printf("getting new next segment\n");
+    //                printf("getting new next segment\n");
                     next_segment = current_segment->get_after();
                     current_color = piece_color;
-                    if (current_color==black) {
+    /*                if (current_color==black) {
                         printf("current segment current_color= black\n");
                     } else {
                         printf("current segment current_color!= black\n");
                     }
+    */            
                     current_count = 1;
                 }
             } else {
                 // still in the same segment
                 current_count++;
-                
-                if ( !current_segment->is_size_allowed(current_count)) {
-                    if (current_color==black) {
+            /*    if (current_segment->get_color()==black) {
+                    printf("current segment color= black\n");
+                } else {
+                    printf("current segment color!= black\n");
+                }
+            */
+                if (
+                    (current_color==white && !current_segment->is_size_allowed(current_count)) ||
+                    (current_color!=white && current_count > current_segment->get_max_size())
+
+                ) {
+                /*    if (current_color==black) {
                         printf("current_color= black\n");
                     } else {
                         printf("current_color!= black\n");
                     }
+                    
                     printf("current_count=%d\n",current_count);
                     printf("current_segment->get_min_size=%d\n",current_segment->get_min_size());
+                    printf("current_segment->get_max_size=%d\n",current_segment->get_max_size());
                     printf("Not Ok because exceed segment size in same segment\n");
+                */    
                     passed = false;
                     break;
                 }
@@ -162,7 +180,7 @@ bool Constraint::is_passed() {
                 required_size += current_segment->get_min_size();
             }
             if (current_pos + required_size > m_size) {
-                printf("Not Ok because can not meet size\n");
+    //            printf("Not Ok because can not meet size\n");
                 passed = false;
             }
             break;
@@ -171,7 +189,7 @@ bool Constraint::is_passed() {
 
     if (all_filled) {
         //must still check if we got to the last segment
-        if ( !current_segment->is_size_allowed(current_count)) {
+        if ( current_segment != nullptr && !current_segment->is_size_allowed(current_count)) {
             passed = false;
         } else {
             if (
@@ -183,6 +201,30 @@ bool Constraint::is_passed() {
         }
     }
     return passed;
+}
+
+void Constraint::print() {
+    if (m_direction == x_dir) {
+        printf("X: ");
+    } else {
+        printf("Y: ");
+    }
+
+    for(std::vector<Segment*>::iterator it = m_segments.begin(); it != m_segments.end(); ++it) {
+        if ((*it)->get_color() == black) {
+            printf("%d ",  (*it)->get_size());
+        }
+    }
+
+
+    int pos = 0;
+    while (pos < m_locations.size()) {
+        Location *location = m_locations.at(pos);
+        location->print();
+        pos++;
+    }
+    printf("\n");
+    
 }
 
 Constraint::~Constraint() {

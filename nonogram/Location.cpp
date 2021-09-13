@@ -1,4 +1,5 @@
 #include <Location.h>
+#include <stdio.h>
 
 Location::Location(const int x,const int y) {
     m_x = x;
@@ -28,6 +29,16 @@ void Location::set_piece(Piece *piece) {
 
 bool Location::is_solved() {
     return (m_piece != nullptr);
+}
+
+void Location::print() {
+    if (m_piece == nullptr) {
+        printf("U");
+    } else if (m_piece->get_color() == black) {
+        printf("X");
+    } else {
+        printf(" ");
+    }
 }
 
 Location::~Location() {
