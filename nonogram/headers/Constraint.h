@@ -4,7 +4,6 @@
 #include <vector>
 
 #include <constants.h>
-#include <Piece.h>
 #include <Segment.h>
 #include <Location.h>
 

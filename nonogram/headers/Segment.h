@@ -2,7 +2,6 @@
 #define _SEGMENT_H	1
 
 #include <constants.h>
-#include <Piece.h>
 #include <vector>
 
 class Segment {
@@ -12,7 +11,6 @@ class Segment {
         int             m_min_size     = SIZE_UNKNOWN;
         int             m_max_size     = SIZE_UNKNOWN;
         int             m_size         = SIZE_UNKNOWN;
-        Piece         **m_pieces       = nullptr;
         Segment        *m_before       = nullptr;
         Segment        *m_after        = nullptr;
         

@@ -82,30 +82,25 @@ bool Constraint::is_passed() {
     for (int current_pos = 0; current_pos < m_locations.size(); current_pos++) {
         //printf("Getting location %d\n",current_pos);
         Location *location = m_locations.at(current_pos);
-        Piece *piece = location->get_piece();
-        if (piece != nullptr) {
-            enum color piece_color = piece->get_color();
-    /*        if (piece_color==black) {
-                printf("piece_color= black\n");
+        enum color loc_color = location->get_color();
+        if (loc_color != no_color) {
+    /*        if (loc_color==black) {
+                printf("loc_color= black\n");
             } else {
-                printf("piece_color!= black\n");
+                printf("loc_color!= black\n");
             }
     */
             if (current_pos == (m_locations.size() -1)) {
                 all_filled = true;
             }
             if (!foundFirst) {
-                if (piece_color == white) {
+                if (loc_color == white) {
                     current_color = white;
                 }
                 foundFirst = true;
             }
 
-            if (piece_color == no_color) {
-        //        printf("Not Ok because piece has no color\n");
-                passed = false;
-                break;
-            } else if (piece_color != current_color) {
+            if (loc_color != current_color) {
         /*        printf("Segment switch\n");
                 if (current_color==black) {
                     printf("current_color= black\n");
@@ -128,7 +123,7 @@ bool Constraint::is_passed() {
                 } else {
     //                printf("getting new next segment\n");
                     next_segment = current_segment->get_after();
-                    current_color = piece_color;
+                    current_color = loc_color;
     /*                if (current_color==black) {
                         printf("current segment current_color= black\n");
                     } else {

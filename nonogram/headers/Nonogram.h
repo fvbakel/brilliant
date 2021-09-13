@@ -5,13 +5,12 @@
 #include <Location.h>
 #include <string>
 #include <vector>
-#include <Piece.h>
 
 using namespace std;
 
 class Nonogram {
     private:
-        Piece          *m_pieces[2]     = {new Piece(black),new Piece(white)};
+        enum color      m_colors[2]     = {black,white};
         string          m_filename      = "";
         int             m_x_size        = SIZE_UNKNOWN;
         int             m_y_size        = SIZE_UNKNOWN;

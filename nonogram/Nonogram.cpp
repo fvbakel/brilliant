@@ -3,7 +3,6 @@
 #include <sstream>
 
 #include <Nonogram.h>
-#include <Piece.h>
 
 Nonogram::Nonogram() {
     return;
@@ -75,7 +74,7 @@ void Nonogram::read_file() {
 
 void Nonogram::reset() {
     for (Location *location : m_locations) {
-        location->set_piece(nullptr);
+        location->set_color(no_color);
     }
 }
 
@@ -178,8 +177,8 @@ bool Nonogram::solve_location_backtrack(int location_index) {
     bool result = false;
     if (location_index < m_locations.size()) {
         int next_location = location_index + 1;
-        for (int piece_index = 0; piece_index < 2; piece_index++) {
-            m_locations[location_index]->set_piece(m_pieces[piece_index]);
+        for (int color_index = 0; color_index < 2; color_index++) {
+            m_locations[location_index]->set_color(m_colors[color_index]);
 
     //        printf("Checking solution:\n");
     //        print();
@@ -192,7 +191,7 @@ bool Nonogram::solve_location_backtrack(int location_index) {
                 }
             }
     //        printf("Solution not ok\n");
-            m_locations[location_index]->set_piece(nullptr);
+            m_locations[location_index]->set_color(no_color);
         }
     } else {
         result = true;
@@ -216,6 +215,4 @@ Nonogram::~Nonogram() {
     }
     m_locations.clear();
 
-    delete m_pieces[0];
-    delete m_pieces[1];
 }

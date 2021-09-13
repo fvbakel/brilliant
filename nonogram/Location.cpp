@@ -2,8 +2,9 @@
 #include <stdio.h>
 
 Location::Location(const int x,const int y) {
-    m_x = x;
-    m_y = y;
+    m_x     = x;
+    m_y     = y;
+    m_color = no_color;
  }
 
 int Location::get_x() {
@@ -20,21 +21,21 @@ void Location::set_y(const int y) {
     m_y = y;
 }
 
-Piece* Location::get_piece() {
-    return m_piece;
+enum color Location::get_color() {
+    return m_color;
 }
-void Location::set_piece(Piece *piece) {
-    m_piece = piece;
+void Location::set_color(enum color new_color) {
+    m_color = new_color;
 }
 
 bool Location::is_solved() {
-    return (m_piece != nullptr);
+    return (m_color != no_color);
 }
 
 void Location::print() {
-    if (m_piece == nullptr) {
+    if (m_color == no_color) {
         printf("U");
-    } else if (m_piece->get_color() == black) {
+    } else if (m_color == black) {
         printf("X");
     } else {
         printf(" ");

@@ -2,7 +2,6 @@
 #include <vector>
 #include <assert.h>
 
-#include <Piece.h>
 #include <Segment.h>
 #include <Constraint.h>
 #include <Nonogram.h>
@@ -18,50 +17,62 @@ void test_Location () {
     printf("End %s\n",__FUNCTION__);
 }
 
+void test_Nonegram_file (string &filename) {
+    printf("Start %s(%s)\n",__FUNCTION__,filename.c_str());
+    Nonogram *nonogram = new Nonogram(filename);
+
+    nonogram->solve_location_backtrack();
+    nonogram->print();
+
+    assert(nonogram->is_solved());
+    delete nonogram;
+    printf("End %s(%s)\n",__FUNCTION__,filename.c_str());
+}
+
+
 void test_filled(Nonogram *nonogram) {
-    Piece          *pieces[2]     = {new Piece(white),new Piece(black)};
     
-    nonogram->get_Location(0,0)->set_piece(pieces[1]);
-    nonogram->get_Location(1,0)->set_piece(pieces[1]);
-    nonogram->get_Location(2,0)->set_piece(pieces[0]);
-    nonogram->get_Location(3,0)->set_piece(pieces[0]);
-    nonogram->get_Location(4,0)->set_piece(pieces[0]);
-    nonogram->get_Location(5,0)->set_piece(pieces[1]);
+    nonogram->get_Location(0,0)->set_color(black);
+    nonogram->get_Location(1,0)->set_color(black);
+    nonogram->get_Location(2,0)->set_color(white);
+    nonogram->get_Location(3,0)->set_color(white);
+    nonogram->get_Location(4,0)->set_color(white);
+    nonogram->get_Location(5,0)->set_color(black);
 
-    nonogram->get_Location(0,1)->set_piece(pieces[0]);
-    nonogram->get_Location(1,1)->set_piece(pieces[1]);
-    nonogram->get_Location(2,1)->set_piece(pieces[0]);
-    nonogram->get_Location(3,1)->set_piece(pieces[1]);
-    nonogram->get_Location(4,1)->set_piece(pieces[1]);
-    nonogram->get_Location(5,1)->set_piece(pieces[1]);
+    nonogram->get_Location(0,1)->set_color(white);
+    nonogram->get_Location(1,1)->set_color(black);
+    nonogram->get_Location(2,1)->set_color(white);
+    nonogram->get_Location(3,1)->set_color(black);
+    nonogram->get_Location(4,1)->set_color(black);
+    nonogram->get_Location(5,1)->set_color(black);
 
-    nonogram->get_Location(0,2)->set_piece(pieces[0]);
-    nonogram->get_Location(1,2)->set_piece(pieces[1]);
-    nonogram->get_Location(2,2)->set_piece(pieces[0]);
-    nonogram->get_Location(3,2)->set_piece(pieces[1]);
-    nonogram->get_Location(4,2)->set_piece(pieces[1]);
-    nonogram->get_Location(5,2)->set_piece(pieces[0]);
+    nonogram->get_Location(0,2)->set_color(white);
+    nonogram->get_Location(1,2)->set_color(black);
+    nonogram->get_Location(2,2)->set_color(white);
+    nonogram->get_Location(3,2)->set_color(black);
+    nonogram->get_Location(4,2)->set_color(black);
+    nonogram->get_Location(5,2)->set_color(white);
 
-    nonogram->get_Location(0,3)->set_piece(pieces[0]);
-    nonogram->get_Location(1,3)->set_piece(pieces[1]);
-    nonogram->get_Location(2,3)->set_piece(pieces[1]);
-    nonogram->get_Location(3,3)->set_piece(pieces[1]);
-    nonogram->get_Location(4,3)->set_piece(pieces[0]);
-    nonogram->get_Location(5,3)->set_piece(pieces[0]);
+    nonogram->get_Location(0,3)->set_color(white);
+    nonogram->get_Location(1,3)->set_color(black);
+    nonogram->get_Location(2,3)->set_color(black);
+    nonogram->get_Location(3,3)->set_color(black);
+    nonogram->get_Location(4,3)->set_color(white);
+    nonogram->get_Location(5,3)->set_color(white);
 
-    nonogram->get_Location(0,4)->set_piece(pieces[0]);
-    nonogram->get_Location(1,4)->set_piece(pieces[1]);
-    nonogram->get_Location(2,4)->set_piece(pieces[1]);
-    nonogram->get_Location(3,4)->set_piece(pieces[1]);
-    nonogram->get_Location(4,4)->set_piece(pieces[1]);
-    nonogram->get_Location(5,4)->set_piece(pieces[0]);
+    nonogram->get_Location(0,4)->set_color(white);
+    nonogram->get_Location(1,4)->set_color(black);
+    nonogram->get_Location(2,4)->set_color(black);
+    nonogram->get_Location(3,4)->set_color(black);
+    nonogram->get_Location(4,4)->set_color(black);
+    nonogram->get_Location(5,4)->set_color(white);
 
-    nonogram->get_Location(0,5)->set_piece(pieces[0]);
-    nonogram->get_Location(1,5)->set_piece(pieces[0]);
-    nonogram->get_Location(2,5)->set_piece(pieces[0]);
-    nonogram->get_Location(3,5)->set_piece(pieces[1]);
-    nonogram->get_Location(4,5)->set_piece(pieces[0]);
-    nonogram->get_Location(5,5)->set_piece(pieces[0]);
+    nonogram->get_Location(0,5)->set_color(white);
+    nonogram->get_Location(1,5)->set_color(white);
+    nonogram->get_Location(2,5)->set_color(white);
+    nonogram->get_Location(3,5)->set_color(black);
+    nonogram->get_Location(4,5)->set_color(white);
+    nonogram->get_Location(5,5)->set_color(white);
 
 }
 
@@ -94,7 +105,7 @@ void test_Nonegram () {
 
 void test_constraint () {
     printf("Start %s\n",__FUNCTION__);
-    Piece          *pieces[2]     = {new Piece(white),new Piece(black)};
+
     std::vector<int> blacks({ 2, 1});
     Constraint *constraint = new Constraint(x_dir,&blacks); 
     Location *location[8] = {   new Location(0,0),\
@@ -115,72 +126,72 @@ void test_constraint () {
     assert(constraint->get_white_var() == 0);
 
     assert(constraint->is_passed());
-    location[0]->set_piece(pieces[0]);
+    location[0]->set_color(white);
     assert(constraint->is_passed());
 
-    location[0]->set_piece(pieces[1]);
+    location[0]->set_color(black);
     assert(constraint->is_passed());
 
-    location[0]->set_piece(pieces[1]);
-    location[1]->set_piece(pieces[1]);
-    location[2]->set_piece(pieces[0]);
-    location[3]->set_piece(pieces[1]);
+    location[0]->set_color(black);
+    location[1]->set_color(black);
+    location[2]->set_color(white);
+    location[3]->set_color(black);
 
-    assert(location[0]->get_piece()->get_color() == black);
+    assert(location[0]->get_color() == black);
     assert(constraint->is_passed());
 
-    location[0]->set_piece(pieces[1]);
-    location[1]->set_piece(pieces[1]);
-    location[2]->set_piece(pieces[1]);
-    location[3]->set_piece(pieces[1]);
+    location[0]->set_color(black);
+    location[1]->set_color(black);
+    location[2]->set_color(black);
+    location[3]->set_color(black);
 
     assert(!constraint->is_passed());
 
-    location[0]->set_piece(pieces[1]);
-    location[1]->set_piece(pieces[1]);
-    location[2]->set_piece(pieces[0]);
-    location[3]->set_piece(pieces[0]);
+    location[0]->set_color(black);
+    location[1]->set_color(black);
+    location[2]->set_color(white);
+    location[3]->set_color(white);
 
     assert(!constraint->is_passed());
 
-    location[0]->set_piece(pieces[0]);
-    location[1]->set_piece(pieces[1]);
-    location[2]->set_piece(pieces[1]);
-    location[3]->set_piece(pieces[0]);
+    location[0]->set_color(white);
+    location[1]->set_color(black);
+    location[2]->set_color(black);
+    location[3]->set_color(white);
 
     assert(!constraint->is_passed());
 
-    location[0]->set_piece(pieces[1]);
-    location[1]->set_piece(pieces[0]);
-    location[2]->set_piece(pieces[1]);
-    location[3]->set_piece(pieces[0]);
+    location[0]->set_color(black);
+    location[1]->set_color(white);
+    location[2]->set_color(black);
+    location[3]->set_color(white);
 
     assert(!constraint->is_passed());
 
     // 5 locations
     constraint->add_location(location[4]);
 
-    location[0]->set_piece(pieces[1]);
-    location[1]->set_piece(pieces[1]);
-    location[2]->set_piece(pieces[0]);
-    location[3]->set_piece(pieces[1]);
-    location[4]->set_piece(pieces[0]);
+    location[0]->set_color(black);
+    location[1]->set_color(black);
+    location[2]->set_color(white);
+    location[3]->set_color(black);
+    location[4]->set_color(white);
 
     assert(constraint->is_passed());
 
-    location[0]->set_piece(pieces[0]);
-    location[1]->set_piece(pieces[1]);
-    location[2]->set_piece(pieces[1]);
-    location[3]->set_piece(pieces[0]);
-    location[4]->set_piece(pieces[1]);
+    location[0]->set_color(white);
+    location[1]->set_color(black);
+    location[2]->set_color(black);
+    location[3]->set_color(white);
+    location[4]->set_color(black);
 
     assert(constraint->is_passed());
 
-    location[0]->set_piece(pieces[0]);
-    location[1]->set_piece(pieces[1]);
-    location[2]->set_piece(pieces[1]);
-    location[3]->set_piece(pieces[0]);
-    location[4]->set_piece(nullptr);
+    location[0]->set_color(white);
+    location[1]->set_color(black);
+    location[2]->set_color(black);
+    location[3]->set_color(white);
+    location[4]->set_color(no_color);
 
     assert(constraint->is_passed());
 
@@ -193,12 +204,12 @@ void test_constraint () {
         constraint->add_location(location[i]);
     }
 
-    location[0]->set_piece(pieces[1]);
-    location[1]->set_piece(pieces[1]);
-    location[2]->set_piece(pieces[1]);
-    location[3]->set_piece(pieces[1]);
-    location[4]->set_piece(pieces[1]);
-    location[5]->set_piece(pieces[0]);
+    location[0]->set_color(black);
+    location[1]->set_color(black);
+    location[2]->set_color(black);
+    location[3]->set_color(black);
+    location[4]->set_color(black);
+    location[5]->set_color(white);
     
     assert(constraint->is_passed());
 
@@ -207,8 +218,6 @@ void test_constraint () {
         delete location[i];
     }
 
-    delete pieces[0];
-    delete pieces[1];
 
     printf("End %s\n",__FUNCTION__);
 }
@@ -228,23 +237,18 @@ void test_segment() {
     printf("End %s\n",__FUNCTION__);
 }
 
-void test_piece() {
-    printf("Start %s\n",__FUNCTION__);
-    Piece *piece = new Piece(white);
-    delete piece;
-    printf("End %s\n",__FUNCTION__);
-}
-
 int main() {
     printf("Started\n");
 
     
-    test_piece();
     test_Location();
     test_segment();
     test_constraint();
     
     test_Nonegram();
+
+    string filename = string("./puzzles/QR-code.txt");
+  //  test_Nonegram_file (filename);
     
     printf("Ready\n");
     return 0;

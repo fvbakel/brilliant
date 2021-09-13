@@ -3,13 +3,13 @@
 
 #include <vector>
 
-#include <Piece.h>
+#include <constants.h>
 
 class Location {
     private:
-        int     m_x         = 0;
-        int     m_y         = 0;
-        Piece  *m_piece     = nullptr;
+        int         m_x         = 0;
+        int         m_y         = 0;
+        enum color  m_color     = no_color;
 
     public:
         Location(const int x,const int y);
@@ -21,8 +21,8 @@ class Location {
         int get_y();
         void set_y(const int y);
 
-        Piece *get_piece();
-        void set_piece(Piece *piece);
+        enum color get_color();
+        void set_color(enum color);
 
         bool is_solved();
 
