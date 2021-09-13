@@ -198,6 +198,94 @@ bool Constraint::is_passed() {
     return passed;
 }
 
+void Constraint::calculate_solutions() {
+    m_solutions.clear();
+
+    if (m_white_var == SIZE_UNKNOWN) {
+        update_size();
+    }
+
+    print();
+    std::vector<enum color> solution_base(m_size);
+    add_variation(
+        &solution_base,
+        0,
+        m_segments[0],
+        m_white_var
+    );
+}
+
+void Constraint::add_variation(
+    std::vector<enum color> *solution_base,
+    int current_pos,
+    Segment *current_segment,
+    int variation_remaining
+) {
+    printf("Start current pos=%d solution=",current_pos);
+    print_solution(solution_base,current_pos);
+    
+
+    // add this segment to the solution
+    int count = 0;
+    while (count < current_segment->get_min_size()) {
+        solution_base->at(current_pos) = current_segment->get_color();
+        current_pos++;
+        count++;
+    }
+    printf("After Add segment Current pos=%d solution=",current_pos);
+    print_solution(solution_base,current_pos);
+
+    Segment *next_segment = current_segment->get_after();
+    if (next_segment!=nullptr) {
+        add_variation(solution_base,current_pos,next_segment,variation_remaining); 
+    } 
+
+    if (current_segment->get_color() == white) {
+        int var_count = 0;
+        while (var_count < variation_remaining) {
+            solution_base->at(current_pos) = white;
+            current_pos++;
+            printf("Add white Current pos=%d solution=",current_pos);
+            print_solution(solution_base,current_pos);
+
+            var_count++;
+            if (next_segment!=nullptr) {
+                add_variation(solution_base,current_pos,next_segment,(variation_remaining-var_count)); 
+            } 
+        }
+        if (next_segment==nullptr) {
+            printf("End Current pos=%d solution=",current_pos);
+            print_solution(solution_base,current_pos);
+            printf("Adding solution: ");
+            print_solution(solution_base);
+            printf("\n");
+            assert(current_pos == m_size);
+            m_solutions.push_back(std::vector<enum color>(*solution_base));
+        } 
+    }
+}
+
+void Constraint::print_solution(std::vector<enum color> *solution_base,int max_pos) {
+
+    if (max_pos < 0) {
+        max_pos = solution_base->size();
+    }
+    printf("\"");
+    for (int i =0; i < max_pos;i++) {
+        enum color cur_color = solution_base->at(i);
+        if (cur_color == no_color) {
+            printf("U");
+        } else if (cur_color == black) {
+            printf("X");
+        } else if (cur_color == white){
+            printf(" ");
+        } else {
+            printf("O");
+        }
+    }
+    printf("\"\n");
+}
+
 void Constraint::print() {
     if (m_direction == x_dir) {
         printf("X: ");
@@ -210,7 +298,6 @@ void Constraint::print() {
             printf("%d ",  (*it)->get_size());
         }
     }
-
 
     int pos = 0;
     while (pos < m_locations.size()) {

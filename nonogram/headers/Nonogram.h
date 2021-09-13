@@ -30,11 +30,14 @@ class Nonogram {
         ~Nonogram();
 
         bool solve_location_backtrack(int location_index = 0);
+        bool solve_constraint_backtrack(int constraint_index = 0);
 
         Location *get_Location(const int x, const int y);
 
         bool is_solved();
         bool is_consistent();
+        bool is_x_consistent();
+        bool is_y_consistent();
         bool is_complete();
 
         void print();

@@ -132,21 +132,25 @@ bool Nonogram::is_solved() {
 }
 
 bool Nonogram::is_consistent() {
+    return is_x_consistent() && is_y_consistent();
+}
+
+bool Nonogram::is_x_consistent() {
     for (Constraint *constraint : m_x_contraints) {
         if (!constraint->is_passed()) {
-//            constraint->print();
             return false;
         }
     }
-//    printf("X-passed\n");
+    return true;
+}
+
+bool Nonogram::is_y_consistent() {
     for (Constraint *constraint : m_y_contraints) {
         if (!constraint->is_passed()) {
-//            constraint->print();
             return false;
         }
 
     }
-//     printf("Y-passed\n");
     return true;
 }
 
@@ -180,19 +184,37 @@ bool Nonogram::solve_location_backtrack(int location_index) {
         for (int color_index = 0; color_index < 2; color_index++) {
             m_locations[location_index]->set_color(m_colors[color_index]);
 
-    //        printf("Checking solution:\n");
-    //        print();
-
             if (is_consistent()) {
-    //            printf("Still consistent\n");
                 result = solve_location_backtrack(next_location);
                 if (result) {
                     return result;
                 }
             }
-    //        printf("Solution not ok\n");
             m_locations[location_index]->set_color(no_color);
         }
+    } else {
+        result = true;
+    }
+    return result;
+}
+
+bool Nonogram::solve_constraint_backtrack(int constraint_index) {
+    bool result = false;
+    if (constraint_index < m_y_contraints.size()) {
+        int next_constraint = constraint_index + 1;
+        m_y_contraints[constraint_index]->calculate_solutions();
+   /*     for (int color_index = 0; color_index < 2; color_index++) {
+            m_locations[location_index]->set_color(m_colors[color_index]);
+
+            if (is_consistent()) {
+                result = solve_constraint_backtrack(next_constraint);
+                if (result) {
+                    return result;
+                }
+            }
+            m_locations[location_index]->set_color(no_color);
+        }
+        */
     } else {
         result = true;
     }

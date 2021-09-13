@@ -99,6 +99,15 @@ void test_Nonegram () {
     nonogram->solve_location_backtrack();
     nonogram->print();
     assert(nonogram->is_solved());
+
+    nonogram->reset();
+    assert(!nonogram->is_solved());
+
+    nonogram->solve_constraint_backtrack();
+    nonogram->print();
+    assert(nonogram->is_solved());
+
+
     delete nonogram;
     printf("End %s\n",__FUNCTION__);
 }

@@ -16,7 +16,17 @@ class Constraint {
         segments            m_segments;
         locations           m_locations;
 
+        std::vector<std::vector<enum color> >  m_solutions;
+
         void update_size();
+        void add_variation(
+            std::vector<enum color> *solution_base,
+            int                     current_pos,
+            Segment                 *current_segment,
+            int                     variation_remaining
+        );
+        void print_solution(std::vector<enum color> *solution_base,int max_pos = -1);
+        
 
     public:
         Constraint(enum direction direction,std::vector<int> *blacks);
@@ -29,6 +39,8 @@ class Constraint {
         bool is_passed();
 
         void print();
+
+        void calculate_solutions();
 
 };
 
