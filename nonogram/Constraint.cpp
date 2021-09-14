@@ -262,15 +262,95 @@ void Constraint::set_solution(int solution_index) {
     int pos = 0;
     while (pos < m_locations.size()) {
         Location *location = m_locations.at(pos);
-        location->set_color(m_solutions.at(solution_index).at(pos));
+        if (!location->is_locked()) {
+            location->set_color(m_solutions.at(solution_index).at(pos));
+        } else {
+            assert(m_solutions.at(solution_index).at(pos) == location->get_color());
+        }
         pos++;
     }
-
 }
 void Constraint::reset_solution() {
     for (Location *location : m_locations) {
-        location->set_color(no_color);
+        location->soft_reset();
     }
+}
+
+void Constraint::calc_locks(std::vector<int> *affected) {
+    if (m_solutions.size()>0 && !m_locked) {
+        std::vector<enum color>  common = m_solutions[0];
+        // for (int sol_idx = 1; sol_idx < m_solutions.size();sol_idx++ ) {
+        int nr_in_common = m_size;
+        int sol_idx = 1;
+        while (sol_idx < m_solutions.size()) {
+            nr_in_common = m_size;
+            for (int pos = 0; pos < m_size;pos++) {
+                if (common[pos] != no_color) {
+                    nr_in_common--;
+                    if (common[pos] != m_solutions[sol_idx][pos]) {
+                        common[pos] = no_color;
+                    }
+                }
+            }
+            if (nr_in_common == 0) {
+                break;
+            }
+            sol_idx++;
+        }
+
+        if (nr_in_common > 0) {
+            int nr_locked = 0;
+            for (int pos = 0; pos < m_size;pos++) {
+                if (common[pos] != no_color) {
+                    if (!m_locations[pos]->is_locked()) {
+                        m_locations[pos]->set_color(common[pos]);
+                        m_locations[pos]->lock();
+                    }
+                }
+                if (m_locations[pos]->is_locked()) {
+                    nr_locked++;
+                }
+            }
+            if (nr_locked == m_size) {
+                m_locked = true;
+            }
+        }
+    }
+}
+
+int Constraint::reduce_solutions() {
+    int nr_reduced = 0;
+
+    if (m_solutions.size() > 1) {
+        for (int pos = 0; pos < m_size;pos++) {
+            if (m_locations[pos]->is_locked()) {
+                nr_reduced += reduce_sol(pos,m_locations[pos]->get_color());
+            }
+            if (m_solutions.size() == 1) {
+                break;
+            }
+        }
+    }
+    
+    return nr_reduced;
+}
+
+int Constraint::reduce_sol(int pos, enum color required_color) {
+    int nr_reduced = 0;
+    if (m_solutions.size() > 1) {
+        for (std::vector<std::vector<enum color>>::iterator it=m_solutions.begin(); 
+            it!=m_solutions.end();
+        ) {
+            if(it->at(pos) != required_color) { 
+                nr_reduced++;
+                it = m_solutions.erase(it);
+            }
+            else {
+                ++it;
+            }
+        }
+    }
+    return nr_reduced;
 }
 
 void Constraint::print_solution(std::vector<enum color> *solution_base,int max_pos) {

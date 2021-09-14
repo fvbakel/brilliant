@@ -10,6 +10,7 @@ class Location {
         int         m_x         = 0;
         int         m_y         = 0;
         enum color  m_color     = no_color;
+        bool        m_locked    = false;
 
     public:
         Location(const int x,const int y);
@@ -23,6 +24,13 @@ class Location {
 
         enum color get_color();
         void set_color(enum color);
+        
+        bool is_locked();
+        void lock();
+        void unlock();
+
+        void soft_reset();
+        void hard_reset();
 
         bool is_solved();
 

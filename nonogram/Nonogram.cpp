@@ -74,7 +74,7 @@ void Nonogram::read_file() {
 
 void Nonogram::reset() {
     for (Location *location : m_locations) {
-        location->set_color(no_color);
+        location->hard_reset();
     }
 }
 

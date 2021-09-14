@@ -1,10 +1,12 @@
 #include <Location.h>
 #include <stdio.h>
+#include <assert.h>
 
 Location::Location(const int x,const int y) {
-    m_x     = x;
-    m_y     = y;
-    m_color = no_color;
+    m_x      = x;
+    m_y      = y;
+    m_color  = no_color;
+    m_locked = false;
  }
 
 int Location::get_x() {
@@ -25,7 +27,30 @@ enum color Location::get_color() {
     return m_color;
 }
 void Location::set_color(enum color new_color) {
+    assert(m_locked == false);
     m_color = new_color;
+}
+
+bool Location::is_locked() {
+    return m_locked;
+}
+
+void Location::lock() {
+    assert(m_color != no_color);
+    m_locked = true;
+}
+void Location::unlock() {
+    m_locked = false;
+}
+
+void Location::soft_reset() {
+    if (!m_locked) {
+        m_color = no_color;
+    }
+}
+void Location::hard_reset() {
+    m_color = no_color;
+    m_locked = false;
 }
 
 bool Location::is_solved() {

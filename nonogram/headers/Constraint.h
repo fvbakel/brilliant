@@ -15,6 +15,7 @@ class Constraint {
         int                 m_white_var    = SIZE_UNKNOWN;
         segments            m_segments;
         locations           m_locations;
+        bool                m_locked       = false;
 
         std::vector<std::vector<enum color> >  m_solutions;
 
@@ -26,6 +27,7 @@ class Constraint {
             int                     variation_remaining
         );
         void print_solution(std::vector<enum color> *solution_base,int max_pos = -1);
+        int reduce_sol(int pos, enum color required_color);
         
 
     public:
@@ -45,6 +47,8 @@ class Constraint {
         void set_solution(int solution_index);
         void reset_solution();
 
+        void calc_locks(std::vector<int> *affected);
+        int reduce_solutions();
 };
 
 typedef std::vector<Constraint*>    constraints;
