@@ -23,6 +23,7 @@ class Nonogram {
         void create_locations();
 
         void line_to_int_array(const string &line,std::vector<int> *result);
+        void calc_constraint_solutions();
 
     public:
         Nonogram();

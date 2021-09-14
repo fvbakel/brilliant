@@ -21,7 +21,7 @@ void test_Nonegram_file (string &filename) {
     printf("Start %s(%s)\n",__FUNCTION__,filename.c_str());
     Nonogram *nonogram = new Nonogram(filename);
 
-    nonogram->solve_location_backtrack();
+    nonogram->solve_constraint_backtrack();
     nonogram->print();
 
     assert(nonogram->is_solved());
@@ -257,7 +257,7 @@ int main() {
     test_Nonegram();
 
     string filename = string("./puzzles/QR-code.txt");
-  //  test_Nonegram_file (filename);
+    test_Nonegram_file (filename);
     
     printf("Ready\n");
     return 0;

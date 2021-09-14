@@ -198,23 +198,33 @@ bool Nonogram::solve_location_backtrack(int location_index) {
     return result;
 }
 
-bool Nonogram::solve_constraint_backtrack(int constraint_index) {
+void Nonogram::calc_constraint_solutions () {
+    for (Constraint *constraint : m_y_contraints) {
+        constraint->calculate_solutions();
+    }
+}
+
+bool Nonogram::solve_constraint_backtrack(int con_idx) {
     bool result = false;
-    if (constraint_index < m_y_contraints.size()) {
-        int next_constraint = constraint_index + 1;
-        m_y_contraints[constraint_index]->calculate_solutions();
-   /*     for (int color_index = 0; color_index < 2; color_index++) {
-            m_locations[location_index]->set_color(m_colors[color_index]);
+    if (con_idx == 0) {
+        calc_constraint_solutions();
+    }
+
+    if (con_idx < m_y_contraints.size()) {
+        int nxt_con_idx = con_idx + 1;
+        for (int sol_idx = 0; sol_idx < m_y_contraints[con_idx]->get_solution_size(); sol_idx++) {
+
+            m_y_contraints[con_idx]->set_solution(sol_idx);
 
             if (is_consistent()) {
-                result = solve_constraint_backtrack(next_constraint);
+                result = solve_constraint_backtrack(nxt_con_idx);
                 if (result) {
                     return result;
                 }
             }
-            m_locations[location_index]->set_color(no_color);
+            m_y_contraints[con_idx]->reset_solution();
         }
-        */
+        
     } else {
         result = true;
     }

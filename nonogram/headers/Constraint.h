@@ -41,6 +41,9 @@ class Constraint {
         void print();
 
         void calculate_solutions();
+        int get_solution_size();
+        void set_solution(int solution_index);
+        void reset_solution();
 
 };
 

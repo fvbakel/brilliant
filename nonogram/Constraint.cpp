@@ -221,10 +221,7 @@ void Constraint::add_variation(
     Segment *current_segment,
     int variation_remaining
 ) {
-    printf("Start current pos=%d solution=",current_pos);
-    print_solution(solution_base,current_pos);
-    
-
+   
     // add this segment to the solution
     int count = 0;
     while (count < current_segment->get_min_size()) {
@@ -232,8 +229,6 @@ void Constraint::add_variation(
         current_pos++;
         count++;
     }
-    printf("After Add segment Current pos=%d solution=",current_pos);
-    print_solution(solution_base,current_pos);
 
     Segment *next_segment = current_segment->get_after();
     if (next_segment!=nullptr) {
@@ -245,23 +240,36 @@ void Constraint::add_variation(
         while (var_count < variation_remaining) {
             solution_base->at(current_pos) = white;
             current_pos++;
-            printf("Add white Current pos=%d solution=",current_pos);
-            print_solution(solution_base,current_pos);
-
             var_count++;
             if (next_segment!=nullptr) {
                 add_variation(solution_base,current_pos,next_segment,(variation_remaining-var_count)); 
             } 
         }
         if (next_segment==nullptr) {
-            printf("End Current pos=%d solution=",current_pos);
-            print_solution(solution_base,current_pos);
-            printf("Adding solution: ");
-            print_solution(solution_base);
-            printf("\n");
+       //     printf("Adding solution: ");
+       //     print_solution(solution_base);
             assert(current_pos == m_size);
             m_solutions.push_back(std::vector<enum color>(*solution_base));
         } 
+    }
+}
+
+int Constraint::get_solution_size() {
+    return m_solutions.size();
+}
+void Constraint::set_solution(int solution_index) {
+    assert(solution_index < m_solutions.size());
+    int pos = 0;
+    while (pos < m_locations.size()) {
+        Location *location = m_locations.at(pos);
+        location->set_color(m_solutions.at(solution_index).at(pos));
+        pos++;
+    }
+
+}
+void Constraint::reset_solution() {
+    for (Location *location : m_locations) {
+        location->set_color(no_color);
     }
 }
 
