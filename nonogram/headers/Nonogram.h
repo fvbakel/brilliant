@@ -29,11 +29,11 @@ class Nonogram {
         void calc_constraint_solutions (enum direction for_direction = y_dir) ;
         void lock_constraint_solutions (
             enum direction for_direction,
-            std::vector<int> *affected
+            std::unordered_set<int> *affected
         );
         int reduce_constraint_solutions (
             enum direction for_direction,
-            std::vector<int> *affected
+            std::unordered_set<int> *affected
         );
 
     public:

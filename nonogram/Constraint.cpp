@@ -2,7 +2,6 @@
 #include <cstdlib>
 #include <assert.h>
 
-
 #include <Constraint.h>
 
 Constraint::Constraint(enum direction direction,std::vector<int> *blacks) {
@@ -301,7 +300,7 @@ void Constraint::reset_solution() {
     }
 }
 
-void Constraint::calc_locks(std::vector<int> *affected) {
+void Constraint::calc_locks(std::unordered_set<int>  *affected) {
     if (m_solutions.size()>0 && !m_locked) {
         std::vector<enum color>  common = m_solutions[0];
         int nr_in_common = m_size;
@@ -324,14 +323,17 @@ void Constraint::calc_locks(std::vector<int> *affected) {
             sol_idx++;
         }
 
+    //    printf("nr_in_common=%d\n",nr_in_common);
         if (nr_in_common > 0) {
+    //        print_solution(&common);
             int nr_locked = 0;
             for (int pos = 0; pos < m_size;pos++) {
                 if (common[pos] != no_color) {
                     if (!m_locations[pos]->is_locked()) {
                         m_locations[pos]->set_color(common[pos]);
                         m_locations[pos]->lock();
-                        affected->push_back(pos);
+            //            printf("locking=%d\n",pos);
+                        affected->insert(pos);
                     }
                 }
                 if (m_locations[pos]->is_locked()) {
@@ -350,7 +352,9 @@ int Constraint::reduce_solutions() {
 
     if (m_solutions.size() > 1) {
         for (int pos = 0; pos < m_size;pos++) {
+            
             if (m_locations[pos]->is_locked()) {
+                printf("reducing for pos: %d\n",pos);
                 nr_reduced += reduce_sol(pos,m_locations[pos]->get_color());
             }
             if (m_solutions.size() == 1) {
@@ -364,19 +368,29 @@ int Constraint::reduce_solutions() {
 
 int Constraint::reduce_sol(int pos, enum color required_color) {
     int nr_reduced = 0;
+    printf("m_solutions.size()= %lu\n",m_solutions.size() );
     if (m_solutions.size() > 1) {
-        for (std::vector<std::vector<enum color>>::iterator it=m_solutions.begin(); 
-            it!=m_solutions.end();
-        ) {
-            if(it->at(pos) != required_color) { 
+        for (int i = 0; i < m_solutions.size();i++) {
+            if(m_solutions.at(i).size() > 0 && m_solutions.at(i).at(pos) != required_color) { 
                 nr_reduced++;
-                it = m_solutions.erase(it);
-            }
-            else {
-                ++it;
+                // to slow :-(
+                //it = m_solutions.erase(it);
+                m_solutions.at(i).clear();
             }
         }
     }
+
+    if (nr_reduced > 0) {
+        std::vector<std::vector<enum color>> result;
+        for (int i = 0; i < m_solutions.size();i++) {
+            if( m_solutions.at(i).size() != 0) {
+                result.push_back(m_solutions.at(i));
+            }
+        }
+        m_solutions.clear();
+        m_solutions = result;
+    }
+
     return nr_reduced;
 }
 

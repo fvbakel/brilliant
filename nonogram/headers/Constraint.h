@@ -6,6 +6,7 @@
 #include <constants.h>
 #include <Segment.h>
 #include <Location.h>
+#include <unordered_set>
 
 
 class Constraint {
@@ -52,7 +53,7 @@ class Constraint {
         void set_solution(int solution_index);
         void reset_solution();
 
-        void calc_locks(std::vector<int> *affected);
+        void calc_locks(std::unordered_set<int> *affected);
         int reduce_solutions();
 };
 
