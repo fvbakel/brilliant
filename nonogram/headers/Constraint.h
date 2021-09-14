@@ -28,6 +28,11 @@ class Constraint {
         );
         void print_solution(std::vector<enum color> *solution_base,int max_pos = -1);
         int reduce_sol(int pos, enum color required_color);
+        bool set_color(
+            std::vector<enum color> *solution_base,
+            int current_pos,
+            enum color
+        );
         
 
     public:

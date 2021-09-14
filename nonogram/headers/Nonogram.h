@@ -5,6 +5,7 @@
 #include <Location.h>
 #include <string>
 #include <vector>
+#include <unordered_set>
 
 using namespace std;
 
@@ -14,6 +15,8 @@ class Nonogram {
         string          m_filename      = "";
         int             m_x_size        = SIZE_UNKNOWN;
         int             m_y_size        = SIZE_UNKNOWN;
+
+        std::unordered_set<enum direction>  m_sol_calcs;
         constraints     m_x_contraints;
         constraints     m_y_contraints;
         locations       m_locations;
@@ -23,7 +26,15 @@ class Nonogram {
         void create_locations();
 
         void line_to_int_array(const string &line,std::vector<int> *result);
-        void calc_constraint_solutions();
+        void calc_constraint_solutions (enum direction for_direction = y_dir) ;
+        void lock_constraint_solutions (
+            enum direction for_direction,
+            std::vector<int> *affected
+        );
+        int reduce_constraint_solutions (
+            enum direction for_direction,
+            std::vector<int> *affected
+        );
 
     public:
         Nonogram();

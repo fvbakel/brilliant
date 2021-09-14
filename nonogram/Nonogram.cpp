@@ -73,9 +73,11 @@ void Nonogram::read_file() {
 }
 
 void Nonogram::reset() {
+    m_sol_calcs.clear();
     for (Location *location : m_locations) {
         location->hard_reset();
     }
+
 }
 
 /*
@@ -198,16 +200,74 @@ bool Nonogram::solve_location_backtrack(int location_index) {
     return result;
 }
 
-void Nonogram::calc_constraint_solutions () {
-    for (Constraint *constraint : m_y_contraints) {
+void Nonogram::calc_constraint_solutions (enum direction for_direction) {
+    constraints *p_constraints = &m_y_contraints;
+    if (for_direction == x_dir) {
+        p_constraints = &m_x_contraints;
+    }
+    for (Constraint *constraint : *p_constraints) {
         constraint->calculate_solutions();
     }
+    m_sol_calcs.insert(for_direction);
+}
+
+void Nonogram::lock_constraint_solutions (
+        enum direction for_direction,
+        std::vector<int> *affected
+    ) {
+    constraints *p_constraints = &m_y_contraints;
+    if (for_direction == x_dir) {
+        p_constraints = &m_x_contraints;
+    }
+    for (Constraint *constraint : *p_constraints) {
+        constraint->calc_locks(affected);
+    }
+}
+
+int Nonogram::reduce_constraint_solutions (
+        enum direction for_direction,
+        std::vector<int> *affected
+    ) {
+    int nr_reduced = 0;
+    constraints *p_constraints = &m_y_contraints;
+    if (for_direction == x_dir) {
+        p_constraints = &m_x_contraints;
+    }
+
+    for (int i : *affected) {
+        Constraint *constraint = (*p_constraints)[i];
+        nr_reduced += constraint->reduce_solutions();
+    }
+    return nr_reduced;
 }
 
 bool Nonogram::solve_constraint_backtrack(int con_idx) {
     bool result = false;
-    if (con_idx == 0) {
-        calc_constraint_solutions();
+    if (con_idx == 0 && m_sol_calcs.size() == 0) {
+        calc_constraint_solutions(y_dir);
+        std::vector<int> affected;
+        lock_constraint_solutions(y_dir,&affected);
+        affected.clear();
+        printf("affected.size()=%lu\n",affected.size());
+        calc_constraint_solutions(x_dir);
+        
+        lock_constraint_solutions(x_dir,&affected);
+        enum direction cur_dir = y_dir;
+        printf("affected.size()=%lu\n",affected.size());
+        while (affected.size() > 0) {
+            int nr_reduced = reduce_constraint_solutions(cur_dir,&affected);
+            affected.clear();
+            
+            if (nr_reduced > 0) {
+                printf("nr_reduced=%d\n",nr_reduced);
+                if (cur_dir == x_dir) {
+                    cur_dir = y_dir;
+                } else {
+                    cur_dir = x_dir;
+                }
+                lock_constraint_solutions(cur_dir,&affected);
+            }
+        }
     }
 
     if (con_idx < m_y_contraints.size()) {

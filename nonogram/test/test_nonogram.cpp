@@ -257,7 +257,7 @@ int main() {
     test_Nonegram();
 
     string filename = string("./puzzles/QR-code.txt");
-    test_Nonegram_file (filename);
+   // test_Nonegram_file (filename);
     
     printf("Ready\n");
     return 0;

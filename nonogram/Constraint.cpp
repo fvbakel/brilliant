@@ -8,6 +8,7 @@
 Constraint::Constraint(enum direction direction,std::vector<int> *blacks) {
     
     m_direction = direction;
+    m_locked = false;
     if (blacks != nullptr) {
         int nr_blacks = blacks->size();
         m_segments.push_back(new Segment(white,m_direction,0));
@@ -225,9 +226,12 @@ void Constraint::add_variation(
     // add this segment to the solution
     int count = 0;
     while (count < current_segment->get_min_size()) {
-        solution_base->at(current_pos) = current_segment->get_color();
-        current_pos++;
-        count++;
+        if (set_color(solution_base,current_pos,current_segment->get_color())) {
+            current_pos++;
+            count++;
+        } else {
+            return;
+        }
     }
 
     Segment *next_segment = current_segment->get_after();
@@ -238,9 +242,12 @@ void Constraint::add_variation(
     if (current_segment->get_color() == white) {
         int var_count = 0;
         while (var_count < variation_remaining) {
-            solution_base->at(current_pos) = white;
-            current_pos++;
-            var_count++;
+            if (set_color(solution_base,current_pos,white)) {
+                current_pos++;
+                var_count++;
+            } else {
+                return;
+            }
             if (next_segment!=nullptr) {
                 add_variation(solution_base,current_pos,next_segment,(variation_remaining-var_count)); 
             } 
@@ -254,9 +261,27 @@ void Constraint::add_variation(
     }
 }
 
+bool Constraint::set_color(
+    std::vector<enum color> *solution_base,
+    int current_pos,
+    enum color to_color
+) {
+    bool is_locked = m_locations[current_pos]->is_locked();
+    if ( 
+         !is_locked ||    
+        ( is_locked && m_locations[current_pos]->get_color() == to_color)
+    ) {
+        solution_base->at(current_pos) = to_color;
+        return true;
+    } else {
+        return false;
+    }
+}
+
 int Constraint::get_solution_size() {
     return m_solutions.size();
 }
+
 void Constraint::set_solution(int solution_index) {
     assert(solution_index < m_solutions.size());
     int pos = 0;
@@ -279,17 +304,18 @@ void Constraint::reset_solution() {
 void Constraint::calc_locks(std::vector<int> *affected) {
     if (m_solutions.size()>0 && !m_locked) {
         std::vector<enum color>  common = m_solutions[0];
-        // for (int sol_idx = 1; sol_idx < m_solutions.size();sol_idx++ ) {
         int nr_in_common = m_size;
         int sol_idx = 1;
         while (sol_idx < m_solutions.size()) {
             nr_in_common = m_size;
             for (int pos = 0; pos < m_size;pos++) {
                 if (common[pos] != no_color) {
-                    nr_in_common--;
                     if (common[pos] != m_solutions[sol_idx][pos]) {
+                        nr_in_common--;
                         common[pos] = no_color;
                     }
+                } else {
+                    nr_in_common--;
                 }
             }
             if (nr_in_common == 0) {
@@ -305,6 +331,7 @@ void Constraint::calc_locks(std::vector<int> *affected) {
                     if (!m_locations[pos]->is_locked()) {
                         m_locations[pos]->set_color(common[pos]);
                         m_locations[pos]->lock();
+                        affected->push_back(pos);
                     }
                 }
                 if (m_locations[pos]->is_locked()) {
