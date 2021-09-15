@@ -80,16 +80,9 @@ bool Constraint::is_passed() {
     int current_count = 0;
 
     for (int current_pos = 0; current_pos < m_locations.size(); current_pos++) {
-        //printf("Getting location %d\n",current_pos);
         Location *location = m_locations.at(current_pos);
         enum color loc_color = location->get_color();
         if (loc_color != no_color) {
-    /*        if (loc_color==black) {
-                printf("loc_color= black\n");
-            } else {
-                printf("loc_color!= black\n");
-            }
-    */
             if (current_pos == (m_locations.size() -1)) {
                 all_filled = true;
             }
@@ -101,16 +94,8 @@ bool Constraint::is_passed() {
             }
 
             if (loc_color != current_color) {
-        /*        printf("Segment switch\n");
-                if (current_color==black) {
-                    printf("current_color= black\n");
-                } else {
-                    printf("current_color!= black\n");
-                }
-        */
                 // check if count matches
                 if ( !current_segment->is_size_allowed(current_count)) {
-            //        printf("Not Ok because exceed segment size in switch. current_count=%d, min_size=%d, max_size=%d\n",current_count,current_segment->get_min_size(),current_segment->get_max_size());
                     passed = false;
                     break;
                 }
@@ -121,42 +106,18 @@ bool Constraint::is_passed() {
                     passed = false;
                     break;
                 } else {
-    //                printf("getting new next segment\n");
                     next_segment = current_segment->get_after();
-                    current_color = loc_color;
-    /*                if (current_color==black) {
-                        printf("current segment current_color= black\n");
-                    } else {
-                        printf("current segment current_color!= black\n");
-                    }
-    */            
+                    current_color = loc_color;         
                     current_count = 1;
                 }
             } else {
                 // still in the same segment
                 current_count++;
-            /*    if (current_segment->get_color()==black) {
-                    printf("current segment color= black\n");
-                } else {
-                    printf("current segment color!= black\n");
-                }
-            */
                 if (
                     (current_color==white && !current_segment->is_size_allowed(current_count)) ||
                     (current_color!=white && current_count > current_segment->get_max_size())
 
-                ) {
-                /*    if (current_color==black) {
-                        printf("current_color= black\n");
-                    } else {
-                        printf("current_color!= black\n");
-                    }
-                    
-                    printf("current_count=%d\n",current_count);
-                    printf("current_segment->get_min_size=%d\n",current_segment->get_min_size());
-                    printf("current_segment->get_max_size=%d\n",current_segment->get_max_size());
-                    printf("Not Ok because exceed segment size in same segment\n");
-                */    
+                ) {   
                     passed = false;
                     break;
                 }
@@ -175,7 +136,6 @@ bool Constraint::is_passed() {
                 required_size += current_segment->get_min_size();
             }
             if (current_pos + required_size > m_size) {
-    //            printf("Not Ok because can not meet size\n");
                 passed = false;
             }
             break;
@@ -251,8 +211,6 @@ void Constraint::add_variation(
             } 
         }
         if (next_segment==nullptr) {
-       //     printf("Adding solution: ");
-       //     print_solution(solution_base);
             assert(current_pos == m_size);
             m_solutions.push_back(std::vector<enum color>(*solution_base));
         } 
@@ -322,16 +280,13 @@ void Constraint::calc_locks(std::unordered_set<int>  *affected) {
             sol_idx++;
         }
 
-    //    printf("nr_in_common=%d\n",nr_in_common);
         if (nr_in_common > 0) {
-    //        print_solution(&common);
             int nr_locked = 0;
             for (int pos = 0; pos < m_size;pos++) {
                 if (common[pos] != no_color) {
                     if (!m_locations[pos]->is_locked()) {
                         m_locations[pos]->set_color(common[pos]);
                         m_locations[pos]->lock();
-            //            printf("locking=%d\n",pos);
                         affected->insert(pos);
                     }
                 }

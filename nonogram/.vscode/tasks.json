@@ -1,0 +1,30 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "cppbuild",
+			"label": "C/C++: g++ build test_nonogram",
+			"command": "/usr/bin/g++",
+			"args": [
+				"-I",
+				"${workspaceFolder}/headers/",
+				"-g",
+				"${workspaceFolder}/*.cpp",
+				"${workspaceFolder}/test/test_nonogram.cpp",
+				"-o",
+				"${workspaceFolder}/test_nonogram"
+			],
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"detail": "compiler: /usr/bin/g++"
+		}
+	]
+}

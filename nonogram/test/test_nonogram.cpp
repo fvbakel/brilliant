@@ -258,6 +258,9 @@ int main() {
 
     string filename = string("./puzzles/QR-code.txt");
     test_Nonegram_file (filename);
+
+    filename = string("./puzzles/alan_turing.txt");
+    test_Nonegram_file (filename);
     
     printf("Ready\n");
     return 0;
