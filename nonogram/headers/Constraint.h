@@ -55,6 +55,8 @@ class Constraint {
 
         void calc_locks(std::unordered_set<int> *affected);
         int reduce_solutions();
+
+        void debug_dump();
 };
 
 typedef std::vector<Constraint*>    constraints;

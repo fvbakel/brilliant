@@ -205,7 +205,6 @@ void Constraint::calculate_solutions() {
         update_size();
     }
 
-    print();
     std::vector<enum color> solution_base(m_size);
     add_variation(
         &solution_base,
@@ -354,7 +353,6 @@ int Constraint::reduce_solutions() {
         for (int pos = 0; pos < m_size;pos++) {
             
             if (m_locations[pos]->is_locked()) {
-                printf("reducing for pos: %d\n",pos);
                 nr_reduced += reduce_sol(pos,m_locations[pos]->get_color());
             }
             if (m_solutions.size() == 1) {
@@ -368,7 +366,6 @@ int Constraint::reduce_solutions() {
 
 int Constraint::reduce_sol(int pos, enum color required_color) {
     int nr_reduced = 0;
-    printf("m_solutions.size()= %lu\n",m_solutions.size() );
     if (m_solutions.size() > 1) {
         for (int i = 0; i < m_solutions.size();i++) {
             if(m_solutions.at(i).size() > 0 && m_solutions.at(i).at(pos) != required_color) { 
@@ -413,6 +410,18 @@ void Constraint::print_solution(std::vector<enum color> *solution_base,int max_p
         }
     }
     printf("\"\n");
+}
+
+void Constraint::debug_dump() {
+    printf("Start dump of: ");
+    print();
+    printf("Solutions are:\n");
+    for (int i = 0; i < m_solutions.size();i++) {
+        print_solution(&(m_solutions[i]));
+    }
+
+    printf("End of dump of ");
+    print();
 }
 
 void Constraint::print() {

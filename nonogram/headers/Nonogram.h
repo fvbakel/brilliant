@@ -26,6 +26,8 @@ class Nonogram {
         void create_locations();
 
         void line_to_int_array(const string &line,std::vector<int> *result);
+        constraints *get_constraints (enum direction for_direction);
+
         void calc_constraint_solutions (enum direction for_direction = y_dir) ;
         void lock_constraint_solutions (
             enum direction for_direction,
@@ -35,6 +37,7 @@ class Nonogram {
             enum direction for_direction,
             std::unordered_set<int> *affected
         );
+        void init_constraint_solutions_1();
 
     public:
         Nonogram();
@@ -48,8 +51,7 @@ class Nonogram {
 
         bool is_solved();
         bool is_consistent();
-        bool is_x_consistent();
-        bool is_y_consistent();
+        bool is_consistent_dir(enum direction for_direction);
         bool is_complete();
 
         void print();
