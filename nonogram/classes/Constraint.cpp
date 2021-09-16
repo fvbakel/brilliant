@@ -58,6 +58,7 @@ void Constraint::update_size() {
         min_size += segment->get_min_size();
     }
 
+    // TODO add check that this value is not negative
     m_white_var = m_size - min_size;
     max_white_size = 1 + m_white_var;
 

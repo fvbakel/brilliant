@@ -49,6 +49,7 @@ class Nonogram {
 
         Location *get_Location(const int x, const int y);
 
+        // TODO Add are contraints them selfs valid
         bool is_solved();
         bool is_consistent();
         bool is_consistent_dir(enum direction for_direction);

@@ -1,12 +1,12 @@
 #!/bin/sh
-#CC="g++ -Ofast -march=native -mtune=native -funroll-all-loops" 
-CC="g++"
+CC_RELEASE="g++ -Ofast -march=native -mtune=native -funroll-all-loops" 
+CC_DEBUG="g++ -g"
 x=nonogram
 
 clear
 echo "compile start"
-$CC -I ./headers/ *.cpp ./test/test_nonogram.cpp -o test_nonogram #-lm
-#$CC -I ./ -c Piece.cpp  #-lm
-#$CC -I ./headers/ -c nonogram.cpp Piece.cpp #-o $x #-lm
-#$CC -o $x nonogram.o Piece.o
+$CC_DEBUG -I ./headers/ ./classes/*.cpp ./test/test_nonogram.cpp -o test_nonogram
+
+$CC_RELEASE -I ./headers/ ./classes/*.cpp ./main.cpp -o nonogram
+
 echo "compile ready"

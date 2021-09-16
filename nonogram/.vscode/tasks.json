@@ -9,7 +9,7 @@
 				"-I",
 				"${workspaceFolder}/headers/",
 				"-g",
-				"${workspaceFolder}/*.cpp",
+				"${workspaceFolder}/classes/*.cpp",
 				"${workspaceFolder}/test/test_nonogram.cpp",
 				"-o",
 				"${workspaceFolder}/test_nonogram"
@@ -23,6 +23,30 @@
 			"group": {
 				"kind": "build",
 				"isDefault": true
+			},
+			"detail": "compiler: /usr/bin/g++"
+		},
+		{
+			"type": "cppbuild",
+			"label": "C/C++: g++ build release nonogram",
+			"command": "/usr/bin/g++",
+			"args": [
+				"-I",
+				"${workspaceFolder}/headers/",
+				"${workspaceFolder}/classes/*.cpp",
+				"${workspaceFolder}/main.cpp",
+				"-o",
+				"${workspaceFolder}/nonogram"
+			],
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": false
 			},
 			"detail": "compiler: /usr/bin/g++"
 		}
