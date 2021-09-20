@@ -58,7 +58,6 @@ void Constraint::update_size() {
         min_size += segment->get_min_size();
     }
 
-    // TODO add check that this value is not negative
     m_white_var = m_size - min_size;
     max_white_size = 1 + m_white_var;
 
@@ -67,6 +66,30 @@ void Constraint::update_size() {
             segment->set_max_size(max_white_size);
         }
     }
+}
+
+int Constraint::get_colored_size(enum color for_color) {
+    int count = 0;
+    for (Segment *segment : m_segments) {
+        if (for_color != white && segment->get_color() == for_color) {
+            count +=segment->get_size();
+        } else if (for_color == white && segment->get_color() != for_color) {
+            count +=segment->get_size();
+        } else {
+            // no count needed, continue with next
+        }
+    }
+    if (for_color == white) {
+        return m_size - count;
+    } 
+    return count;
+}
+
+bool Constraint::is_valid() {
+    if (m_white_var < 0) {
+        return false;
+    }
+    return true;
 }
 
 bool Constraint::is_passed() {

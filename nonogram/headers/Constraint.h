@@ -44,7 +44,10 @@ class Constraint {
         int get_white_var(); 
 
         void add_location(Location *location);
+
+        bool is_valid();
         bool is_passed();
+        int get_colored_size(enum color for_color);
 
         void print();
 

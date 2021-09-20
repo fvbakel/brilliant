@@ -16,7 +16,7 @@ void process_file (string &filename) {
     if(nonogram->is_solved()) {
         printf("Solved successfully\n");
     } else {
-        printf("unable to solve\n");
+        printf("Unable to solve\n");
     }
     delete nonogram;
     printf("End processing: %s\n",filename.c_str());

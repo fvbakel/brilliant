@@ -17,6 +17,15 @@ void test_Location () {
     printf("End %s\n",__FUNCTION__);
 }
 
+void test_Nonegram_file_wrong (string &filename) {
+    printf("Start %s(%s)\n",__FUNCTION__,filename.c_str());
+    Nonogram *nonogram = new Nonogram(filename);
+
+    assert(!nonogram->is_input_valid());
+    delete nonogram;
+    printf("End %s(%s)\n",__FUNCTION__,filename.c_str());
+}
+
 void test_Nonegram_file (string &filename) {
     printf("Start %s(%s)\n",__FUNCTION__,filename.c_str());
     Nonogram *nonogram = new Nonogram(filename);
@@ -261,6 +270,9 @@ int main() {
 
     filename = string("./puzzles/alan_turing.txt");
     test_Nonegram_file (filename);
+
+    filename = string("./puzzles/test_wrong.txt");
+    test_Nonegram_file_wrong (filename);
     
     printf("Ready\n");
     return 0;

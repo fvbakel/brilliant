@@ -66,6 +66,10 @@ void Nonogram::read_file() {
             m_y_size = m_y_contraints.size();
             create_locations();
 
+            if (!is_input_valid()) {
+                cout << "ERROR: Invalid input: " << m_filename << "\n";
+            }
+
         } else {
             cout << "ERROR: Unable to open file: " << m_filename << "\n";
         }
@@ -114,6 +118,45 @@ Location* Nonogram::get_Location(const int x, const int y) {
     }
 }
 
+bool Nonogram::is_input_valid() {
+    if (!m_valid_checked) {
+        bool dir_valid = is_input_valid_dir(x_dir) && is_input_valid_dir(y_dir);
+        bool sum_valid = true;
+        
+        int x_black_sum =get_colored_size_sum(x_dir,black);
+        int y_black_sum =get_colored_size_sum(y_dir,black);
+
+        if (x_black_sum != y_black_sum) {
+            printf("Invalid input, total nr of black (%d) in horizontal does march vertical(%d).\n",
+                x_black_sum,y_black_sum);
+            sum_valid = false;
+        }
+        m_valid_checked = true;
+        m_valid = dir_valid && sum_valid;
+    } 
+
+    return m_valid;
+}
+bool Nonogram::is_input_valid_dir(enum direction for_direction) {
+    constraints *p_constraints = get_constraints(for_direction);
+    for (Constraint *constraint : *p_constraints) {
+        if (!constraint->is_valid()) {
+            printf("Invalid input, to large constraint: ");
+            constraint->print();
+            return false;
+        }
+    }
+    return true;
+}
+
+int Nonogram::get_colored_size_sum(enum direction for_direction,enum color for_color) {
+    int sum = 0;
+    constraints *p_constraints = get_constraints(for_direction);
+    for (Constraint *constraint : *p_constraints) {
+        sum += constraint->get_colored_size(for_color);
+    }
+    return sum;
+}
 
 bool Nonogram::is_solved() {
     return is_consistent() && is_complete();
@@ -158,6 +201,9 @@ void Nonogram::print() {
 
 bool Nonogram::solve_location_backtrack(int location_index) {
     bool result = false;
+    if (!is_input_valid()) {
+        return false;
+    }
     if (location_index < m_locations.size()) {
         int next_location = location_index + 1;
         for (int color_index = 0; color_index < 2; color_index++) {
@@ -245,6 +291,9 @@ void Nonogram::init_constraint_solutions_1() {
 bool Nonogram::solve_constraint_backtrack(int con_idx) {
     bool result = false;
     if (con_idx == 0 && m_sol_calcs.size() == 0) {
+        if (!is_input_valid()) {
+            return false;
+        }
         init_constraint_solutions_1();
         if (is_solved()) {
             printf("Solved with constraints only.\n");

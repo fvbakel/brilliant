@@ -15,6 +15,8 @@ class Nonogram {
         string          m_filename      = "";
         int             m_x_size        = SIZE_UNKNOWN;
         int             m_y_size        = SIZE_UNKNOWN;
+        bool            m_valid         = false;
+        bool            m_valid_checked = false;
 
         std::unordered_set<enum direction>  m_sol_calcs;
         constraints     m_x_contraints;
@@ -22,7 +24,7 @@ class Nonogram {
         locations       m_locations;
 
         void read_file();
-        //void fill_sizes();
+
         void create_locations();
 
         void line_to_int_array(const string &line,std::vector<int> *result);
@@ -39,6 +41,10 @@ class Nonogram {
         );
         void init_constraint_solutions_1();
 
+        bool is_consistent_dir(enum direction for_direction);
+        bool is_input_valid_dir(enum direction for_direction);
+        int get_colored_size_sum(enum direction for_direction,enum color for_color);
+
     public:
         Nonogram();
         Nonogram(const string &filename);
@@ -49,10 +55,9 @@ class Nonogram {
 
         Location *get_Location(const int x, const int y);
 
-        // TODO Add are contraints them selfs valid
+        bool is_input_valid();
         bool is_solved();
         bool is_consistent();
-        bool is_consistent_dir(enum direction for_direction);
         bool is_complete();
 
         void print();
