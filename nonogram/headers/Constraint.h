@@ -39,7 +39,8 @@ class Constraint {
     public:
         Constraint(enum direction direction,std::vector<int> *blacks);
         ~Constraint();
-       
+        
+        enum direction get_direction();
         int get_size();
         int get_white_var(); 
 

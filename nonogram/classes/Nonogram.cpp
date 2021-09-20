@@ -245,7 +245,9 @@ void Nonogram::lock_constraint_solutions (
     ) {
     constraints *p_constraints = get_constraints(for_direction);
     for (Constraint *constraint : *p_constraints) {
-        constraint->calc_locks(affected);
+        if (constraint->get_solution_size() > 0) {
+            constraint->calc_locks(affected);
+        }
     }
 }
 
@@ -258,9 +260,51 @@ int Nonogram::reduce_constraint_solutions (
 
     for (int i : *affected) {
         Constraint *constraint = (*p_constraints)[i];
-        nr_reduced += constraint->reduce_solutions();
+        if (constraint->get_solution_size() > 1) {
+            nr_reduced += constraint->reduce_solutions();
+        }
     }
     return nr_reduced;
+}
+
+Constraint *Nonogram::get_next_to_calculate() {
+    Constraint *next_constraint_x = nullptr;
+    Constraint *next_constraint_y = nullptr;
+    next_constraint_x = get_next_to_calculate_dir(x_dir);
+    next_constraint_y = get_next_to_calculate_dir(y_dir);
+    if (next_constraint_x== nullptr && next_constraint_y == nullptr) {
+        return nullptr;
+    } else if (next_constraint_x== nullptr ) {
+        return next_constraint_y;
+    } else if (next_constraint_y== nullptr ) {
+        return next_constraint_x;
+    } else {
+        int x_sol_size = next_constraint_x->get_solution_size();
+        int y_sol_size = next_constraint_y->get_solution_size();
+        if (x_sol_size < y_sol_size) {
+            return next_constraint_x;
+        } else {
+            return next_constraint_y;
+        }
+    }
+}
+
+Constraint *Nonogram::get_next_to_calculate_dir(enum direction for_direction) {
+    Constraint *next_constraint = nullptr;
+    constraints *p_constraints = get_constraints(for_direction);
+    int smallest_variation = -1;
+    for (Constraint *constraint : *p_constraints) {
+        if (constraint->get_solution_size() == 0) {
+            int variation = constraint->get_white_var();
+            if (    smallest_variation == -1 ||
+                    variation < smallest_variation
+            ) {
+                smallest_variation = variation;
+                next_constraint = constraint;
+            }
+        }
+    }
+    return next_constraint;
 }
 
 void Nonogram::init_constraint_solutions_1() {
@@ -273,19 +317,56 @@ void Nonogram::init_constraint_solutions_1() {
     cur_dir = x_dir;
     calc_constraint_solutions(cur_dir);
     lock_constraint_solutions(cur_dir,&affected);
-    while (affected.size() > 0) {
-        if (cur_dir == x_dir) {
-            cur_dir = y_dir;
-        } else {
-            cur_dir = x_dir;
-        }
-        int nr_reduced = reduce_constraint_solutions(cur_dir,&affected);
-        affected.clear();
+
+    cur_dir = reduce_and_lock(cur_dir,&affected);
+}
+
+enum direction Nonogram::swap_direction(enum direction cur_dir) {
+    if (cur_dir == x_dir) {
+        return y_dir;
+    } else {
+        return x_dir;
+    }
+}
+
+void Nonogram::init_constraint_solutions_2() {
+    std::unordered_set<int> affected;
+    enum direction cur_dir = y_dir;
+
+    Constraint *constraint = get_next_to_calculate();
+    while (constraint != nullptr) {
+        constraint->calculate_solutions();
+        constraint->calc_locks(&affected);
+        cur_dir = constraint->get_direction();
+        cur_dir = reduce_and_lock(cur_dir,&affected);
+        //constraint->debug_dump();
+        constraint = get_next_to_calculate();
+    }
+
+    // just mark all as affected in the first run
+ /*   affected.clear();
+    for (int i = 0; i < m_x_size;i++) {
+        affected.insert(i);
+    }
+*/
+
+    cur_dir = reduce_and_lock(cur_dir,&affected);
+}
+
+enum direction Nonogram::reduce_and_lock (
+            enum direction cur_dir,
+            std::unordered_set<int> *affected
+    ) {
+    while (affected->size() > 0) {
+        cur_dir = swap_direction(cur_dir);
+        int nr_reduced = reduce_constraint_solutions(cur_dir,affected);
+        affected->clear();
         
         if (nr_reduced > 0) {
-            lock_constraint_solutions(cur_dir,&affected);
+            lock_constraint_solutions(cur_dir,affected);
         }
     }
+    return cur_dir;
 }
 
 bool Nonogram::solve_constraint_backtrack(int con_idx) {
@@ -294,7 +375,8 @@ bool Nonogram::solve_constraint_backtrack(int con_idx) {
         if (!is_input_valid()) {
             return false;
         }
-        init_constraint_solutions_1();
+        //init_constraint_solutions_1();
+        init_constraint_solutions_2();
         if (is_solved()) {
             printf("Solved with constraints only.\n");
             return true;

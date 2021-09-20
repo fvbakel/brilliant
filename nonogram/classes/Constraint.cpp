@@ -41,6 +41,10 @@ void Constraint::add_location(Location *location) {
     update_size();
 }
 
+enum direction Constraint::get_direction() {
+    return m_direction;
+}
+
 int Constraint::get_size() {
     return m_size;
 }

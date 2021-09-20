@@ -273,6 +273,9 @@ int main() {
 
     filename = string("./puzzles/test_wrong.txt");
     test_Nonegram_file_wrong (filename);
+
+    filename = string("./puzzles/45_45_large.txt");
+    test_Nonegram_file (filename);
     
     printf("Ready\n");
     return 0;
