@@ -40,7 +40,9 @@ void Nonogram::read_file() {
                 if (line.size() > 0 && line.substr(0,1).compare("#") != 0) {
                     line_to_int_array(line,&result);
 
-                    if (result.size() > 0) {
+                    if (    result.size() > 0 || 
+                            (result.size() == 0 && line.compare("0") == 0)
+                    ) {
                         Constraint *constraint = new Constraint(cur_dir,&result);
                         if (cur_dir == x_dir) {
                             m_x_contraints.push_back(constraint);

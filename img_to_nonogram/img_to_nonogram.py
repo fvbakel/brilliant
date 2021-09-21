@@ -46,6 +46,7 @@ class NonogramMaker:
         self.re_size()
         self.sharpen()
         self.black_white()
+        self.test_pixel()
 
     def write_img(self,message):
         global debug
@@ -53,9 +54,10 @@ class NonogramMaker:
             cv2.imwrite(self.basename + "_" + message + self.org_ext,self.mod_img)
 
     def test_pixel(self):
-        self.mod_img[0,0] = 125
-        self.mod_img[1,0] = 125
-        self.mod_img[2,0] = 125
+        self.mod_img[0,1] = 125
+        self.mod_img[0,2] = 125
+        self.mod_img[0,3] = 125
+        self.mod_img[1,3] = 125
         self.write_img("pixel")
 
     def write_line(self,output, line):
@@ -76,12 +78,12 @@ class NonogramMaker:
         output.write("# Clue: " + self.basename +"\n" )
         output.write("#\n" )
 
-        for x in range(self.mod_img.shape[0]):
+        for x in range(self.mod_img.shape[1]):
             black_count = 0
             previous_value = -1
             line = []
-            for y in range(self.mod_img.shape[1]):
-                value = self.mod_img[x,y]
+            for y in range(self.mod_img.shape[0]):
+                value = self.mod_img[y,x]
                 if (value != previous_value and black_count>0):
                     line.append(black_count)
                     black_count = 0
@@ -95,12 +97,12 @@ class NonogramMaker:
             self.write_line(output, line)
 
         output.write("\n" )
-        for y in range(self.mod_img.shape[1]):
+        for y in range(self.mod_img.shape[0]):
             black_count = 0
             previous_value = -1
             line = []
-            for x in range(self.mod_img.shape[0]):
-                value = self.mod_img[x,y]
+            for x in range(self.mod_img.shape[1]):
+                value = self.mod_img[y,x]
                 if (value != previous_value and black_count>0):
                     line.append(black_count)
                     black_count = 0
