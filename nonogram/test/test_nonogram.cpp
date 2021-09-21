@@ -146,7 +146,7 @@ void test_constraint () {
 
     assert(constraint->is_passed());
     location[0]->set_color(white);
-    assert(constraint->is_passed());
+    assert(!constraint->is_passed());
 
     location[0]->set_color(black);
     assert(constraint->is_passed());

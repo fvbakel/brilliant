@@ -84,7 +84,6 @@ int Constraint::get_variation() {
 
 void Constraint::update_size() {
     int min_size = 0;
-    int max_white_size = 0;
     m_size = m_locations.size();
     
     for (Segment *segment : m_segments) {
@@ -92,11 +91,9 @@ void Constraint::update_size() {
     }
 
     m_white_var = m_size - min_size;
-    max_white_size = 1 + m_white_var;
-
     for (Segment *segment : m_segments) {
         if (segment->get_color() == white) {
-            segment->set_max_size(max_white_size);
+            segment->set_max_size(m_white_var + segment->get_min_size());
         }
     }
 }
