@@ -279,9 +279,9 @@ Constraint *Nonogram::get_next_to_calculate() {
     } else if (next_constraint_y== nullptr ) {
         return next_constraint_x;
     } else {
-        int x_sol_size = next_constraint_x->get_solution_size();
-        int y_sol_size = next_constraint_y->get_solution_size();
-        if (x_sol_size < y_sol_size) {
+        int x_var_size = next_constraint_x->get_variation();
+        int y_var_size = next_constraint_y->get_variation();
+        if (x_var_size < y_var_size) {
             return next_constraint_x;
         } else {
             return next_constraint_y;
@@ -295,7 +295,7 @@ Constraint *Nonogram::get_next_to_calculate_dir(enum direction for_direction) {
     int smallest_variation = -1;
     for (Constraint *constraint : *p_constraints) {
         if (constraint->get_solution_size() == 0) {
-            int variation = constraint->get_white_var();
+            int variation = constraint->get_variation();
             if (    smallest_variation == -1 ||
                     variation < smallest_variation
             ) {
@@ -335,6 +335,8 @@ void Nonogram::init_constraint_solutions_2() {
 
     Constraint *constraint = get_next_to_calculate();
     while (constraint != nullptr) {
+        printf("INFO: Nr of variations: %d now Calculating ",constraint->get_variation());
+        constraint->print();
         constraint->calculate_solutions();
         constraint->calc_locks(&affected);
         cur_dir = constraint->get_direction();

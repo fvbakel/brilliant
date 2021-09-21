@@ -7,6 +7,7 @@
 #include <Nonogram.h>
 #include <Location.h>
 #include <constants.h>
+#include <VarianceCalculator.h>
 
 
 void test_Location () {
@@ -232,6 +233,59 @@ void test_constraint () {
     assert(constraint->is_passed());
 
     delete constraint;
+
+    std::vector<int> blacks_3({1,1});
+    constraint = new Constraint(x_dir,&blacks_3);
+
+    for (int i = 0; i < 5; i++) {
+        constraint->add_location(location[i]);
+    }
+    location[0]->set_color(black);
+    location[1]->set_color(white);
+    location[2]->set_color(black);
+    location[3]->set_color(white);
+    location[4]->set_color(white);
+    location[5]->set_color(no_color);
+    for (int i = 0; i < 4; i++) {
+        location[i]->lock();
+    }
+
+    constraint->calculate_solutions();
+    assert(constraint->get_solution_size() == 1);
+
+    for (int i = 0; i < 4; i++) {
+        location[i]->unlock();
+    }
+    location[0]->set_color(no_color);
+    location[1]->set_color(no_color);
+    location[2]->set_color(no_color);
+    location[3]->set_color(no_color);
+    location[4]->set_color(no_color);
+    location[5]->set_color(no_color);
+
+    constraint->reset_solution();
+    constraint->calculate_solutions();
+    printf("solution size = %d\n",constraint->get_solution_size());
+    printf("variation size = %d\n",constraint->get_variation());
+  //  assert(constraint->get_solution_size() == constraint->get_variation());
+    delete constraint;
+
+    std::vector<int> blacks_4({1,1,1});
+    constraint = new Constraint(x_dir,&blacks_4);
+
+    for (int i = 0; i < 8; i++) {
+        constraint->add_location(location[i]);
+        location[i]->unlock();
+        location[i]->set_color(no_color);
+    }
+    constraint->reset_solution();
+    constraint->calculate_solutions();
+    constraint->debug_dump();
+    printf("solution size = %d\n",constraint->get_solution_size());
+    printf("variation size = %d\n",constraint->get_variation());
+    assert(constraint->get_solution_size() == constraint->get_variation());
+    delete constraint;
+
     for (int i = 0; i < 8; i++) {
         delete location[i];
     }
@@ -255,10 +309,20 @@ void test_segment() {
     printf("End %s\n",__FUNCTION__);
 }
 
+void test_get_variance() {
+    
+    assert(VarianceCalculator::getCalculator()->get_variance(1,1) == 1);
+    assert(VarianceCalculator::getCalculator()->get_variance(3,3) == 10);
+    assert(VarianceCalculator::getCalculator()->get_variance(3,3) == 10);
+    assert(VarianceCalculator::getCalculator()->get_variance(3,8) == 45);
+    assert(VarianceCalculator::getCalculator()->get_variance(5,7) == 330);
+    assert(VarianceCalculator::getCalculator()->get_variance(9,16) == 735471);
+}
+
 int main() {
     printf("Started\n");
 
-    
+    test_get_variance();
     test_Location();
     test_segment();
     test_constraint();

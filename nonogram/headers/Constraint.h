@@ -34,7 +34,6 @@ class Constraint {
             int current_pos,
             enum color
         );
-        
 
     public:
         Constraint(enum direction direction,std::vector<int> *blacks);
@@ -43,6 +42,7 @@ class Constraint {
         enum direction get_direction();
         int get_size();
         int get_white_var(); 
+        int get_variation(); 
 
         void add_location(Location *location);
 

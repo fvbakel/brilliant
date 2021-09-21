@@ -1,8 +1,10 @@
 #include <stdio.h>
 #include <cstdlib>
 #include <assert.h>
+#include <cmath>
 
 #include <Constraint.h>
+#include <VarianceCalculator.h>
 
 Constraint::Constraint(enum direction direction,std::vector<int> *blacks) {
     
@@ -51,6 +53,25 @@ int Constraint::get_size() {
 
 int Constraint::get_white_var() {
     return m_white_var;
+}
+
+int Constraint::get_variation() {
+    int nr_of_white_segments = 0;
+    
+    for (Segment *segment : m_segments) {
+        if (segment->get_color() == white) {
+            nr_of_white_segments++;
+        }
+    }
+    assert(nr_of_white_segments > 1);
+    int value = VarianceCalculator::getCalculator()->get_variance(nr_of_white_segments,m_white_var);
+    if (value < 1) {
+        printf("WARNING: To many or no variation for: \n");
+        print();
+        value = (int) pow(2,( (8 * sizeof(int) ) -1 ));
+        printf("WARNING: falling back to %d \n",value);        
+    }
+    return value;
 }
 
 void Constraint::update_size() {
