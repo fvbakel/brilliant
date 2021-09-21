@@ -34,7 +34,7 @@ Constraint::Constraint(enum direction direction,std::vector<int> *blacks) {
         m_segments.push_back(end_segment);
 
     } else {
-        printf("ERROR, one or more black fields are required!\n");
+        printf("ERROR, parameter blacks can not be null\n");
     }
 }
 
@@ -58,12 +58,20 @@ int Constraint::get_white_var() {
 int Constraint::get_variation() {
     int nr_of_white_segments = 0;
     
+    if (m_segments.size() ==0) {
+        return 0;
+    } else if (m_segments.size() < 3) {
+        // only sement at begin and end
+        return 1;
+    }
+
     for (Segment *segment : m_segments) {
         if (segment->get_color() == white) {
             nr_of_white_segments++;
         }
     }
     assert(nr_of_white_segments > 1);
+
     int value = VarianceCalculator::getCalculator()->get_variance(nr_of_white_segments,m_white_var);
     if (value < 1) {
         printf("WARNING: To many or no variation for: \n");
@@ -208,17 +216,23 @@ bool Constraint::is_passed() {
 }
 
 void Constraint::calculate_solutions() {
+    std::vector<enum color> solution_base(m_size);
+    Segment *current_segment = m_segments[0];
     m_solutions.clear();
+
+    // special case if there are only two segments
+    if (m_segments.size() == 2) {
+        current_segment = m_segments[1];
+    }
 
     if (m_white_var == SIZE_UNKNOWN) {
         update_size();
     }
-
-    std::vector<enum color> solution_base(m_size);
+    
     add_variation(
         &solution_base,
         0,
-        m_segments[0],
+        current_segment,
         m_white_var
     );
 }

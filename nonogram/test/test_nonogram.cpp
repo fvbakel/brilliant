@@ -286,6 +286,22 @@ void test_constraint () {
     assert(constraint->get_solution_size() == constraint->get_variation());
     delete constraint;
 
+    std::vector<int> blacks_5;
+    constraint = new Constraint(x_dir,&blacks_5);
+
+    for (int i = 0; i < 8; i++) {
+        constraint->add_location(location[i]);
+        location[i]->unlock();
+        location[i]->set_color(no_color);
+    }
+
+    assert(constraint->get_variation() == 1);
+    constraint->calculate_solutions();
+    assert(constraint->get_solution_size() == 1);
+
+    delete constraint;
+
+    // delete of locations
     for (int i = 0; i < 8; i++) {
         delete location[i];
     }
