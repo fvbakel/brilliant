@@ -335,22 +335,13 @@ void Nonogram::init_constraint_solutions_2() {
 
     Constraint *constraint = get_next_to_calculate();
     while (constraint != nullptr) {
-        printf("INFO: Nr of variations: %d now Calculating ",constraint->get_variation());
-        constraint->print();
         constraint->calculate_solutions();
         constraint->calc_locks(&affected);
         cur_dir = constraint->get_direction();
         cur_dir = reduce_and_lock(cur_dir,&affected);
-        //constraint->debug_dump();
+        
         constraint = get_next_to_calculate();
     }
-
-    // just mark all as affected in the first run
- /*   affected.clear();
-    for (int i = 0; i < m_x_size;i++) {
-        affected.insert(i);
-    }
-*/
 
     cur_dir = reduce_and_lock(cur_dir,&affected);
 }
