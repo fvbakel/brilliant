@@ -57,6 +57,7 @@ int Constraint::get_white_var() {
 
 int Constraint::get_variation() {
     int nr_of_white_segments = 0;
+    int estimate_white_var = m_white_var;
     
     if (m_segments.size() ==0) {
         return 0;
@@ -72,7 +73,27 @@ int Constraint::get_variation() {
     }
     assert(nr_of_white_segments > 1);
 
-    int value = VarianceCalculator::getCalculator()->get_variance(nr_of_white_segments,m_white_var);
+    int white_sequence = 0;
+    bool first_segment = true;
+    for (int pos = 0; pos < m_locations.size();pos++) {
+        if (m_locations[pos]->get_color() ==white) {
+            white_sequence++;
+        } else {
+            
+            if (first_segment && white_sequence > 0) {
+                estimate_white_var -= white_sequence;
+            } else if (white_sequence > 1) {
+                estimate_white_var -= (white_sequence - 1);
+            }
+            first_segment =false;
+            white_sequence = 0;
+        }
+    }
+    if (white_sequence > 0) {
+        estimate_white_var -= white_sequence;
+    }
+
+    int value = VarianceCalculator::getCalculator()->get_variance(nr_of_white_segments,estimate_white_var);
     if (value < 1) {
         printf("WARNING: To many or no variation for: \n");
         print();

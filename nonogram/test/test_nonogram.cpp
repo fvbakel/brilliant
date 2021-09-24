@@ -122,6 +122,66 @@ void test_Nonegram () {
     printf("End %s\n",__FUNCTION__);
 }
 
+void test_reduce_constraint() {
+    // example:
+    // Y: 2 2 7 2 1 7 1 2 6 2 2 
+    // |    UUU XX XUXXUUX  UX   UUU U   X XXXXXXXU X U  U U  UU  XXXXXX  XXUXXU|
+    // should be reduced to:
+    // |    UXU XX XXXXXXX  XX           X XXXXXXX  X         XX  XXXXXX  XX XX |
+    printf("Start %s\n",__FUNCTION__);
+    std::vector<int> blacks({ 2, 2, 7, 2, 1, 7, 1, 2, 6, 2, 2});
+    Constraint *constraint = new Constraint(x_dir,&blacks); 
+    const int size = 100;
+    Location *location[size];
+    for (int pos = 0;pos < size; pos++) {
+        location[pos] = new Location(pos,0);
+    }
+
+    // white segments that can vary theory = 12
+    // white segments that can vary actual = 2
+    // white space unknown actual = 1
+    // whitespace variation determined = 4 + 1 + 2 + 2 etc. 
+    string start_state = "    UUU XX XUXXUUX  UX   UUU U   X XXXXXXXU X U  U U  UU  XXXXXX  XXUXXU";
+    for (int pos = 0;pos < start_state.size();pos++) {
+        char loc_state = start_state.at(pos);
+        if (loc_state == ' ') {
+            location[pos]->set_color(white);
+            location[pos]->lock();
+        } else if (loc_state == 'X') { 
+            location[pos]->set_color(black);
+            location[pos]->lock();
+        }
+        constraint->add_location(location[pos]);
+    }
+
+    //
+    int var = constraint->get_variation();
+    printf("Variation estimate = %d \n",var);
+    
+    assert(var <= 7726160);
+    //assert(var == 2);
+
+    // check
+    constraint->calculate_solutions();
+    constraint->debug_dump();
+    assert(constraint->get_solution_size() == 2);
+
+    std::unordered_set<int> affected;
+    constraint->calc_locks(&affected);
+    constraint->debug_dump();
+    printf("Affected size = %lu \n",affected.size());
+    assert(affected.size() ==17);
+
+    delete constraint;
+
+    // delete of locations
+    for (int i = 0; i < size; i++) {
+        delete location[i];
+    }
+
+    printf("End %s\n",__FUNCTION__);
+}
+
 void test_constraint () {
     printf("Start %s\n",__FUNCTION__);
 
@@ -342,6 +402,7 @@ int main() {
     test_Location();
     test_segment();
     test_constraint();
+    test_reduce_constraint();
     
     test_Nonegram();
 
@@ -362,6 +423,10 @@ int main() {
     test_Nonegram_file (filename);
 
     filename = string("./puzzles/54.non");
+    test_Nonegram_file (filename);
+
+    // a large file with a wide solution space...
+    filename = string("./puzzles/tiger.non");
     test_Nonegram_file (filename);
 
     //filename = string("./puzzles/45_45_large.txt");
