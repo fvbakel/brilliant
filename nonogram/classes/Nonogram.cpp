@@ -13,23 +13,107 @@ Nonogram::Nonogram(const string &filename) {
     this->read_file();
 }
 
-void Nonogram::line_to_int_array(const string &line,std::vector<int> *result) {
+void Nonogram::line_to_int_array(
+    const string &line,
+    std::vector<int> *result,
+    const char file_delim
+) {
     std::istringstream iss(line);
     std::string item;
 
-    while (std::getline(iss, item, FILE_DELIM)) {
-        int value = stoi(item);
-        if (value > 0) {
-            result->push_back(value);
+    while (std::getline(iss, item, file_delim)) {
+        char *p;
+        int value = (int) strtol(item.c_str(),&p,10);
+        if (*p ) {
+            cout << "ERROR: Unable to read line: " << line << "\n";
+        } else {
+            if (value > 0) {
+                result->push_back(value);
+            }
         }
+    }
+}
+
+void Nonogram::parse_txt_line(std::string &line,enum direction &cur_dir) {
+    vector<int> result;
+    const char file_delim = ' ';
+    if (line.size() > 0 && line.substr(0,1).compare("#") != 0) {
+        line_to_int_array(line,&result,file_delim);
+
+        if (    result.size() > 0 || 
+                (result.size() == 0 && line.compare("0") == 0)
+        ) {
+            Constraint *constraint = new Constraint(cur_dir,&result);
+            constraints *p_contraints  = get_constraints(cur_dir);
+            p_contraints->push_back(constraint);
+        } else {
+            cout << "ERROR: Unable to read txt line: " << line << "\n";
+        }
+        result.clear();
+
+    } else if (line.size() == 0) {
+        if (cur_dir == x_dir) {
+            cur_dir = y_dir;
+        } else {
+            cout << "Warning: More than one empty line\n";
+        }
+    }
+}
+
+void Nonogram::parse_non_line(std::string &line,enum direction &cur_dir) {
+    vector<int>     result;
+    const char file_delim = ',';
+    if (line.size() > 0) {
+
+        if (    line.size() > 4 &&
+                line.substr(0,4).compare("goal") == 0
+        ) {
+            m_non_parse_state = searching;
+        }
+
+        if (m_non_parse_state == searching) {
+            if (line.compare("rows") == 0) {
+                m_non_parse_state = parsing_rows;
+                cur_dir = y_dir;
+            } else if (line.compare("columns") == 0) {
+                m_non_parse_state = parsing_cols;
+                cur_dir = x_dir;
+            } else {
+                // ignore this line
+            }
+        } else {
+            
+            line_to_int_array(line,&result,file_delim);
+
+            if (    result.size() > 0 || 
+                    (result.size() == 0 && line.compare("0") == 0)
+            ) {
+                Constraint *constraint = new Constraint(cur_dir,&result);
+                constraints *p_contraints  = get_constraints(cur_dir);
+                p_contraints->push_back(constraint);
+            } else {
+                cout << "ERROR: Unable to read non line: " << line << "\n";
+            }
+            result.clear();
+        }
+    } else if (line.size() == 0) {
+        m_non_parse_state = searching;
     }
 }
 
 void Nonogram::read_file() {
     if (m_filename != "") {
         string line;
-        vector<int> result;
         ifstream input_file;
+        enum file_type cur_type = txt_file;
+        
+        if (m_filename.size() > 4) {
+            string extension = m_filename.substr(m_filename.size()-3);
+            if (extension.compare("NON") == 0 || extension.compare("non") == 0) {
+                cur_type = non_file;
+            }
+        }
+
         input_file.open(m_filename);
         if (input_file.is_open()) {
             enum direction cur_dir = x_dir;
@@ -37,29 +121,10 @@ void Nonogram::read_file() {
             m_y_size = 0;
             
             while ( getline(input_file,line)) {
-                if (line.size() > 0 && line.substr(0,1).compare("#") != 0) {
-                    line_to_int_array(line,&result);
-
-                    if (    result.size() > 0 || 
-                            (result.size() == 0 && line.compare("0") == 0)
-                    ) {
-                        Constraint *constraint = new Constraint(cur_dir,&result);
-                        if (cur_dir == x_dir) {
-                            m_x_contraints.push_back(constraint);
-                        } else {
-                            m_y_contraints.push_back(constraint);
-                        }
-                    } else {
-                        cout << "ERROR: Unable to read line: " << line << "\n";
-                    }
-                    result.clear();
-
-                } else if (line.size() == 0) {
-                    if (cur_dir == x_dir) {
-                        cur_dir = y_dir;
-                    } else {
-                        cout << "Warning: More than one empty line\n";
-                    }
+                if (cur_type == non_file) {
+                    parse_non_line(line,cur_dir);
+                } else {
+                    parse_txt_line(line,cur_dir);
                 }
             }
             input_file.close();

@@ -3,8 +3,9 @@
 
 enum color {no_color,black,white};
 enum direction {x_dir,y_dir};
+enum file_type {txt_file,non_file};
+enum non_parse_state {searching,parsing_rows,parsing_cols};
 
 const int SIZE_UNKNOWN = -1;
-const char FILE_DELIM = ' ';
 
 #endif /* <constants.h> included.  */

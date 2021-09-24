@@ -358,6 +358,12 @@ int main() {
     filename = string("./puzzles/cat-1_45_32.txt");
     test_Nonegram_file (filename);
 
+    filename = string("./puzzles/42.non");
+    test_Nonegram_file (filename);
+
+    filename = string("./puzzles/54.non");
+    test_Nonegram_file (filename);
+
     //filename = string("./puzzles/45_45_large.txt");
     //test_Nonegram_file (filename);
     

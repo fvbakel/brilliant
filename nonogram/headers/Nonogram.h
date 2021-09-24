@@ -11,12 +11,13 @@ using namespace std;
 
 class Nonogram {
     private:
-        enum color      m_colors[2]     = {black,white};
-        string          m_filename      = "";
-        int             m_x_size        = SIZE_UNKNOWN;
-        int             m_y_size        = SIZE_UNKNOWN;
-        bool            m_valid         = false;
-        bool            m_valid_checked = false;
+        enum color              m_colors[2]         = {black,white};
+        string                  m_filename          = "";
+        int                     m_x_size            = SIZE_UNKNOWN;
+        int                     m_y_size            = SIZE_UNKNOWN;
+        bool                    m_valid             = false;
+        bool                    m_valid_checked     = false;
+        enum non_parse_state    m_non_parse_state   = searching;
 
         std::unordered_set<enum direction>  m_sol_calcs;
         constraints     m_x_contraints;
@@ -27,7 +28,14 @@ class Nonogram {
 
         void create_locations();
 
-        void line_to_int_array(const string &line,std::vector<int> *result);
+        void line_to_int_array(
+            const string &line,
+            std::vector<int> *result,
+            const char file_delim
+        );
+        void parse_txt_line(std::string &line,enum direction &cur_dir);
+        void parse_non_line(std::string &line,enum direction &cur_dir);
+
         constraints *get_constraints (enum direction for_direction);
 
         Constraint *get_next_to_calculate();
