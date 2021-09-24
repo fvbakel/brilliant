@@ -1,7 +1,7 @@
 #ifndef _NONOGRAM_H
 #define _NONOGRAM_H	1
 
-#include <Constraint.h>
+#include <MainConstraint.h>
 #include <Location.h>
 #include <string>
 #include <vector>
@@ -20,9 +20,9 @@ class Nonogram {
         enum non_parse_state    m_non_parse_state   = searching;
 
         std::unordered_set<enum direction>  m_sol_calcs;
-        constraints     m_x_contraints;
-        constraints     m_y_contraints;
-        locations       m_locations;
+        main_constraints    m_x_contraints;
+        main_constraints    m_y_contraints;
+        locations           m_locations;
 
         void read_file();
 
@@ -36,10 +36,10 @@ class Nonogram {
         void parse_txt_line(std::string &line,enum direction &cur_dir);
         void parse_non_line(std::string &line,enum direction &cur_dir);
 
-        constraints *get_constraints (enum direction for_direction);
+        main_constraints *get_constraints (enum direction for_direction);
 
-        Constraint *get_next_to_calculate();
-        Constraint *get_next_to_calculate_dir(enum direction for_direction);
+        MainConstraint *get_next_to_calculate();
+        MainConstraint *get_next_to_calculate_dir(enum direction for_direction);
         void calc_constraint_solutions (enum direction for_direction = y_dir) ;
         void lock_constraint_solutions (
             enum direction for_direction,

@@ -3,7 +3,7 @@
 #include <assert.h>
 
 #include <Segment.h>
-#include <Constraint.h>
+#include <MainConstraint.h>
 #include <Nonogram.h>
 #include <Location.h>
 #include <constants.h>
@@ -130,7 +130,7 @@ void test_reduce_constraint() {
     // |    UXU XX XXXXXXX  XX           X XXXXXXX  X         XX  XXXXXX  XX XX |
     printf("Start %s\n",__FUNCTION__);
     std::vector<int> blacks({ 2, 2, 7, 2, 1, 7, 1, 2, 6, 2, 2});
-    Constraint *constraint = new Constraint(x_dir,&blacks); 
+    MainConstraint *constraint = new MainConstraint(x_dir,&blacks); 
     const int size = 100;
     Location *location[size];
     for (int pos = 0;pos < size; pos++) {
@@ -186,7 +186,7 @@ void test_constraint () {
     printf("Start %s\n",__FUNCTION__);
 
     std::vector<int> blacks({ 2, 1});
-    Constraint *constraint = new Constraint(x_dir,&blacks); 
+    MainConstraint *constraint = new MainConstraint(x_dir,&blacks); 
     Location *location[8] = {   new Location(0,0),\
                                 new Location(1,0),\
                                 new Location(2,0),\
@@ -277,7 +277,7 @@ void test_constraint () {
 
     delete constraint;
     std::vector<int> blacks_2({5});
-    constraint = new Constraint(x_dir,&blacks_2);
+    constraint = new MainConstraint(x_dir,&blacks_2);
 
     for (int i = 0; i < 6; i++) {
         constraint->add_location(location[i]);
@@ -295,7 +295,7 @@ void test_constraint () {
     delete constraint;
 
     std::vector<int> blacks_3({1,1});
-    constraint = new Constraint(x_dir,&blacks_3);
+    constraint = new MainConstraint(x_dir,&blacks_3);
 
     for (int i = 0; i < 5; i++) {
         constraint->add_location(location[i]);
@@ -331,7 +331,7 @@ void test_constraint () {
     delete constraint;
 
     std::vector<int> blacks_4({1,1,1});
-    constraint = new Constraint(x_dir,&blacks_4);
+    constraint = new MainConstraint(x_dir,&blacks_4);
 
     for (int i = 0; i < 8; i++) {
         constraint->add_location(location[i]);
@@ -347,7 +347,7 @@ void test_constraint () {
     delete constraint;
 
     std::vector<int> blacks_5;
-    constraint = new Constraint(x_dir,&blacks_5);
+    constraint = new MainConstraint(x_dir,&blacks_5);
 
     for (int i = 0; i < 8; i++) {
         constraint->add_location(location[i]);

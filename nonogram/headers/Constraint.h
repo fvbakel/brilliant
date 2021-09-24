@@ -10,7 +10,7 @@
 
 
 class Constraint {
-    private:
+    protected:
         enum direction      m_direction    = x_dir;
         int                 m_size         = SIZE_UNKNOWN;
         int                 m_white_var    = SIZE_UNKNOWN;
@@ -36,7 +36,7 @@ class Constraint {
         );
 
     public:
-        Constraint(enum direction direction,std::vector<int> *blacks);
+        Constraint(enum direction direction);
         ~Constraint();
         
         enum direction get_direction();

@@ -43,8 +43,8 @@ void Nonogram::parse_txt_line(std::string &line,enum direction &cur_dir) {
         if (    result.size() > 0 || 
                 (result.size() == 0 && line.compare("0") == 0)
         ) {
-            Constraint *constraint = new Constraint(cur_dir,&result);
-            constraints *p_contraints  = get_constraints(cur_dir);
+            MainConstraint *constraint = new MainConstraint(cur_dir,&result);
+            main_constraints *p_contraints  = get_constraints(cur_dir);
             p_contraints->push_back(constraint);
         } else {
             cout << "ERROR: Unable to read txt line: " << line << "\n";
@@ -88,8 +88,8 @@ void Nonogram::parse_non_line(std::string &line,enum direction &cur_dir) {
             if (    result.size() > 0 || 
                     (result.size() == 0 && line.compare("0") == 0)
             ) {
-                Constraint *constraint = new Constraint(cur_dir,&result);
-                constraints *p_contraints  = get_constraints(cur_dir);
+                MainConstraint *constraint = new MainConstraint(cur_dir,&result);
+                main_constraints *p_contraints  = get_constraints(cur_dir);
                 p_contraints->push_back(constraint);
             } else {
                 cout << "ERROR: Unable to read non line: " << line << "\n";
@@ -159,7 +159,7 @@ void Nonogram::create_locations() {
     }
 
     for (int x_index = 0; x_index < m_x_size; x_index++) {
-        Constraint *constraint = m_x_contraints.at(x_index);
+        MainConstraint *constraint = m_x_contraints.at(x_index);
         for (int y_index = 0; y_index < m_y_size; y_index++) {
             Location *location = get_Location(x_index,y_index);
             constraint->add_location(location);
@@ -167,7 +167,7 @@ void Nonogram::create_locations() {
     }
 
     for (int y_index = 0; y_index < m_y_size; y_index++) {
-        Constraint *constraint = m_y_contraints.at(y_index);
+        MainConstraint *constraint = m_y_contraints.at(y_index);
         for (int x_index = 0; x_index < m_x_size; x_index++) {
             Location *location = get_Location(x_index,y_index);
             constraint->add_location(location);
@@ -205,8 +205,8 @@ bool Nonogram::is_input_valid() {
     return m_valid;
 }
 bool Nonogram::is_input_valid_dir(enum direction for_direction) {
-    constraints *p_constraints = get_constraints(for_direction);
-    for (Constraint *constraint : *p_constraints) {
+    main_constraints *p_constraints = get_constraints(for_direction);
+    for (MainConstraint *constraint : *p_constraints) {
         if (!constraint->is_valid()) {
             printf("Invalid input, to large constraint: ");
             constraint->print();
@@ -218,8 +218,8 @@ bool Nonogram::is_input_valid_dir(enum direction for_direction) {
 
 int Nonogram::get_colored_size_sum(enum direction for_direction,enum color for_color) {
     int sum = 0;
-    constraints *p_constraints = get_constraints(for_direction);
-    for (Constraint *constraint : *p_constraints) {
+    main_constraints *p_constraints = get_constraints(for_direction);
+    for (MainConstraint *constraint : *p_constraints) {
         sum += constraint->get_colored_size(for_color);
     }
     return sum;
@@ -234,8 +234,8 @@ bool Nonogram::is_consistent() {
 }
 
 bool Nonogram::is_consistent_dir(enum direction for_direction) {
-    constraints *p_constraints = get_constraints(for_direction);
-    for (Constraint *constraint : *p_constraints) {
+    main_constraints *p_constraints = get_constraints(for_direction);
+    for (MainConstraint *constraint : *p_constraints) {
         if (!constraint->is_passed()) {
             return false;
         }
@@ -290,8 +290,8 @@ bool Nonogram::solve_location_backtrack(int location_index) {
     return result;
 }
 
-constraints *Nonogram::get_constraints (enum direction for_direction) {
-    constraints *p_constraints = &m_y_contraints;
+main_constraints *Nonogram::get_constraints (enum direction for_direction) {
+    main_constraints *p_constraints = &m_y_contraints;
     if (for_direction == x_dir) {
         p_constraints = &m_x_contraints;
     }
@@ -299,8 +299,8 @@ constraints *Nonogram::get_constraints (enum direction for_direction) {
 }
 
 void Nonogram::calc_constraint_solutions (enum direction for_direction) {
-    constraints *p_constraints = get_constraints(for_direction);
-    for (Constraint *constraint : *p_constraints) {
+    main_constraints *p_constraints = get_constraints(for_direction);
+    for (MainConstraint *constraint : *p_constraints) {
         constraint->calculate_solutions();
     }
     m_sol_calcs.insert(for_direction);
@@ -310,8 +310,8 @@ void Nonogram::lock_constraint_solutions (
         enum direction for_direction,
         std::unordered_set<int> *affected
     ) {
-    constraints *p_constraints = get_constraints(for_direction);
-    for (Constraint *constraint : *p_constraints) {
+    main_constraints *p_constraints = get_constraints(for_direction);
+    for (MainConstraint *constraint : *p_constraints) {
         if (constraint->get_solution_size() > 0) {
             constraint->calc_locks(affected);
         }
@@ -323,10 +323,10 @@ int Nonogram::reduce_constraint_solutions (
         std::unordered_set<int> *affected
     ) {
     int nr_reduced = 0;
-    constraints *p_constraints = get_constraints(for_direction);
+    main_constraints *p_constraints = get_constraints(for_direction);
 
     for (int i : *affected) {
-        Constraint *constraint = (*p_constraints)[i];
+        MainConstraint *constraint = (*p_constraints)[i];
         if (constraint->get_solution_size() > 1) {
             nr_reduced += constraint->reduce_solutions();
         }
@@ -334,9 +334,9 @@ int Nonogram::reduce_constraint_solutions (
     return nr_reduced;
 }
 
-Constraint *Nonogram::get_next_to_calculate() {
-    Constraint *next_constraint_x = nullptr;
-    Constraint *next_constraint_y = nullptr;
+MainConstraint *Nonogram::get_next_to_calculate() {
+    MainConstraint *next_constraint_x = nullptr;
+    MainConstraint *next_constraint_y = nullptr;
     next_constraint_x = get_next_to_calculate_dir(x_dir);
     next_constraint_y = get_next_to_calculate_dir(y_dir);
     if (next_constraint_x== nullptr && next_constraint_y == nullptr) {
@@ -356,11 +356,11 @@ Constraint *Nonogram::get_next_to_calculate() {
     }
 }
 
-Constraint *Nonogram::get_next_to_calculate_dir(enum direction for_direction) {
-    Constraint *next_constraint = nullptr;
-    constraints *p_constraints = get_constraints(for_direction);
+MainConstraint *Nonogram::get_next_to_calculate_dir(enum direction for_direction) {
+    MainConstraint *next_constraint = nullptr;
+    main_constraints *p_constraints = get_constraints(for_direction);
     int smallest_variation = -1;
-    for (Constraint *constraint : *p_constraints) {
+    for (MainConstraint *constraint : *p_constraints) {
         if (constraint->get_solution_size() == 0) {
             int variation = constraint->get_variation();
             if (    smallest_variation == -1 ||
@@ -400,7 +400,7 @@ void Nonogram::init_constraint_solutions_2() {
     std::unordered_set<int> affected;
     enum direction cur_dir = y_dir;
 
-    Constraint *constraint = get_next_to_calculate();
+    MainConstraint *constraint = get_next_to_calculate();
     while (constraint != nullptr) {
         constraint->calculate_solutions();
         constraint->calc_locks(&affected);
@@ -466,12 +466,12 @@ bool Nonogram::solve_constraint_backtrack(int con_idx) {
 }
 
 Nonogram::~Nonogram() {
-    for (Constraint* constraint : m_x_contraints) {
+    for (MainConstraint* constraint : m_x_contraints) {
         delete constraint;
     }
     m_x_contraints.clear();
 
-    for (Constraint* constraint : m_y_contraints) {
+    for (MainConstraint* constraint : m_y_contraints) {
         delete constraint;
     }
     m_y_contraints.clear();
