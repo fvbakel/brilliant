@@ -311,6 +311,14 @@ void Constraint::reset_solution() {
     }
 }
 
+void Constraint::set_location_color(const int pos, const enum color new_color,std::unordered_set<int>  *affected) {
+    if (!m_locations[pos]->is_locked()) {
+        m_locations[pos]->set_color(new_color);
+        m_locations[pos]->lock();
+        affected->insert(pos);
+    }
+}
+
 void Constraint::calc_locks(std::unordered_set<int>  *affected) {
     if (m_solutions.size()>0 && !m_locked) {
         std::vector<enum color>  common = m_solutions[0];
@@ -338,11 +346,7 @@ void Constraint::calc_locks(std::unordered_set<int>  *affected) {
             int nr_locked = 0;
             for (int pos = 0; pos < m_size;pos++) {
                 if (common[pos] != no_color) {
-                    if (!m_locations[pos]->is_locked()) {
-                        m_locations[pos]->set_color(common[pos]);
-                        m_locations[pos]->lock();
-                        affected->insert(pos);
-                    }
+                    set_location_color(pos,common[pos],affected);
                 }
                 if (m_locations[pos]->is_locked()) {
                     nr_locked++;
@@ -353,6 +357,36 @@ void Constraint::calc_locks(std::unordered_set<int>  *affected) {
             }
         }
     }
+}
+
+/*
+Examples:
+Given               | Result
+     012345         | 012345
+1 4: UUUUUU         | X XXXX
+
+Given               | Result
+     01234567       | 01234567
+1 4: UUUUUUUU       | UUUUXXUU
+*/
+void Constraint::calc_locks_rule_min_max(std::unordered_set<int>  *affected) {
+   int min_start = 0;
+   for (int i = 0;i<m_segments.size();i++) {
+        int this_size = m_segments[i]->get_min_size();
+        
+        int nr_must_have_this_color = this_size - m_white_var;
+        if (nr_must_have_this_color > 0) {
+            enum color new_color = m_segments[i]->get_color();
+            for (int pos=min_start+m_white_var; pos < min_start+m_white_var+nr_must_have_this_color; pos++) {
+                set_location_color(pos,new_color,affected);
+            }
+        }
+       min_start += this_size; 
+   }
+}
+
+void Constraint::calc_locks_rules(std::unordered_set<int>  *affected) {
+    calc_locks_rule_min_max(affected);
 }
 
 int Constraint::reduce_solutions() {

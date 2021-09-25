@@ -10,6 +10,49 @@
 #include <VarianceCalculator.h>
 
 
+/*
+Helper functions
+*/
+void create_test_locations(const int nr_to_create,locations &test_locations) {
+    test_locations.clear();
+    for (int pos = 0;pos < nr_to_create; pos++) {
+        test_locations.push_back(new Location(pos,0));
+    }
+}
+
+void delete_test_locations(locations &test_locations) {
+    for (Location *location : test_locations) {
+        delete location;
+    }
+    test_locations.clear();
+}
+
+MainConstraint* create_main_constraint(
+    enum direction cur_dir,
+    std::vector<int> *blacks, 
+    const string start_state,
+    locations &test_locations
+) {
+    MainConstraint *constraint = new MainConstraint(x_dir,blacks);
+    for (int pos = 0;pos < start_state.size();pos++) {
+        char loc_state = start_state.at(pos);
+        test_locations[pos]->hard_reset();
+        if (loc_state == ' ') {
+            test_locations[pos]->set_color(white);
+            test_locations[pos]->lock();
+        } else if (loc_state == 'X') { 
+            test_locations[pos]->set_color(black);
+            test_locations[pos]->lock();
+        }
+        constraint->add_location(test_locations[pos]);
+    }
+    return constraint;
+}
+
+
+/*
+test functions
+*/
 void test_Location () {
     printf("Start %s\n",__FUNCTION__);
     Location *location = new Location(1,2);
@@ -119,6 +162,27 @@ void test_Nonegram () {
 
 
     delete nonogram;
+    printf("End %s\n",__FUNCTION__);
+}
+
+void test_constraint_min_max_rule() {
+    printf("Start %s\n",__FUNCTION__);
+
+    std::vector<int> blacks({ 1, 4});
+    //                    012345 
+    string start_state = "UUUUUU";
+    locations locations;
+    create_test_locations(start_state.size(),locations);
+    MainConstraint *constraint = create_main_constraint(x_dir,&blacks,start_state,locations);
+
+    std::unordered_set<int> affected;
+    constraint->calc_locks_rule_min_max(&affected);
+    constraint->debug_dump();
+    assert(affected.size()==6);
+
+    delete constraint;
+    delete_test_locations(locations);
+
     printf("End %s\n",__FUNCTION__);
 }
 
@@ -403,6 +467,7 @@ int main() {
     test_segment();
     test_constraint();
     test_reduce_constraint();
+    test_constraint_min_max_rule();
     
     test_Nonegram();
 

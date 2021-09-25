@@ -17,6 +17,7 @@ Segment::Segment(
 
 void Segment::set_min_size(const int min_size) {
     m_min_size = min_size;
+    update_other_size();
 }
 int Segment::get_min_size() {
     return m_min_size;
@@ -24,7 +25,17 @@ int Segment::get_min_size() {
 
 void Segment::set_max_size(const int max_size) {
     m_max_size =max_size;
+    update_other_size();
 }
+
+void Segment::update_other_size() {
+    if (m_color == white) {
+        if (m_min_size == m_max_size) {
+            m_size = m_min_size;
+        }
+    }
+}
+
 int Segment::get_max_size() {
     return m_max_size;
 }

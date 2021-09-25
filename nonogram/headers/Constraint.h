@@ -52,11 +52,15 @@ class Constraint {
 
         void print();
 
+
         void calculate_solutions();
         int get_solution_size();
         void set_solution(int solution_index);
         void reset_solution();
 
+        void set_location_color(const int pos, const enum color new_color,std::unordered_set<int>  *affected);
+        void calc_locks_rule_min_max(std::unordered_set<int>  *affected);
+        void calc_locks_rules(std::unordered_set<int>  *affected);
         void calc_locks(std::unordered_set<int> *affected);
         int reduce_solutions();
 

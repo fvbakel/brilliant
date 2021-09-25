@@ -27,6 +27,7 @@ class Segment {
         int get_min_size();
 
         void set_max_size(const int max_size);
+        void update_other_size();
         int get_max_size();
         int get_size();
         enum color get_color();
