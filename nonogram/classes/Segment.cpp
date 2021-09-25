@@ -71,10 +71,54 @@ Segment* Segment::get_after() {
     return m_after;
 }
 
+void Segment::lock() {
+    m_locked = true;
+}
+void Segment::unlock() {
+    m_locked = false;
+}
+bool Segment::is_locked() {
+    return m_locked;
+}
+
+int Segment::get_min_start() {
+    return m_min_start;
+}
+void Segment::set_min_start(const int min_start) {
+    m_min_start = min_start;
+}
+int Segment::get_start() {
+    return m_start;
+}
+void Segment::set_start(const int start) {
+    m_start = start;
+}
+int Segment::get_max_end() {
+    return m_max_end;
+}
+void Segment::set_max_end(const int max_end) {
+    m_max_end = max_end;
+}
+int Segment::get_end() {
+    return m_end;
+}
+void Segment::set_end(const int end) {
+    m_end = end;
+}
+        
+void Segment::reset() {
+    if (m_color == white) {
+        m_size          = SIZE_UNKNOWN;
+        m_max_size      = SIZE_UNKNOWN;
+        m_min_start     = POS_UNKNOWN;
+        m_start         = POS_UNKNOWN;
+        m_max_end       = POS_UNKNOWN;
+        m_end           = POS_UNKNOWN;
+    }
+}
+
 bool Segment::is_size_allowed(const int size) {
- //   printf("(size >= m_min_size)=%d\n",(size >= m_min_size));
- //   printf("(size <= m_max_size)=%d\n)",(size <= m_max_size));
-    return (size >= m_min_size) && (size <= m_max_size);
+     return (size >= m_min_size) && (size <= m_max_size);
 }
 
 Segment::~Segment() {

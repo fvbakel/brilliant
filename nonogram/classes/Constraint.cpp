@@ -403,7 +403,7 @@ int Constraint::reduce_solutions() {
             }
         }
     }
-    
+
     return nr_reduced;
 }
 
