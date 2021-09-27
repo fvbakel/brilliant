@@ -17,10 +17,12 @@ class Constraint {
         segments            m_segments;
         locations           m_locations;
         bool                m_locked       = false;
+        bool                m_min_max_set  = false;
 
         std::vector<std::vector<enum color> >  m_solutions;
 
         void update_size();
+        void set_initial_min_max_segments();
         void add_variation(
             std::vector<enum color> *solution_base,
             int                     current_pos,

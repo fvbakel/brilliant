@@ -38,6 +38,9 @@ class Segment {
         int get_size();
         enum color get_color();
 
+        int get_max_start();
+        int get_min_end();
+
         void lock();
         void unlock();
         bool is_locked();
@@ -60,6 +63,8 @@ class Segment {
         Segment *get_after();
 
         bool is_size_allowed(const int size);
+
+        void print();
 };
 
 typedef std::vector<Segment*>    segments;

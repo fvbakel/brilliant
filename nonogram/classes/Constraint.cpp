@@ -359,6 +359,21 @@ void Constraint::calc_locks(std::unordered_set<int>  *affected) {
     }
 }
 
+void Constraint::set_initial_min_max_segments() {
+    if (m_min_max_set == false) {
+        if (m_segments.size() >= 0) {
+            m_segments[0]->set_min_start(POS_NA);
+        }
+        if (m_segments.size() >= 1 ) {
+            m_segments[m_segments.size()-1]->set_max_end(POS_NA);
+        }
+        if (m_segments.size() >= 2 ) {
+            m_segments[m_segments.size()-2]->set_max_end(m_size-1);
+        }
+        m_min_max_set = true;
+    }
+}
+
 /*
 Examples:
 Given               | Result
@@ -370,6 +385,21 @@ Given               | Result
 1 4: UUUUUUUU       | UUUUXXUU
 */
 void Constraint::calc_locks_rule_min_max(std::unordered_set<int>  *affected) {
+    set_initial_min_max_segments();
+    for (int i = 0;i<m_segments.size();i++) {
+        //int this_size = m_segments[i]->get_min_size();
+        int min_end = m_segments[i]->get_min_end();
+        int max_start = m_segments[i]->get_max_start();
+        if (min_end != POS_NA && max_start != POS_NA) {
+            enum color new_color = m_segments[i]->get_color();
+            for (int pos=max_start; pos <= min_end; pos++) {
+                set_location_color(pos,new_color,affected);
+            }
+        }
+    }
+}
+
+/*void Constraint::calc_locks_rule_min_max(std::unordered_set<int>  *affected) {
    int min_start = 0;
    for (int i = 0;i<m_segments.size();i++) {
         int this_size = m_segments[i]->get_min_size();
@@ -384,6 +414,7 @@ void Constraint::calc_locks_rule_min_max(std::unordered_set<int>  *affected) {
        min_start += this_size; 
    }
 }
+*/
 
 void Constraint::calc_locks_rules(std::unordered_set<int>  *affected) {
     calc_locks_rule_min_max(affected);
@@ -458,6 +489,10 @@ void Constraint::print_solution(std::vector<enum color> *solution_base,int max_p
 void Constraint::debug_dump() {
     printf("Start dump of: ");
     print();
+    printf("Segments min max are are:\n");
+    for (int i = 0; i < m_segments.size();i++) {
+        m_segments[i]->print();
+    }
     printf("Solutions are:\n");
     for (int i = 0; i < m_solutions.size();i++) {
         print_solution(&(m_solutions[i]));

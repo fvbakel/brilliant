@@ -81,11 +81,38 @@ bool Segment::is_locked() {
     return m_locked;
 }
 
+int Segment::get_max_start() {
+    if (m_max_end == POS_NA) {
+        return POS_NA;
+    }
+    return m_max_end - (m_min_size -1) ;
+}
+int Segment::get_min_end() {
+    if (m_min_start == POS_NA) {
+        return POS_NA;
+    }
+    return m_min_start + (m_min_size -1) ;
+}
+
 int Segment::get_min_start() {
     return m_min_start;
 }
 void Segment::set_min_start(const int min_start) {
+    if (    m_min_start!=POS_UNKNOWN &&
+            min_start!=POS_NA &&
+            min_start <=m_min_start
+    ) {
+        return;
+    }
     m_min_start = min_start;
+    
+    int min_start_next = min_start + m_min_size;
+    if (min_start == POS_NA && m_before == nullptr) {
+        min_start_next += -(POS_NA) ;
+    }
+    if(m_after != nullptr) {
+        m_after->set_min_start(min_start_next);
+    }
 }
 int Segment::get_start() {
     return m_start;
@@ -97,7 +124,17 @@ int Segment::get_max_end() {
     return m_max_end;
 }
 void Segment::set_max_end(const int max_end) {
+    if (    m_max_end!=POS_UNKNOWN &&
+            max_end!=POS_NA &&
+            max_end >=m_max_end
+    ) {
+        return;
+    }
     m_max_end = max_end;
+    int max_end_next = max_end - m_min_size;
+    if (max_end != POS_NA && m_after != nullptr && m_before != nullptr) {
+        m_before->set_max_end(max_end_next);
+    }
 }
 int Segment::get_end() {
     return m_end;
@@ -119,6 +156,29 @@ void Segment::reset() {
 
 bool Segment::is_size_allowed(const int size) {
      return (size >= m_min_size) && (size <= m_max_size);
+}
+
+void Segment::print() {
+    if (m_before != nullptr) {
+        printf("--");
+    }
+    if (m_color == white) {
+        printf("W");
+    } else {
+        printf("B");
+    }
+    printf("%d\n",m_min_size);
+
+    printf("m_min_size=%d\n",m_min_size);
+    printf("m_min_start=%d\n",m_min_start);
+    printf("max_start=%d\n",get_max_start());
+    printf("m_max_end=%d\n",m_max_end);
+    printf("min_end=%d\n",get_min_end());
+    
+    if (m_after != nullptr) {
+        printf("--\n");
+    }
+
 }
 
 Segment::~Segment() {

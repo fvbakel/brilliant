@@ -32,6 +32,8 @@ MainConstraint::MainConstraint(enum direction direction,std::vector<int> *blacks
     }
 }
 
+
+
 MainConstraint::~MainConstraint() {
 
     for (Segment* segment : m_segments) {
