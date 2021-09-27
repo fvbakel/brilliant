@@ -175,10 +175,9 @@ void test_constraint_min_max_rule() {
     create_test_locations(start_state.size(),locations);
     MainConstraint *constraint = create_main_constraint(x_dir,&blacks,start_state,locations);
 
-    std::unordered_set<int> affected;
-    constraint->calc_locks_rule_min_max(&affected);
+    constraint->calc_locks_rule_min_max();
     constraint->debug_dump();
-    assert(affected.size()==6);
+    assert(constraint->get_nr_dirty()==6);
 
     delete constraint;
     delete_test_locations(locations);
@@ -230,11 +229,10 @@ void test_reduce_constraint() {
     constraint->debug_dump();
     assert(constraint->get_solution_size() == 2);
 
-    std::unordered_set<int> affected;
-    constraint->calc_locks(&affected);
+    constraint->calc_locks();
     constraint->debug_dump();
-    printf("Affected size = %lu \n",affected.size());
-    assert(affected.size() ==17);
+    printf("constraint->get_nr_dirty()= %d \n",constraint->get_nr_dirty());
+    assert(constraint->get_nr_dirty() ==17);
 
     delete constraint;
 

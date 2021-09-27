@@ -28,6 +28,22 @@ int Constraint::get_white_var() {
     return m_white_var;
 }
 
+int Constraint::get_nr_dirty() {
+    int count = 0;
+    for (Location* location : m_locations ) {
+        if (location->is_dirty(m_direction)) {
+            count++;
+        }
+    }
+    return count;
+}
+
+void Constraint::clear_dirty() {
+    for (Location* location : m_locations ) {
+        location->clear_dirty(m_direction);
+    }
+}
+
 int Constraint::get_variation() {
     int nr_of_white_segments = 0;
     int estimate_white_var = m_white_var;
@@ -311,15 +327,15 @@ void Constraint::reset_solution() {
     }
 }
 
-void Constraint::set_location_color(const int pos, const enum color new_color,std::unordered_set<int>  *affected) {
+void Constraint::set_location_color(const int pos, const enum color new_color) {
     if (!m_locations[pos]->is_locked()) {
         m_locations[pos]->set_color(new_color);
+        m_locations[pos]->set_dirty_both();
         m_locations[pos]->lock();
-        affected->insert(pos);
     }
 }
 
-void Constraint::calc_locks(std::unordered_set<int>  *affected) {
+void Constraint::calc_locks() {
     if (m_solutions.size()>0 && !m_locked) {
         std::vector<enum color>  common = m_solutions[0];
         int nr_in_common = m_size;
@@ -346,7 +362,7 @@ void Constraint::calc_locks(std::unordered_set<int>  *affected) {
             int nr_locked = 0;
             for (int pos = 0; pos < m_size;pos++) {
                 if (common[pos] != no_color) {
-                    set_location_color(pos,common[pos],affected);
+                    set_location_color(pos,common[pos]);
                 }
                 if (m_locations[pos]->is_locked()) {
                     nr_locked++;
@@ -384,7 +400,7 @@ Given               | Result
      01234567       | 01234567
 1 4: UUUUUUUU       | UUUUXXUU
 */
-void Constraint::calc_locks_rule_min_max(std::unordered_set<int>  *affected) {
+void Constraint::calc_locks_rule_min_max() {
     set_initial_min_max_segments();
     for (int i = 0;i<m_segments.size();i++) {
         //int this_size = m_segments[i]->get_min_size();
@@ -393,31 +409,14 @@ void Constraint::calc_locks_rule_min_max(std::unordered_set<int>  *affected) {
         if (min_end != POS_NA && max_start != POS_NA) {
             enum color new_color = m_segments[i]->get_color();
             for (int pos=max_start; pos <= min_end; pos++) {
-                set_location_color(pos,new_color,affected);
+                set_location_color(pos,new_color);
             }
         }
     }
 }
 
-/*void Constraint::calc_locks_rule_min_max(std::unordered_set<int>  *affected) {
-   int min_start = 0;
-   for (int i = 0;i<m_segments.size();i++) {
-        int this_size = m_segments[i]->get_min_size();
-        
-        int nr_must_have_this_color = this_size - m_white_var;
-        if (nr_must_have_this_color > 0) {
-            enum color new_color = m_segments[i]->get_color();
-            for (int pos=min_start+m_white_var; pos < min_start+m_white_var+nr_must_have_this_color; pos++) {
-                set_location_color(pos,new_color,affected);
-            }
-        }
-       min_start += this_size; 
-   }
-}
-*/
-
-void Constraint::calc_locks_rules(std::unordered_set<int>  *affected) {
-    calc_locks_rule_min_max(affected);
+void Constraint::calc_locks_rules() {
+    calc_locks_rule_min_max();
 }
 
 int Constraint::reduce_solutions() {

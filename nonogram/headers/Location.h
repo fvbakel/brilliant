@@ -2,7 +2,6 @@
 #define _LOCATION_H	1
 
 #include <vector>
-
 #include <constants.h>
 
 class Location {
@@ -11,6 +10,8 @@ class Location {
         int         m_y         = 0;
         enum color  m_color     = no_color;
         bool        m_locked    = false;
+        bool        m_dirty_x   = false;
+        bool        m_dirty_y   = false;
 
     public:
         Location(const int x,const int y);
@@ -31,6 +32,13 @@ class Location {
 
         void soft_reset();
         void hard_reset();
+
+        void set_dirty_both();
+        void clear_dirty_both();
+        bool is_dirty_any_dir();
+        void set_dirty(enum direction for_dir);
+        void clear_dirty(enum direction for_dir);
+        bool is_dirty(enum direction for_dir);
 
         bool is_solved();
 

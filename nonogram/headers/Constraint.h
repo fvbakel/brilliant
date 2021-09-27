@@ -6,8 +6,6 @@
 #include <constants.h>
 #include <Segment.h>
 #include <Location.h>
-#include <unordered_set>
-
 
 class Constraint {
     protected:
@@ -50,8 +48,9 @@ class Constraint {
 
         bool is_valid();
         bool is_passed();
-        int get_colored_size(enum color for_color);
-
+        int  get_colored_size(enum color for_color);
+        int  get_nr_dirty();
+        void clear_dirty();
         void print();
 
 
@@ -60,10 +59,10 @@ class Constraint {
         void set_solution(int solution_index);
         void reset_solution();
 
-        void set_location_color(const int pos, const enum color new_color,std::unordered_set<int>  *affected);
-        void calc_locks_rule_min_max(std::unordered_set<int>  *affected);
-        void calc_locks_rules(std::unordered_set<int>  *affected);
-        void calc_locks(std::unordered_set<int> *affected);
+        void set_location_color(const int pos, const enum color new_color);
+        void calc_locks_rule_min_max();
+        void calc_locks_rules();
+        void calc_locks();
         int reduce_solutions();
 
         void debug_dump();

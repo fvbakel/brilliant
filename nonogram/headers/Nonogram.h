@@ -27,6 +27,7 @@ class Nonogram {
         void read_file();
 
         void create_locations();
+        bool has_dirty_locations();
 
         void line_to_int_array(
             const string &line,
@@ -42,17 +43,14 @@ class Nonogram {
         MainConstraint *get_next_to_calculate_dir(enum direction for_direction);
         void calc_constraint_solutions (enum direction for_direction = y_dir) ;
         void lock_constraint_solutions (
-            enum direction for_direction,
-            std::unordered_set<int> *affected
+            enum direction for_direction
         );
         int reduce_constraint_solutions (
-            enum direction for_direction,
-            std::unordered_set<int> *affected
+            enum direction for_direction
         );
 
         enum direction reduce_and_lock (
-            enum direction cur_dir,
-            std::unordered_set<int> *affected
+            enum direction cur_dir
         );
 
         enum direction swap_direction(enum direction cur_dir);

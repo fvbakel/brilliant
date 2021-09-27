@@ -216,6 +216,15 @@ bool Nonogram::is_input_valid_dir(enum direction for_direction) {
     return true;
 }
 
+bool Nonogram::has_dirty_locations() {
+    for (Location *location : m_locations ) {
+        if (location->is_dirty_any_dir()) {
+            return true;
+        }
+    }
+    return false;
+}
+
 int Nonogram::get_colored_size_sum(enum direction for_direction,enum color for_color) {
     int sum = 0;
     main_constraints *p_constraints = get_constraints(for_direction);
@@ -307,28 +316,28 @@ void Nonogram::calc_constraint_solutions (enum direction for_direction) {
 }
 
 void Nonogram::lock_constraint_solutions (
-        enum direction for_direction,
-        std::unordered_set<int> *affected
+        enum direction for_direction
     ) {
     main_constraints *p_constraints = get_constraints(for_direction);
     for (MainConstraint *constraint : *p_constraints) {
         if (constraint->get_solution_size() > 0) {
-            constraint->calc_locks(affected);
+            constraint->calc_locks();
         }
     }
 }
 
 int Nonogram::reduce_constraint_solutions (
-        enum direction for_direction,
-        std::unordered_set<int> *affected
+        enum direction for_direction
     ) {
     int nr_reduced = 0;
     main_constraints *p_constraints = get_constraints(for_direction);
 
-    for (int i : *affected) {
-        MainConstraint *constraint = (*p_constraints)[i];
-        if (constraint->get_solution_size() > 1) {
-            nr_reduced += constraint->reduce_solutions();
+    for (MainConstraint *constraint : *p_constraints) {
+        if (constraint->get_nr_dirty() > 0) {
+            if (constraint->get_solution_size() > 1) {
+                nr_reduced += constraint->reduce_solutions();
+            }
+            constraint->clear_dirty();
         }
     }
     return nr_reduced;
@@ -375,17 +384,15 @@ MainConstraint *Nonogram::get_next_to_calculate_dir(enum direction for_direction
 }
 
 void Nonogram::init_constraint_solutions_1() {
-    std::unordered_set<int> affected;
     enum direction cur_dir = y_dir;
     calc_constraint_solutions(cur_dir);
-    lock_constraint_solutions(cur_dir,&affected);
-    affected.clear();
+    lock_constraint_solutions(cur_dir);
 
     cur_dir = x_dir;
     calc_constraint_solutions(cur_dir);
-    lock_constraint_solutions(cur_dir,&affected);
+    lock_constraint_solutions(cur_dir);
 
-    cur_dir = reduce_and_lock(cur_dir,&affected);
+    cur_dir = reduce_and_lock(cur_dir);
 }
 
 enum direction Nonogram::swap_direction(enum direction cur_dir) {
@@ -397,33 +404,30 @@ enum direction Nonogram::swap_direction(enum direction cur_dir) {
 }
 
 void Nonogram::init_constraint_solutions_2() {
-    std::unordered_set<int> affected;
     enum direction cur_dir = y_dir;
 
     MainConstraint *constraint = get_next_to_calculate();
     while (constraint != nullptr) {
         constraint->calculate_solutions();
-        constraint->calc_locks(&affected);
+        constraint->calc_locks();
         cur_dir = constraint->get_direction();
-        cur_dir = reduce_and_lock(cur_dir,&affected);
+        cur_dir = reduce_and_lock(cur_dir);
         
         constraint = get_next_to_calculate();
     }
 
-    cur_dir = reduce_and_lock(cur_dir,&affected);
+    cur_dir = reduce_and_lock(cur_dir);
 }
 
 enum direction Nonogram::reduce_and_lock (
-            enum direction cur_dir,
-            std::unordered_set<int> *affected
+            enum direction cur_dir
     ) {
-    while (affected->size() > 0) {
+    while (has_dirty_locations()) {
         cur_dir = swap_direction(cur_dir);
-        int nr_reduced = reduce_constraint_solutions(cur_dir,affected);
-        affected->clear();
+        int nr_reduced = reduce_constraint_solutions(cur_dir);
         
         if (nr_reduced > 0) {
-            lock_constraint_solutions(cur_dir,affected);
+            lock_constraint_solutions(cur_dir);
         }
     }
     return cur_dir;
