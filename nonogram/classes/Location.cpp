@@ -1,5 +1,6 @@
 #include <Location.h>
 #include <stdio.h>
+#include <iostream>
 #include <assert.h>
 
 Location::Location(const int x,const int y) {
@@ -92,14 +93,18 @@ bool Location::is_solved() {
     return (m_color != no_color);
 }
 
-void Location::print() {
-    if (m_color == no_color) {
-        printf("U");
+std::string Location::to_string() {
+        if (m_color == no_color) {
+        return "U";
     } else if (m_color == black) {
-        printf("X");
+        return "X";
     } else {
-        printf(" ");
+        return " ";
     }
+}
+
+void Location::print() {
+    std::cout << to_string();
 }
 
 Location::~Location() {

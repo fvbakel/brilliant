@@ -2,6 +2,9 @@
 #include <cstdlib>
 #include <assert.h>
 #include <cmath>
+#include <sstream>
+#include <iostream>
+
 
 #include <Constraint.h>
 #include <VarianceCalculator.h>
@@ -403,7 +406,6 @@ Given               | Result
 1 4: UUUUUUUU       | UUUUXXUU
 */
 void Constraint::calc_locks_rule_min_max() {
-    set_initial_min_max_segments();
     for (int i = 0;i<m_segments.size();i++) {
         int min_end = m_segments[i]->get_min_end();
         int max_start = m_segments[i]->get_max_start();
@@ -419,6 +421,10 @@ void Constraint::calc_locks_rule_min_max() {
 void Constraint::calc_locks_rules() {
     set_initial_min_max_segments();
     calc_locks_rule_min_max();
+    while (get_nr_dirty() > 0 ) {
+        clear_dirty();
+        calc_locks_rule_min_max();
+    }
 }
 
 int Constraint::reduce_solutions() {
@@ -503,25 +509,37 @@ void Constraint::debug_dump() {
     print();
 }
 
-void Constraint::print() {
+std::string Constraint::loc_string(){
+    std::stringstream str_str;
+    int pos = 0;
+    while (pos < m_locations.size()) {
+        Location *location = m_locations.at(pos);
+        str_str << location->to_string();
+        pos++;
+    }
+    return str_str.str();
+}
+
+std::string Constraint::to_string() {
+    std::stringstream str_str;
     if (m_direction == x_dir) {
-        printf("X: ");
+        str_str << "X: ";
     } else {
-        printf("Y: ");
+        str_str << "Y: ";
     }
 
     for(std::vector<Segment*>::iterator it = m_segments.begin(); it != m_segments.end(); ++it) {
         if ((*it)->get_color() == black) {
-            printf("%d ",  (*it)->get_size());
+            str_str << (*it)->get_size() << " ";
         }
     }
+    str_str << loc_string();
 
-    int pos = 0;
-    while (pos < m_locations.size()) {
-        Location *location = m_locations.at(pos);
-        location->print();
-        pos++;
-    }
+    return str_str.str();
+}
+
+void Constraint::print() {
+    std::cout << to_string();
     printf("\n");
     
 }

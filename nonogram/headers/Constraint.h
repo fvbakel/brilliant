@@ -35,6 +35,8 @@ class Constraint {
             enum color
         );
 
+        void calc_locks_rule_min_max();
+
     public:
         Constraint(enum direction direction);
         ~Constraint();
@@ -51,7 +53,7 @@ class Constraint {
         int  get_colored_size(enum color for_color);
         int  get_nr_dirty();
         void clear_dirty();
-        void print();
+        
 
 
         void calculate_solutions();
@@ -60,12 +62,15 @@ class Constraint {
         void reset_solution();
 
         void set_location_color(const int pos, const enum color new_color);
-        void calc_locks_rule_min_max();
+        
         void calc_locks_rules();
         void calc_locks();
         int reduce_solutions();
 
+        std::string loc_string();
+        std::string to_string();
         void debug_dump();
+        void print();
 };
 
 typedef std::vector<Constraint*>    constraints;

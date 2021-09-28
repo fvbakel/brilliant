@@ -2,7 +2,9 @@
 #define _LOCATION_H	1
 
 #include <vector>
+#include <string>
 #include <constants.h>
+
 
 class Location {
     private:
@@ -42,6 +44,7 @@ class Location {
 
         bool is_solved();
 
+        std::string to_string();
         void print();
 
 };

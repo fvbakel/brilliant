@@ -175,9 +175,9 @@ void test_constraint_min_max_rule() {
     create_test_locations(start_state.size(),locations);
     MainConstraint *constraint = create_main_constraint(x_dir,&blacks,start_state,locations);
 
-    constraint->calc_locks_rule_min_max();
+    constraint->calc_locks_rules();
     constraint->debug_dump();
-    assert(constraint->get_nr_dirty()==6);
+    assert(constraint->loc_string().compare("X XXXX") == 0);
 
     delete constraint;
     delete_test_locations(locations);
@@ -186,6 +186,11 @@ void test_constraint_min_max_rule() {
     
 }
 
+/*
+Given               | Result
+     01234567       | 01234567
+1 4: UUUUUUUU       | UUUUXXUU
+*/
 void test_constraint_min_max_rule_2() {
     printf("Start %s\n",__FUNCTION__);
 
@@ -196,9 +201,9 @@ void test_constraint_min_max_rule_2() {
     create_test_locations(start_state.size(),locations);
     MainConstraint *constraint = create_main_constraint(x_dir,&blacks,start_state,locations);
 
-    constraint->calc_locks_rule_min_max();
+    constraint->calc_locks_rules();
     constraint->debug_dump();
-    assert(constraint->get_nr_dirty()==2);
+    assert(constraint->loc_string().compare("UUUUXXUU") == 0);
 
     delete constraint;
     delete_test_locations(locations);
