@@ -90,6 +90,14 @@ int Constraint::get_variation() {
         printf("WARNING: To many or no variation for: \n");
         print();
         value = (int) pow(2,( (8 * sizeof(int) ) -1 ));
+        int nr_known = 0;
+        for (int pos = 0; pos < m_locations.size();pos++) {
+        
+            if (m_locations[pos]->get_color() != no_color) {
+                nr_known++;
+            }
+        }
+        value -=nr_known;
         printf("WARNING: falling back to %d \n",value);        
     }
     return value;
