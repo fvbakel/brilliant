@@ -328,10 +328,12 @@ void Constraint::reset_solution() {
 }
 
 void Constraint::set_location_color(const int pos, const enum color new_color) {
-    if (!m_locations[pos]->is_locked()) {
-        m_locations[pos]->set_color(new_color);
-        m_locations[pos]->set_dirty_both();
-        m_locations[pos]->lock();
+    if (pos <m_locations.size()) {
+        if (!m_locations[pos]->is_locked()) {
+            m_locations[pos]->set_color(new_color);
+            m_locations[pos]->set_dirty_both();
+            m_locations[pos]->lock();
+        }
     }
 }
 
@@ -403,7 +405,6 @@ Given               | Result
 void Constraint::calc_locks_rule_min_max() {
     set_initial_min_max_segments();
     for (int i = 0;i<m_segments.size();i++) {
-        //int this_size = m_segments[i]->get_min_size();
         int min_end = m_segments[i]->get_min_end();
         int max_start = m_segments[i]->get_max_start();
         if (min_end != POS_NA && max_start != POS_NA) {
@@ -416,6 +417,7 @@ void Constraint::calc_locks_rule_min_max() {
 }
 
 void Constraint::calc_locks_rules() {
+    set_initial_min_max_segments();
     calc_locks_rule_min_max();
 }
 

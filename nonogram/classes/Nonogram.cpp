@@ -343,6 +343,30 @@ int Nonogram::reduce_constraint_solutions (
     return nr_reduced;
 }
 
+void Nonogram::calc_and_lock_constraints (
+        enum direction for_direction
+    ) {
+    int nr_reduced = 0;
+    main_constraints *p_constraints = get_constraints(for_direction);
+
+    for (MainConstraint *constraint : *p_constraints) {
+        if (constraint->get_nr_dirty() > 0) {
+            if (constraint->get_solution_size() > 1) {
+                nr_reduced = constraint->reduce_solutions();
+                constraint->clear_dirty();
+                if (nr_reduced > 0 ) {
+                    constraint->calc_locks();
+                }
+            } else if (constraint->get_solution_size() == 0) {
+                constraint->clear_dirty();
+                constraint->calc_locks_rules();
+            } else {
+                constraint->clear_dirty();
+            }
+        }
+    }
+}
+
 MainConstraint *Nonogram::get_next_to_calculate() {
     MainConstraint *next_constraint_x = nullptr;
     MainConstraint *next_constraint_y = nullptr;
@@ -424,11 +448,13 @@ enum direction Nonogram::reduce_and_lock (
     ) {
     while (has_dirty_locations()) {
         cur_dir = swap_direction(cur_dir);
-        int nr_reduced = reduce_constraint_solutions(cur_dir);
+        calc_and_lock_constraints(cur_dir);
+        /*int nr_reduced = reduce_constraint_solutions(cur_dir);
         
         if (nr_reduced > 0) {
             lock_constraint_solutions(cur_dir);
         }
+        */
     }
     return cur_dir;
 }

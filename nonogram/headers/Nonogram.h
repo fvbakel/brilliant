@@ -52,6 +52,9 @@ class Nonogram {
         enum direction reduce_and_lock (
             enum direction cur_dir
         );
+        void calc_and_lock_constraints (
+            enum direction for_direction
+        );
 
         enum direction swap_direction(enum direction cur_dir);
 

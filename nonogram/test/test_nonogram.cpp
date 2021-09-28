@@ -183,6 +183,27 @@ void test_constraint_min_max_rule() {
     delete_test_locations(locations);
 
     printf("End %s\n",__FUNCTION__);
+    
+}
+
+void test_constraint_min_max_rule_2() {
+    printf("Start %s\n",__FUNCTION__);
+
+    std::vector<int> blacks({ 1, 4});
+    //                    01234578 
+    string start_state = "UUUUUUUU";
+    locations locations;
+    create_test_locations(start_state.size(),locations);
+    MainConstraint *constraint = create_main_constraint(x_dir,&blacks,start_state,locations);
+
+    constraint->calc_locks_rule_min_max();
+    constraint->debug_dump();
+    assert(constraint->get_nr_dirty()==2);
+
+    delete constraint;
+    delete_test_locations(locations);
+
+    printf("End %s\n",__FUNCTION__);
 }
 
 void test_reduce_constraint() {
@@ -466,6 +487,7 @@ int main() {
     test_constraint();
     test_reduce_constraint();
     test_constraint_min_max_rule();
+    test_constraint_min_max_rule_2();
     
     test_Nonegram();
 
