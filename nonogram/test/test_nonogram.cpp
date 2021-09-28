@@ -211,6 +211,64 @@ void test_constraint_min_max_rule_2() {
     printf("End %s\n",__FUNCTION__);
 }
 
+
+
+void test_constraint_rule(
+    std::vector<int> &blacks,
+    string &start_state,
+    string &expected
+) {
+    printf("Start %s with [%s] expected [%s]\n",__FUNCTION__,start_state.c_str(),expected.c_str());
+
+    locations locations;
+    create_test_locations(start_state.size(),locations);
+    MainConstraint *constraint = create_main_constraint(x_dir,&blacks,start_state,locations);
+
+    constraint->calc_locks_rules();
+    constraint->debug_dump();
+    string result = constraint->loc_string();
+    assert(result.compare(expected) == 0);
+
+    delete constraint;
+    delete_test_locations(locations);
+
+    printf("End %s with [%s] expected [%s]\n",__FUNCTION__,start_state.c_str(),expected.c_str());
+}
+
+void test_constraint_rules() {
+    printf("Begin %s\n",__FUNCTION__);
+
+    std::vector<int> blacks({ 1, 4});
+    //                    01234578 
+    string start_state = "UUUUUUUU";
+    string expected = "UUUUXXUU";
+    test_constraint_rule(blacks,start_state,expected);
+
+    blacks.clear();
+    blacks.assign({ 1, 4});
+    //             012345 
+    start_state = "UUUUUU";
+    expected    = "X XXXX";
+    test_constraint_rule(blacks,start_state,expected);
+
+    blacks.clear();
+    blacks.assign({ 2, 1});
+    //             012345 
+    start_state = "XX UUU";
+    expected    = "XX UUU";
+    test_constraint_rule(blacks,start_state,expected);
+    //             012345 
+    start_state = "XX U U";
+    expected    = "XX U U";
+    test_constraint_rule(blacks,start_state,expected);
+    //             012345 
+    start_state = "XXUUUU";
+    expected    = "XX UUU";
+    test_constraint_rule(blacks,start_state,expected);
+
+    printf("End %s\n",__FUNCTION__);
+}
+
 void test_reduce_constraint() {
     // example:
     // Y: 2 2 7 2 1 7 1 2 6 2 2 
@@ -493,6 +551,7 @@ int main() {
     test_reduce_constraint();
     test_constraint_min_max_rule();
     test_constraint_min_max_rule_2();
+    test_constraint_rules();
     
     test_Nonegram();
 

@@ -53,8 +53,6 @@ class Constraint {
         int  get_colored_size(enum color for_color);
         int  get_nr_dirty();
         void clear_dirty();
-        
-
 
         void calculate_solutions();
         int get_solution_size();

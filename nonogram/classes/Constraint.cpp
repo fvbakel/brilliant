@@ -81,8 +81,14 @@ int Constraint::get_variation() {
             white_sequence = 0;
         }
     }
-    if (white_sequence > 0) {
+    if (white_sequence > 0 ) {
         estimate_white_var -= white_sequence;
+    }
+
+    if (estimate_white_var<0) {
+        printf("ERROR: To many white space detected!: \n");
+        print();
+        estimate_white_var =0;
     }
 
     int value = VarianceCalculator::getCalculator()->get_variance(nr_of_white_segments,estimate_white_var);
@@ -340,7 +346,7 @@ void Constraint::reset_solution() {
 
 void Constraint::set_location_color(const int pos, const enum color new_color) {
     if (pos <m_locations.size()) {
-        m_locations[pos]->determine_color(new_color);
+        m_locations[pos]->set_solved_color(new_color);
     }
 }
 
@@ -520,6 +526,7 @@ Constraint::~Constraint() {
     if (m_Rule != nullptr) {
         delete m_Rule;
     }
+    
     // locations are not owned here
     m_locations.clear();
     return;
