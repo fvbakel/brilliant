@@ -6,6 +6,7 @@
 #include <constants.h>
 #include <Segment.h>
 #include <Location.h>
+#include <Rule.h>
 
 class Constraint {
     protected:
@@ -17,10 +18,10 @@ class Constraint {
         bool                m_locked       = false;
         bool                m_min_max_set  = false;
 
+        Rule               *m_Rule         = nullptr;
         std::vector<std::vector<enum color> >  m_solutions;
 
         void update_size();
-        void set_initial_min_max_segments();
         void add_variation(
             std::vector<enum color> *solution_base,
             int                     current_pos,
@@ -35,7 +36,6 @@ class Constraint {
             enum color
         );
 
-        void calc_locks_rule_min_max();
 
     public:
         Constraint(enum direction direction);

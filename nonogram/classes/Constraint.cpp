@@ -340,11 +340,7 @@ void Constraint::reset_solution() {
 
 void Constraint::set_location_color(const int pos, const enum color new_color) {
     if (pos <m_locations.size()) {
-        if (!m_locations[pos]->is_locked()) {
-            m_locations[pos]->set_color(new_color);
-            m_locations[pos]->set_dirty_both();
-            m_locations[pos]->lock();
-        }
+        m_locations[pos]->determine_color(new_color);
     }
 }
 
@@ -388,50 +384,15 @@ void Constraint::calc_locks() {
     }
 }
 
-void Constraint::set_initial_min_max_segments() {
-    if (m_min_max_set == false) {
-        if (m_segments.size() >= 0) {
-            m_segments[0]->set_min_start(POS_NA);
-        }
-        if (m_segments.size() >= 1 ) {
-            m_segments[m_segments.size()-1]->set_max_end(POS_NA);
-        }
-        if (m_segments.size() >= 2 ) {
-            m_segments[m_segments.size()-2]->set_max_end(m_size-1);
-        }
-        m_min_max_set = true;
-    }
-}
-
-/*
-Examples:
-Given               | Result
-     012345         | 012345
-1 4: UUUUUU         | X XXXX
-
-Given               | Result
-     01234567       | 01234567
-1 4: UUUUUUUU       | UUUUXXUU
-*/
-void Constraint::calc_locks_rule_min_max() {
-    for (int i = 0;i<m_segments.size();i++) {
-        int min_end = m_segments[i]->get_min_end();
-        int max_start = m_segments[i]->get_max_start();
-        if (min_end != POS_NA && max_start != POS_NA) {
-            enum color new_color = m_segments[i]->get_color();
-            for (int pos=max_start; pos <= min_end; pos++) {
-                set_location_color(pos,new_color);
-            }
-        }
-    }
-}
-
 void Constraint::calc_locks_rules() {
-    set_initial_min_max_segments();
-    calc_locks_rule_min_max();
-    while (get_nr_dirty() > 0 ) {
+    if (m_Rule == nullptr) {
+        m_Rule = new Rule(&m_locations,&m_segments);
+    }
+    bool first = true;
+    while (get_nr_dirty() > 0  || first) {
         clear_dirty();
-        calc_locks_rule_min_max();
+        m_Rule->calc_locks();
+        first = false;
     }
 }
 
@@ -556,6 +517,9 @@ Constraint::~Constraint() {
 
     m_segments.clear();
 
+    if (m_Rule != nullptr) {
+        delete m_Rule;
+    }
     // locations are not owned here
     m_locations.clear();
     return;

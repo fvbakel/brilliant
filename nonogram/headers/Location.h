@@ -27,6 +27,7 @@ class Location {
 
         enum color get_color();
         void set_color(enum color);
+        void determine_color(enum color new_color);
         
         bool is_locked();
         void lock();

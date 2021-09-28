@@ -32,6 +32,14 @@ void Location::set_color(enum color new_color) {
     m_color = new_color;
 }
 
+void Location::determine_color(enum color new_color) {
+    if (!is_locked()) {
+        set_color(new_color);
+        set_dirty_both();
+        lock();
+    }
+}
+
 bool Location::is_locked() {
     return m_locked;
 }
