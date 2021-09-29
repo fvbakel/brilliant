@@ -46,6 +46,10 @@ enum color Segment::get_color() {
     return m_color;
 }
 
+enum direction Segment::get_direction() {
+    return m_direction;
+}
+
 void Segment::set_before(Segment *before) {
     m_before = before;
     if (before != nullptr) {
@@ -172,6 +176,16 @@ void Segment::reset() {
 
 bool Segment::is_size_allowed(const int size) {
      return (size >= m_min_size) && (size <= m_max_size);
+}
+
+bool Segment::is_start_set() {
+    return (m_start != POS_UNKNOWN) && (m_start   != POS_NA);
+}
+bool Segment::is_end_set() {
+    return (m_end != POS_UNKNOWN) && (m_end   != POS_NA);
+}
+bool Segment::is_start_and_end_set() {
+    return is_start_set() && is_end_set();
 }
 
 void Segment::print() {

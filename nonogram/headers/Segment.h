@@ -37,6 +37,7 @@ class Segment {
         int get_max_size();
         int get_size();
         enum color get_color();
+        enum direction get_direction();
 
         int get_max_start();
         int get_min_end();
@@ -63,6 +64,10 @@ class Segment {
         Segment *get_after();
 
         bool is_size_allowed(const int size);
+        bool is_start_set();
+        bool is_end_set();
+        bool is_start_and_end_set();
+
 
         void print();
 };

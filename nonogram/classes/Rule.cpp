@@ -94,24 +94,13 @@ void Rule::calc_locks_rule_min_max() {
 void Rule::apply_start_end_segments() {
     for (int i = 0;i<m_segments->size();i++) {
         if (!m_segments->at(i)->is_locked()) {
-            int start = m_segments->at(i)->get_start();
-            int end = m_segments->at(i)->get_end();
-            if (
-                start   != POS_UNKNOWN &&
-                end     != POS_UNKNOWN &&
-                start   != POS_NA &&
-                end     != POS_NA
-            ) {
+            if (m_segments->at(i)->is_start_and_end_set()) {
                 mark_and_lock(m_segments->at(i));
-            } else if (
-                start   != POS_UNKNOWN &&
-                start   != POS_NA
-            ) {
+            } else if (m_segments->at(i)->is_start_set()) {
+                int start = m_segments->at(i)->get_start();
                 set_location_color(start,m_segments->at(i)->get_color());
-            } else if (
-                end   != POS_UNKNOWN &&
-                end   != POS_NA
-            ) {
+            } else if (m_segments->at(i)->is_end_set()) {
+                int end = m_segments->at(i)->get_end();
                 set_location_color(end,m_segments->at(i)->get_color());
             }
         }
