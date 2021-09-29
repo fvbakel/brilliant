@@ -143,22 +143,27 @@ void Rule::parse_first_white() {
     m_w_count = 1;
     if (m_u_count > 0 ) {
         if (m_next_colored != nullptr) {
+            // there is a next segment that is not locked yet
             if (m_u_count >=m_max_u_size) {
                 m_search_mode = search_stop;
             }
         }  
-        // can this fit in the no_color area?
+        // can the segment we are searching fit in the no_color area?
         if (m_u_count < m_search_size) {
             // the unknowns must be white
             mark_u_white(m_cur_pos -1);
             m_search_mode = search_next;
         } else {
-            // TODO
+            // This could be this segment or the next segment
+            // might still be able to determine this segment 
+            // based on glue a split, but not here
             m_search_mode = search_stop;
         }
     } else {
-        m_cur_searching->get_before()->set_start(m_cur_pos);
-        m_search_mode = search_next;
+        if (m_search_mode == search_first) {
+            m_cur_searching->get_before()->set_start(m_cur_pos);
+            m_search_mode = search_next;
+        }
     }
     m_u_count = 0;
     m_c_count = 0;
@@ -170,18 +175,25 @@ void Rule::parse_first_white() {
         m_search_mode = search_count_not_white;
         if (m_next_colored !=nullptr) {
             if (m_u_count > m_search_size) {
-                // todo can still search for biggest
+                // this location belongs to the current segment or the next...
+                // TODO can still search for biggest
                 m_search_mode = search_end;
             } else {
                 // Location is part of this segment
             }
         } else {
             // Location is part of this segment
-         }
+
+        }
     } else {
-        //found the location of this segment!
-        m_cur_searching->set_start(m_cur_pos);
+        //found the location of this non white segment!
+        if (m_search_dir == search_forward) {
+            m_cur_searching->set_start(m_cur_pos);
+        } else {
+            m_cur_searching->set_end(m_cur_pos);
+        }
         mark_and_lock(m_cur_searching);
+        // move the search status to the next unlocked segment
         init_searching();
     }
     m_w_count = 0;
@@ -189,7 +201,7 @@ void Rule::parse_first_white() {
 
 void Rule::parse_pos() {
     enum color cur_color = m_locations->at(m_cur_pos)->get_color();
-    if (m_search_mode == search_first) {
+    if (m_search_mode == search_first || m_search_mode == search_next) {
         if (cur_color == no_color) {
             m_u_count++;
             return;
