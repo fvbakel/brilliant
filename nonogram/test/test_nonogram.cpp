@@ -516,6 +516,44 @@ void test_constraint () {
     printf("End %s\n",__FUNCTION__);
 }
 
+void test_segment_location() {
+    printf("Start %s\n",__FUNCTION__);
+    Segment *segment_1 = new Segment(white,x_dir,0);
+    Segment *segment_2 = new Segment(black,x_dir,2);
+    Segment *segment_3 = new Segment(white,x_dir,1);
+    Segment *segment_4 = new Segment(black,x_dir,1);
+    Segment *segment_5 = new Segment(white,x_dir,0);
+
+    segment_1->set_after(segment_2);
+    segment_2->set_after(segment_3);
+    segment_3->set_after(segment_4);
+    segment_4->set_after(segment_5);
+
+    locations locations;
+    create_test_locations(5,locations);
+
+    locations[0]->set_segment(segment_2);
+    locations[1]->set_segment(segment_2);
+    assert(locations[0]->has_segment_for_dir(x_dir) == true);
+    assert(locations[0]->has_segment_for_dir(y_dir) == false);
+    assert(locations[0]->is_part_of_segment(segment_2) == true);
+    assert(locations[0]->is_part_of_segment(segment_1) == false);
+    assert(locations[0]->get_segment_for_dir(x_dir) == segment_2);
+    assert(locations[0]->get_segment_for_dir(y_dir) == nullptr);
+
+    // should report a warning
+    locations[1]->set_segment(segment_2);
+
+    delete_test_locations(locations);
+
+    delete segment_1;
+    delete segment_2;
+    delete segment_3;
+    delete segment_4;
+    delete segment_5;
+    printf("End %s\n",__FUNCTION__);
+}
+
 void test_segment() {
     printf("Start %s\n",__FUNCTION__);
     Segment *segment_1 = new Segment(white,x_dir,0);
@@ -528,6 +566,14 @@ void test_segment() {
     segment_2->set_after(segment_3);
     segment_3->set_after(segment_4);
     segment_4->set_after(segment_5);
+
+    assert(segment_1->get_direction() == x_dir);
+
+    delete segment_1;
+    delete segment_2;
+    delete segment_3;
+    delete segment_4;
+    delete segment_5;
     printf("End %s\n",__FUNCTION__);
 }
 
@@ -547,6 +593,7 @@ int main() {
     test_get_variance();
     test_Location();
     test_segment();
+    test_segment_location();
     test_constraint();
     test_reduce_constraint();
     test_constraint_min_max_rule();

@@ -32,6 +32,42 @@ void Location::set_color(enum color new_color) {
     m_color = new_color;
 }
 
+Segment **Location::get_segment_pointer_for_dir(enum direction for_dir) {
+    Segment **p_segment = &m_segment_x;
+    if (for_dir == y_dir) {
+        p_segment = &m_segment_y;
+    } 
+    return p_segment;
+}
+
+Segment *Location::get_segment_for_dir(enum direction for_dir) {
+    Segment **p_segment = get_segment_pointer_for_dir(for_dir);
+    return (*p_segment);
+}
+
+void Location::set_segment(Segment *segment) {
+    Segment **p_segment = get_segment_pointer_for_dir(segment->get_direction());
+    if (*p_segment != segment) {
+        if (*p_segment != nullptr) {
+            printf("ERROR: Setting location to two different segments. Was: ");
+            (*p_segment)->print(); 
+            printf("Now: ");
+            segment->print();
+            printf("\n");
+        }
+        *p_segment = segment;
+    }
+}
+
+bool Location::has_segment_for_dir(enum direction for_dir) {
+    Segment *segment = get_segment_for_dir(for_dir);
+    return segment != nullptr;
+}
+bool Location::is_part_of_segment(Segment *segment) {
+    Segment *my_segment = get_segment_for_dir(segment->get_direction());
+    return my_segment == segment;
+}
+
 void Location::set_solved_color(enum color new_color) {
     if (!is_locked()) {
         set_color(new_color);

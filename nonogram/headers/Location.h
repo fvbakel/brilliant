@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include <constants.h>
+#include <Segment.h>
 
 
 class Location {
@@ -14,6 +15,10 @@ class Location {
         bool        m_locked    = false;
         bool        m_dirty_x   = false;
         bool        m_dirty_y   = false;
+        Segment    *m_segment_x = nullptr;
+        Segment    *m_segment_y = nullptr;
+
+        Segment **get_segment_pointer_for_dir(enum direction for_dir);
 
     public:
         Location(const int x,const int y);
@@ -29,6 +34,12 @@ class Location {
         void set_color(enum color);
         void set_solved_color(enum color new_color);
         
+        void set_segment(Segment *segment);
+        
+        Segment *get_segment_for_dir(enum direction for_dir);
+        bool has_segment_for_dir(enum direction for_dir);
+        bool is_part_of_segment(Segment *segment);
+
         bool is_locked();
         void lock();
         void unlock();
