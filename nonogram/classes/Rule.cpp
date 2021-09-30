@@ -7,9 +7,10 @@ Rule::Rule(locations *locations,segments *segments) {
 }
 
 void Rule::calc_locks() {
-    calc_locks_rule_out_of_reach();
+    detect_segments();
+    apply_out_of_reach();
     apply_start_end_segments();
-    calc_locks_rule_min_max();
+    apply_min_max();
 }
 
 void Rule::set_location_color(const int pos, const enum color new_color) {
@@ -84,7 +85,7 @@ Given               | Result
      01234567       | 01234567
 1 4: UUUUUUUU       | UUUUXXUU
 */
-void Rule::calc_locks_rule_min_max() {
+void Rule::apply_min_max() {
     for (int i = 0;i<m_segments->size();i++) {
         int min_end = m_segments->at(i)->get_min_end();
         int max_start = m_segments->at(i)->get_max_start();
@@ -116,14 +117,30 @@ void Rule::apply_start_end_segments() {
     }
 }
 
+void Rule::apply_out_of_reach() {
+    for (int i = 0;i<m_segments->size();i++) {
+        if (!m_segments->at(i)->is_locked()) {
+            int prev_max_end = -1;
+            int next_min_start = m_locations->size();
+            if (m_segments->at(i)->get_before() != nullptr) {
+                prev_max_end = m_segments->at(i)->get_before()->get_max_end();
+            } 
+            if (m_segments->at(i)->get_after() != nullptr) {
+                next_min_start = m_segments->at(i)->get_after()->get_min_start();
+            }
+            for (int pos=prev_max_end+1 ; pos < next_min_start;pos++) {
+                set_location_segment(pos,m_segments->at(i));
+            }
+        }
+    }
+}
+
 
 /*
-Examples:
-Given               | Result
-     01234567         | 01234567
-1 4: UXUUUUUU         |  X UUUUU
+Locate segments and update the start, end, min_start and max_end
+information.
 */
-void Rule::calc_locks_rule_out_of_reach() {
+void Rule::detect_segments() {
     m_search_mode = search_first;
     m_search_dir  = search_forward;
     init_searching();
@@ -287,7 +304,6 @@ void Rule::mark_u_white(const int start_pos, Segment *segment) {
     if (m_search_dir == search_forward) {
         for (int pos = start_pos;pos >=0;pos--) {
             if (m_locations->at(pos)->get_color() == no_color) {
-                //set_location_color(pos,white);
                 set_location_segment(pos,segment);
             } else {
                 break;
@@ -326,9 +342,12 @@ void Rule::mark_segment_reverse(const int start_pos,const int nr, Segment *segme
     }
 }
 
+/*
+Given a segment with a valid start and end set,
+mark all related locations and lock this segment
+*/
 void Rule::mark_and_lock(Segment *segment) {
     for(int pos = segment->get_start();pos <= segment->get_end();pos++) {
-        //set_location_color(pos,segment->get_color());
         set_location_segment(pos,segment);
         segment->lock();
     }

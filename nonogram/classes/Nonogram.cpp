@@ -427,6 +427,8 @@ enum direction Nonogram::swap_direction(enum direction cur_dir) {
     }
 }
 
+
+
 void Nonogram::init_constraint_solutions_2() {
     enum direction cur_dir = y_dir;
 
@@ -443,18 +445,22 @@ void Nonogram::init_constraint_solutions_2() {
     cur_dir = reduce_and_lock(cur_dir);
 }
 
+void Nonogram::initial_constraints_rules() {
+    for (MainConstraint *constraint : m_x_contraints) {
+        constraint->calc_locks_rules();
+    }
+    for (MainConstraint *constraint : m_y_contraints) {
+        constraint->calc_locks_rules();
+    }
+    reduce_and_lock(x_dir);
+}
+
 enum direction Nonogram::reduce_and_lock (
             enum direction cur_dir
     ) {
     while (has_dirty_locations()) {
         cur_dir = swap_direction(cur_dir);
         calc_and_lock_constraints(cur_dir);
-        /*int nr_reduced = reduce_constraint_solutions(cur_dir);
-        
-        if (nr_reduced > 0) {
-            lock_constraint_solutions(cur_dir);
-        }
-        */
     }
     return cur_dir;
 }
@@ -464,6 +470,14 @@ bool Nonogram::solve_constraint_backtrack(int con_idx) {
     if (con_idx == 0 && m_sol_calcs.size() == 0) {
         if (!is_input_valid()) {
             return false;
+        }
+
+        initial_constraints_rules();
+        if (is_solved()) {
+            printf("Solved with rules only.\n");
+            return true;
+        } else {
+            printf("Constraints initial rules ready, solve the remaining with solution constraints.\n");
         }
         //init_constraint_solutions_1();
         init_constraint_solutions_2();

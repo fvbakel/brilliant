@@ -29,9 +29,10 @@ class Rule {
         void set_location_color(const int pos, const enum color new_color);
         void set_location_segment(const int pos, Segment *segment);
         void set_initial_min_max_segments();
-        void calc_locks_rule_min_max();
+        void apply_min_max();
         void apply_start_end_segments();
-        void calc_locks_rule_out_of_reach();
+        void apply_out_of_reach();
+        void detect_segments();
 
         void init_searching();
         void parse_first_white();

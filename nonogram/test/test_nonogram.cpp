@@ -285,6 +285,20 @@ void test_constraint_rules() {
     expected    = " X UXU";
     test_constraint_rule(blacks,start_state,expected);
 
+    blacks.clear();
+    blacks.assign({ 2});
+    //             012345 
+    start_state = "UUXUUU";
+    expected    = " UXU  ";
+    test_constraint_rule(blacks,start_state,expected);
+
+    blacks.clear();
+    blacks.assign({ 3});
+    //             01234567 
+    start_state = "UUUXU UU";
+    expected    = " UUXU   ";
+    test_constraint_rule(blacks,start_state,expected);
+
     printf("End %s\n",__FUNCTION__);
 }
 

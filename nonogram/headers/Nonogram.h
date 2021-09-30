@@ -60,6 +60,7 @@ class Nonogram {
 
         void init_constraint_solutions_1();
         void init_constraint_solutions_2();
+        void initial_constraints_rules();
 
         bool is_consistent_dir(enum direction for_direction);
         bool is_input_valid_dir(enum direction for_direction);
