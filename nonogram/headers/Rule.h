@@ -29,12 +29,14 @@ class Rule {
         void set_location_color(const int pos, const enum color new_color);
         void set_location_segment(const int pos, Segment *segment);
         void set_initial_min_max_segments();
+        void init_searching();
+        Segment *next_segment(Segment *segment);
+
         void apply_min_max();
         void apply_start_end_segments();
         void apply_out_of_reach();
-        void detect_segments();
 
-        void init_searching();
+        void search_segments(const enum search_dir in_dir);
         void parse_first_white();
         void parse_first_not_white();
         void parse_last_not_white(const bool end_found);

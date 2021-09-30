@@ -7,7 +7,8 @@ Rule::Rule(locations *locations,segments *segments) {
 }
 
 void Rule::calc_locks() {
-    detect_segments();
+    search_segments(search_forward);
+    search_segments(search_back_ward);
     apply_out_of_reach();
     apply_start_end_segments();
     apply_min_max();
@@ -25,39 +26,61 @@ void Rule::set_location_segment(const int pos, Segment *segment) {
     }
 }
 
+/*
+Get the next segment, given the current search direction
+*/
+Segment* Rule::next_segment(Segment *segment) {
+    if (m_search_dir == search_forward) {
+        return segment->get_after();
+    } else {
+        return segment->get_before();
+    }
+}
+
 //TODO: implement backwards
 void Rule::init_searching() {
-    m_cur_searching = nullptr;
-    m_next_colored = nullptr;
-    m_search_size = 0;
-    m_max_u_size = -1;
-    int white_size = 0;
-    m_search_mode = search_stop;
+    m_cur_searching     = nullptr;
+    m_next_colored      = nullptr;
+    m_search_size       = 0;
+    m_max_u_size        = -1;
+    int white_size      = 0;
+    Segment *segment    = nullptr;
+    m_search_mode       = search_stop;
     if (m_search_dir == search_forward) {
         m_cur_pos       = 0;
-        for (int i = 0; i < m_segments->size();i++) {
-            if (m_cur_searching ==nullptr && m_segments->at(i)->is_locked()) {
-                m_cur_pos = m_segments->at(i)->get_end() + 1;
-            }
-            if (!m_segments->at(i)->is_locked() && m_segments->at(i)->get_color() !=white) {
-                if (m_cur_searching == nullptr) {
-                    m_cur_searching = m_segments->at(i);
-                    m_search_size = m_cur_searching->get_min_size();
-                    m_search_mode = search_first;
-                } else {
-                    m_next_colored = m_segments->at(i);
-                    m_max_u_size = m_search_size + white_size + m_next_colored->get_size();
-                    break;
-                }
-            }
-            if (m_cur_searching != nullptr && m_segments->at(i)->get_color() == white)  {
-                white_size++;
+        segment = m_segments->at(0);
+    } else {
+        m_cur_pos       = m_locations->size()-1;
+        segment = m_segments->at(m_segments->size()-1);
+    }
+    while (segment != nullptr) {
+        if (m_cur_searching ==nullptr && segment->is_locked()) {
+            if (m_search_dir == search_forward) {
+                m_cur_pos = segment->get_end() + 1;
+            } else {
+                m_cur_pos = segment->get_start() - 1;
             }
         }
-        m_u_count       = 0;
-        m_w_count       = 0;
-        m_c_count       = 0;
+        if (segment->get_color() !=white) {
+            if (m_cur_searching != nullptr) {
+                m_next_colored = segment;
+                m_max_u_size = m_search_size + white_size + m_next_colored->get_size();
+                break;
+            }
+            if (m_cur_searching == nullptr && !segment->is_locked()) {
+                m_cur_searching = segment;
+                m_search_size = m_cur_searching->get_min_size();
+                m_search_mode = search_first;
+            }
+        }
+        if (m_cur_searching != nullptr && segment->get_color() == white)  {
+            white_size++;
+        }
+        segment = next_segment(segment);
     }
+    m_u_count       = 0;
+    m_w_count       = 0;
+    m_c_count       = 0;
 }
 
 void Rule::set_initial_min_max_segments() {
@@ -87,13 +110,15 @@ Given               | Result
 */
 void Rule::apply_min_max() {
     for (int i = 0;i<m_segments->size();i++) {
-        int min_end = m_segments->at(i)->get_min_end();
-        int max_start = m_segments->at(i)->get_max_start();
-        if (min_end != POS_NA && max_start != POS_NA) {
-            enum color new_color = m_segments->at(i)->get_color();
-            for (int pos=max_start; pos <= min_end; pos++) {
-                //set_location_color(pos,new_color);
-                set_location_segment(pos,m_segments->at(i));
+        if (!m_segments->at(i)->is_locked()) {
+            int min_end = m_segments->at(i)->get_min_end();
+            int max_start = m_segments->at(i)->get_max_start();
+            if (min_end != POS_NA && max_start != POS_NA) {
+                enum color new_color = m_segments->at(i)->get_color();
+                for (int pos=max_start; pos <= min_end; pos++) {
+                    //set_location_color(pos,new_color);
+                    set_location_segment(pos,m_segments->at(i));
+                }
             }
         }
     }
@@ -140,25 +165,25 @@ void Rule::apply_out_of_reach() {
 Locate segments and update the start, end, min_start and max_end
 information.
 */
-void Rule::detect_segments() {
+void Rule::search_segments(const enum search_dir in_dir) {
     m_search_mode = search_first;
-    m_search_dir  = search_forward;
+    m_search_dir  = in_dir;
     init_searching();
-    //if (m_cur_searching != nullptr) {
-        //TODO improve search mode end
-        while (m_search_mode != search_stop) {
-            parse_pos();
-            next_pos();
-        }
-    //}
-    //TODO: search backwards
+    while (m_search_mode != search_stop) {
+        parse_pos();
+        next_pos();
+    }
+
 }
 
 void Rule::parse_first_white() {
     m_w_count = 1;
     if (m_u_count > 0 ) {
-        if (m_next_colored != nullptr) {
+        //TODO: here we need to know if the next segment 
+        // has a min start before the current location
+        if (m_next_colored != nullptr && !m_next_colored->is_locked()) {
             // there is a next segment that is not locked yet
+            // TODO: this case can be improved
             if (m_u_count >=m_max_u_size) {
                 m_search_mode = search_stop;
             }
@@ -169,7 +194,7 @@ void Rule::parse_first_white() {
             if (m_search_dir == search_forward) {
                 mark_u_white(m_cur_pos -1,m_cur_searching->get_before());
             } else {
-                mark_u_white(m_cur_pos -1,m_cur_searching->get_after());
+                mark_u_white(m_cur_pos + 1,m_cur_searching->get_after());
             }
             m_search_mode = search_next;
         } else {
@@ -180,7 +205,11 @@ void Rule::parse_first_white() {
         }
     } else {
         if (m_search_mode == search_first) {
-            m_cur_searching->get_before()->set_start(m_cur_pos);
+            if (m_search_dir == search_forward) {
+                m_cur_searching->get_before()->set_start(m_cur_pos);
+            } else {
+                m_cur_searching->get_after()->set_end(m_cur_pos);
+            }
             m_search_mode = search_next;
         }
     }
@@ -192,7 +221,7 @@ void Rule::parse_first_white() {
     m_c_count = 1;
     if (m_u_count > 0 ) {
         m_search_mode = search_count_not_white;
-        if (m_next_colored !=nullptr) {
+        if (m_next_colored != nullptr) {
             if (m_u_count > m_search_size) {
                 // this location belongs to the current segment or the next...
                 // TODO can still search for biggest
@@ -279,7 +308,7 @@ void Rule::next_pos() {
             m_cur_pos++;
         }
     } else {
-        if (m_cur_pos -1 <= 0) {
+        if (m_cur_pos -1 < 0) {
             last = true;
         } else {
             m_cur_pos--;
@@ -342,7 +371,7 @@ void Rule::mark_segment_reverse(const int start_pos,const int nr, Segment *segme
         segment->set_min_start(last_pos - move_space);
         segment->set_max_end(start_pos + move_space);
     } else {
-        int last_pos = start_pos + nr;
+        int last_pos = start_pos + (nr - 1);
         for (int pos = start_pos;pos <= last_pos;pos++) {
             set_location_segment(pos,segment);
         }

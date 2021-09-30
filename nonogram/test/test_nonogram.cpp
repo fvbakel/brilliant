@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <iostream>
+#include <sstream>
 #include <vector>
 #include <assert.h>
 
@@ -174,21 +175,28 @@ void test_constraint_rule(
     string &start_state,
     string &expected
 ) {
-    printf("Start %s with [%s] expected [%s]\n",__FUNCTION__,start_state.c_str(),expected.c_str());
+    std::stringstream clue;
+    clue<< "(";
+    for (int i = 0; i< blacks.size();i++) {
+        clue << blacks[i] << ",";
+    }
+    clue<< ")";
+    printf("Start %s clue %s with [%s] expected [%s]\n",__FUNCTION__,clue.str().c_str(),start_state.c_str(),expected.c_str());
 
     locations locations;
     create_test_locations(start_state.size(),locations);
     MainConstraint *constraint = create_main_constraint(x_dir,&blacks,start_state,locations);
 
     constraint->calc_locks_rules();
-    constraint->debug_dump();
+    //constraint->debug_dump();
     string result = constraint->loc_string();
+    printf("   result [%s]\n",result.c_str());
     assert(result.compare(expected) == 0);
 
     delete constraint;
     delete_test_locations(locations);
 
-    printf("End %s with [%s] expected [%s]\n",__FUNCTION__,start_state.c_str(),expected.c_str());
+    printf("End %s clue %s with [%s] expected [%s]\n",__FUNCTION__,clue.str().c_str(),start_state.c_str(),expected.c_str());
 }
 
 void test_constraint_rules() {
@@ -263,6 +271,14 @@ void test_constraint_rules() {
     //             012345 
     start_state = "UUUUXX";
     expected    = "    XX";
+    test_constraint_rule(blacks,start_state,expected);
+
+    // test backwards search
+    blacks.clear();
+    blacks.assign({ 1,2});
+    //             012345 
+    start_state = "UUUUXX";
+    expected    = "UUU XX";
     test_constraint_rule(blacks,start_state,expected);
 
     printf("End %s\n",__FUNCTION__);
