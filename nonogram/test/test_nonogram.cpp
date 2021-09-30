@@ -169,54 +169,6 @@ void test_Nonegram() {
     printf("End %s\n",__FUNCTION__);
 }
 
-void test_constraint_min_max_rule() {
-    printf("Start %s\n",__FUNCTION__);
-
-    std::vector<int> blacks({ 1, 4});
-    //                    012345 
-    string start_state = "UUUUUU";
-    locations locations;
-    create_test_locations(start_state.size(),locations);
-    MainConstraint *constraint = create_main_constraint(x_dir,&blacks,start_state,locations);
-
-    constraint->calc_locks_rules();
-    constraint->debug_dump();
-    assert(constraint->loc_string().compare("X XXXX") == 0);
-
-    delete constraint;
-    delete_test_locations(locations);
-
-    printf("End %s\n",__FUNCTION__);
-    
-}
-
-/*
-Given               | Result
-     01234567       | 01234567
-1 4: UUUUUUUU       | UUUUXXUU
-*/
-void test_constraint_min_max_rule_2() {
-    printf("Start %s\n",__FUNCTION__);
-
-    std::vector<int> blacks({ 1, 4});
-    //                    01234578 
-    string start_state = "UUUUUUUU";
-    locations locations;
-    create_test_locations(start_state.size(),locations);
-    MainConstraint *constraint = create_main_constraint(x_dir,&blacks,start_state,locations);
-
-    constraint->calc_locks_rules();
-    constraint->debug_dump();
-    assert(constraint->loc_string().compare("UUUUXXUU") == 0);
-
-    delete constraint;
-    delete_test_locations(locations);
-
-    printf("End %s\n",__FUNCTION__);
-}
-
-
-
 void test_constraint_rule(
     std::vector<int> &blacks,
     string &start_state,
@@ -246,6 +198,13 @@ void test_constraint_rules() {
     //                    01234578 
     string start_state = "UUUUUUUU";
     string expected    = "UUUUXXUU";
+    test_constraint_rule(blacks,start_state,expected);
+
+    blacks.clear();
+    blacks.assign({ 1, 4});
+    //             012345 
+    start_state = "UUUUUU";
+    expected    = "X XXXX";
     test_constraint_rule(blacks,start_state,expected);
 
     blacks.clear();
@@ -297,6 +256,13 @@ void test_constraint_rules() {
     //             01234567 
     start_state = "UUUXU UU";
     expected    = " UUXU   ";
+    test_constraint_rule(blacks,start_state,expected);
+
+    blacks.clear();
+    blacks.assign({ 2});
+    //             012345 
+    start_state = "UUUUXX";
+    expected    = "    XX";
     test_constraint_rule(blacks,start_state,expected);
 
     printf("End %s\n",__FUNCTION__);
@@ -645,8 +611,7 @@ int main(int argc, char *argv[]) {
         cout << "Any enter to continue";
         char dummy = getchar();
     }
-    test_constraint_min_max_rule();
-    test_constraint_min_max_rule_2();
+
     test_constraint_rules();
     if (argc >1) {
         cout << "Any enter to continue";

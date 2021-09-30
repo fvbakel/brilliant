@@ -146,7 +146,7 @@ void Rule::detect_segments() {
     init_searching();
     //if (m_cur_searching != nullptr) {
         //TODO improve search mode end
-        while (m_search_mode != search_stop && m_search_mode != search_end) {
+        while (m_search_mode != search_stop) {
             parse_pos();
             next_pos();
         }
@@ -196,7 +196,7 @@ void Rule::parse_first_white() {
             if (m_u_count > m_search_size) {
                 // this location belongs to the current segment or the next...
                 // TODO can still search for biggest
-                m_search_mode = search_end;
+                m_search_mode = search_stop;
             } else {
                 // Location is part of this segment
             }
@@ -265,21 +265,32 @@ void Rule::parse_pos() {
             m_c_count++;
             return;
         }
+    } else if (m_search_mode == search_count_ready) {
+        parse_last_not_white(true);
     }
 }
 
 void Rule::next_pos() {
+    bool last=false;
     if (m_search_dir == search_forward) {
         if (m_cur_pos + 1 >= m_locations->size()) {
-            m_search_mode = search_end;
+            last = true;
         } else {
             m_cur_pos++;
         }
     } else {
         if (m_cur_pos -1 <= 0) {
-            m_search_mode = search_end;
+            last = true;
         } else {
             m_cur_pos--;
+        }
+    }
+
+    if (last) {
+        if ( m_search_mode == search_count_not_white) {
+            m_search_mode = search_count_ready;
+        } else {
+            m_search_mode = search_stop;
         }
     }
 }
@@ -289,13 +300,13 @@ void Rule::previous_pos() {
         if (m_cur_pos > 0) {
             m_cur_pos--;
         } else {
-            m_search_mode = search_end;
+            m_search_mode = search_stop;
         }
     } else {
         if (m_cur_pos + 1 < m_locations->size()) {
             m_cur_pos++;
         } else {
-            m_search_mode = search_end;
+            m_search_mode = search_stop;
         }
     }
 }

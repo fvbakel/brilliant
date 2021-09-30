@@ -5,7 +5,7 @@
 #include <Segment.h>
 #include <Location.h>
 
-enum search_mode {search_first,search_next,search_count_not_white,search_end,search_stop};
+enum search_mode {search_first,search_next,search_count_not_white,search_count_ready,search_stop};
 enum search_dir  {search_forward,search_back_ward};
 
 class Rule {
