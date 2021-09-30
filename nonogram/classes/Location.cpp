@@ -1,6 +1,8 @@
 #include <Location.h>
 #include <stdio.h>
 #include <iostream>
+#include <sstream>
+#include <stdexcept>
 #include <assert.h>
 
 Location::Location(const int x,const int y) {
@@ -54,8 +56,10 @@ void Location::set_segment(Segment *segment) {
             printf("Now: ");
             segment->print();
             printf("\n");
+            throw std::runtime_error("Setting location to two different segments");
         }
         *p_segment = segment;
+        set_solved_color(segment->get_color());
     }
 }
 
@@ -68,11 +72,35 @@ bool Location::is_part_of_segment(Segment *segment) {
     return my_segment == segment;
 }
 
+void Location::error_check() {
+    bool passed =true;
+    std::stringstream error_str;
+    if (m_segment_x != nullptr && m_segment_x->get_color() != m_color) {
+        error_str << "ERROR: Location color(" << m_color;
+        error_str << ") does not match x segment color(" << m_segment_x->get_color() << "\n";
+        passed = false;
+    }
+    if (m_segment_y != nullptr && m_segment_y->get_color() != m_color) {
+        error_str << "ERROR: Location color(" << m_color;
+        error_str << ") does not match y segment color(" << m_segment_y->get_color() << "\n";
+        passed = false;
+    }
+    if (m_segment_y != nullptr && m_segment_x != nullptr && m_segment_x->get_color() != m_segment_y->get_color()) {
+        error_str << "ERROR: Segment x color(" << m_color;
+        error_str << ") does not match y segment color(" << m_segment_y->get_color() << "\n";
+        passed = false;
+    }
+    if (!passed) {
+        throw std::runtime_error(error_str.str());
+    }
+}
+
 void Location::set_solved_color(enum color new_color) {
     if (!is_locked()) {
         set_color(new_color);
         set_dirty_both();
         lock();
+        error_check();
     }
 }
 

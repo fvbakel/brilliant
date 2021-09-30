@@ -18,6 +18,12 @@ void Rule::set_location_color(const int pos, const enum color new_color) {
     }
 }
 
+void Rule::set_location_segment(const int pos, Segment *segment) {
+    if (pos <m_locations->size()) {
+        m_locations->at(pos)->set_segment(segment);
+    }
+}
+
 //TODO: implement backwards
 void Rule::init_searching() {
     m_cur_searching = nullptr;
@@ -85,7 +91,8 @@ void Rule::calc_locks_rule_min_max() {
         if (min_end != POS_NA && max_start != POS_NA) {
             enum color new_color = m_segments->at(i)->get_color();
             for (int pos=max_start; pos <= min_end; pos++) {
-                set_location_color(pos,new_color);
+                //set_location_color(pos,new_color);
+                set_location_segment(pos,m_segments->at(i));
             }
         }
     }
@@ -98,10 +105,12 @@ void Rule::apply_start_end_segments() {
                 mark_and_lock(m_segments->at(i));
             } else if (m_segments->at(i)->is_start_set()) {
                 int start = m_segments->at(i)->get_start();
-                set_location_color(start,m_segments->at(i)->get_color());
+                //set_location_color(start,m_segments->at(i)->get_color());
+                set_location_segment(start,m_segments->at(i));
             } else if (m_segments->at(i)->is_end_set()) {
                 int end = m_segments->at(i)->get_end();
-                set_location_color(end,m_segments->at(i)->get_color());
+                // set_location_color(end,m_segments->at(i)->get_color());
+                set_location_segment(end,m_segments->at(i));
             }
         }
     }
@@ -140,7 +149,11 @@ void Rule::parse_first_white() {
         // can the segment we are searching fit in the no_color area?
         if (m_u_count < m_search_size) {
             // the unknowns must be white
-            mark_u_white(m_cur_pos -1);
+            if (m_search_dir == search_forward) {
+                mark_u_white(m_cur_pos -1,m_cur_searching->get_before());
+            } else {
+                mark_u_white(m_cur_pos -1,m_cur_searching->get_after());
+            }
             m_search_mode = search_next;
         } else {
             // This could be this segment or the next segment
@@ -184,9 +197,34 @@ void Rule::parse_first_white() {
         mark_and_lock(m_cur_searching);
         // move the search status to the next unlocked segment
         init_searching();
+        previous_pos();
     }
     m_w_count = 0;
  }
+
+/* We found a sequence of colored that we know must be part of
+   the segment we are searching.
+   - m_cur_pos is at the last pos of the color of this segment
+
+*/
+void Rule::parse_last_not_white(const bool end_found) {
+    if (end_found || m_c_count == m_cur_searching->get_min_size()) {
+        //found the location of this non white segment!
+        if (m_search_dir == search_forward) {
+            m_cur_searching->set_end(m_cur_pos);
+        } else {
+            m_cur_searching->set_start(m_cur_pos);
+        }
+        mark_and_lock(m_cur_searching);
+        // move the search status to the next unlocked segment
+        init_searching();
+        previous_pos();
+    } else {
+        // we only found a part of this segment
+        mark_segment_reverse(m_cur_pos,m_c_count,m_cur_searching);
+        m_search_mode=search_stop;
+    }
+}
 
 void Rule::parse_pos() {
     enum color cur_color = m_locations->at(m_cur_pos)->get_color();
@@ -199,6 +237,15 @@ void Rule::parse_pos() {
             return;
         } else {
             parse_first_not_white();
+            return;
+        }
+    } else if (m_search_mode == search_count_not_white) {
+        if (cur_color == no_color || cur_color == white) {
+            previous_pos();
+            parse_last_not_white(cur_color == white);
+            return;
+        } else {
+            m_c_count++;
             return;
         }
     }
@@ -220,11 +267,28 @@ void Rule::next_pos() {
     }
 }
 
-void Rule::mark_u_white(int start_pos) {
+void Rule::previous_pos() {
+    if (m_search_dir == search_forward) {
+        if (m_cur_pos > 0) {
+            m_cur_pos--;
+        } else {
+            m_search_mode = search_end;
+        }
+    } else {
+        if (m_cur_pos + 1 < m_locations->size()) {
+            m_cur_pos++;
+        } else {
+            m_search_mode = search_end;
+        }
+    }
+}
+
+void Rule::mark_u_white(const int start_pos, Segment *segment) {
     if (m_search_dir == search_forward) {
         for (int pos = start_pos;pos >=0;pos--) {
             if (m_locations->at(pos)->get_color() == no_color) {
-                set_location_color(pos,white);
+                //set_location_color(pos,white);
+                set_location_segment(pos,segment);
             } else {
                 break;
             }
@@ -232,7 +296,7 @@ void Rule::mark_u_white(int start_pos) {
     } else {
         for (int pos = start_pos;pos < m_locations->size();pos++) {
             if (m_locations->at(pos)->get_color() == no_color) {
-                set_location_color(pos,white);
+                set_location_segment(pos,segment);
             } else {
                 break;
             }
@@ -240,9 +304,32 @@ void Rule::mark_u_white(int start_pos) {
     }
 }
 
+void Rule::mark_segment_reverse(const int start_pos,const int nr, Segment *segment) {
+    if (m_search_dir == search_forward) {
+        int last_pos = start_pos - (nr -1);
+        for (int pos = start_pos;pos >= last_pos;pos--) {
+            set_location_segment(pos,segment);
+        }
+        int size = segment->get_min_size();
+        int move_space = size - m_c_count;
+        segment->set_min_start(last_pos - move_space);
+        segment->set_max_end(start_pos + move_space);
+    } else {
+        int last_pos = start_pos + nr;
+        for (int pos = start_pos;pos <= last_pos;pos++) {
+            set_location_segment(pos,segment);
+        }
+        int size = segment->get_min_size();
+        int move_space = size - m_c_count;
+        segment->set_min_start(start_pos - move_space);
+        segment->set_max_end(last_pos + move_space);
+    }
+}
+
 void Rule::mark_and_lock(Segment *segment) {
     for(int pos = segment->get_start();pos <= segment->get_end();pos++) {
-        set_location_color(pos,segment->get_color());
+        //set_location_color(pos,segment->get_color());
+        set_location_segment(pos,segment);
         segment->lock();
     }
 }

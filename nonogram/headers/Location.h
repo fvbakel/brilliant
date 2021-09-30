@@ -19,6 +19,7 @@ class Location {
         Segment    *m_segment_y = nullptr;
 
         Segment **get_segment_pointer_for_dir(enum direction for_dir);
+        void error_check();
 
     public:
         Location(const int x,const int y);

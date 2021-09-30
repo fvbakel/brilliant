@@ -27,6 +27,7 @@ class Rule {
         int                 m_c_count       = 0;
         
         void set_location_color(const int pos, const enum color new_color);
+        void set_location_segment(const int pos, Segment *segment);
         void set_initial_min_max_segments();
         void calc_locks_rule_min_max();
         void apply_start_end_segments();
@@ -35,10 +36,13 @@ class Rule {
         void init_searching();
         void parse_first_white();
         void parse_first_not_white();
+        void parse_last_not_white(const bool end_found);
         void parse_pos();
         void next_pos();
+        void previous_pos();
 
-        void mark_u_white(int start_pos);
+        void mark_u_white(const int start_pos, Segment *segment);
+        void mark_segment_reverse(const int start_pos, const int nr ,Segment *segment);
         void mark_and_lock(Segment *segment);
 
     public:

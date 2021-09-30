@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <iostream>
 #include <vector>
 #include <assert.h>
 
@@ -84,7 +85,7 @@ void test_Nonegram_file (string &filename) {
 
 
 void test_filled(Nonogram *nonogram) {
-    
+    printf("Start %s\n",__FUNCTION__);
     nonogram->get_Location(0,0)->set_color(black);
     nonogram->get_Location(1,0)->set_color(black);
     nonogram->get_Location(2,0)->set_color(white);
@@ -126,10 +127,10 @@ void test_filled(Nonogram *nonogram) {
     nonogram->get_Location(3,5)->set_color(black);
     nonogram->get_Location(4,5)->set_color(white);
     nonogram->get_Location(5,5)->set_color(white);
-
+     printf("End %s\n",__FUNCTION__);
 }
 
-void test_Nonegram () {
+void test_Nonegram() {
     printf("Start %s\n",__FUNCTION__);
     string filename = string("./puzzles/small.txt");
     Nonogram *nonogram = new Nonogram(filename);
@@ -149,17 +150,20 @@ void test_Nonegram () {
     nonogram->reset();
     assert(!nonogram->is_solved());
 
+    printf("Start location backtrack\n");
     nonogram->solve_location_backtrack();
     nonogram->print();
     assert(nonogram->is_solved());
+    printf("End location backtrack\n");
 
     nonogram->reset();
     assert(!nonogram->is_solved());
 
+    printf("Start constraint backtrack\n");
     nonogram->solve_constraint_backtrack();
     nonogram->print();
     assert(nonogram->is_solved());
-
+    printf("End constraint backtrack\n");
 
     delete nonogram;
     printf("End %s\n",__FUNCTION__);
@@ -241,7 +245,7 @@ void test_constraint_rules() {
     std::vector<int> blacks({ 1, 4});
     //                    01234578 
     string start_state = "UUUUUUUU";
-    string expected = "UUUUXXUU";
+    string expected    = "UUUUXXUU";
     test_constraint_rule(blacks,start_state,expected);
 
     blacks.clear();
@@ -250,7 +254,7 @@ void test_constraint_rules() {
     start_state = "UUUUUU";
     expected    = "X XXXX";
     test_constraint_rule(blacks,start_state,expected);
-
+                                       
     blacks.clear();
     blacks.assign({ 2, 1});
     //             012345 
@@ -264,6 +268,21 @@ void test_constraint_rules() {
     //             012345 
     start_state = "XXUUUU";
     expected    = "XX UUU";
+    test_constraint_rule(blacks,start_state,expected);
+    //             012345 
+    start_state = "XXUUXU";
+    expected    = "XX  X ";
+    test_constraint_rule(blacks,start_state,expected);
+    //             0123456 
+    start_state = "XXUUUXU";
+    expected    = "XX   X ";
+    test_constraint_rule(blacks,start_state,expected);
+
+    blacks.clear();
+    blacks.assign({ 1, 2});
+    //             012345 
+    start_state = "UXUUUU";
+    expected    = " X UXU";
     test_constraint_rule(blacks,start_state,expected);
 
     printf("End %s\n",__FUNCTION__);
@@ -541,9 +560,17 @@ void test_segment_location() {
     assert(locations[0]->get_segment_for_dir(x_dir) == segment_2);
     assert(locations[0]->get_segment_for_dir(y_dir) == nullptr);
 
-    // should report a warning
-    locations[1]->set_segment(segment_2);
-
+    // should report a exception
+    bool hasException = false;
+    try {
+        locations[1]->set_segment(segment_3);
+    }
+    catch (std::runtime_error &e) {
+        cout << e.what() << "\n";
+        hasException = true;
+    }
+    assert(hasException);
+    
     delete_test_locations(locations);
 
     delete segment_1;
@@ -587,19 +614,30 @@ void test_get_variance() {
     assert(VarianceCalculator::getCalculator()->get_variance(9,16) == 735471);
 }
 
-int main() {
+int main(int argc, char *argv[]) {
     printf("Started\n");
 
     test_get_variance();
     test_Location();
     test_segment();
     test_segment_location();
+    if (argc >1) {
+        cout << "Any enter to continue";
+        char dummy = getchar();
+    }
     test_constraint();
     test_reduce_constraint();
+    if (argc >1) {
+        cout << "Any enter to continue";
+        char dummy = getchar();
+    }
     test_constraint_min_max_rule();
     test_constraint_min_max_rule_2();
     test_constraint_rules();
-    
+    if (argc >1) {
+        cout << "Any enter to continue";
+        char dummy = getchar();
+    }
     test_Nonegram();
 
     string filename = string("./puzzles/QR-code.txt");

@@ -129,6 +129,7 @@ void Segment::set_start(const int start) {
         set_min_start(start);
         if (m_color != white) {
             m_end = m_start + (m_size -1) ;
+            set_max_end(m_end);
             m_after->set_start(m_end + 1);
             m_before->set_end(m_start -1);
         }
@@ -158,6 +159,7 @@ void Segment::set_end(const int end) {
     set_max_end(end);
     if (m_color != white) {
         m_start = m_end - (m_size - 1);
+        set_min_start(m_start);
         m_before->set_end(m_start - 1);
         m_after->set_start(m_end + 1);
     }
