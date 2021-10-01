@@ -9,6 +9,9 @@ Rule::Rule(locations *locations,segments *segments) {
 void Rule::calc_locks() {
     search_segments(search_forward);
     search_segments(search_back_ward);
+
+    // procedures below update the locations based on the new
+    // start and end information
     apply_out_of_reach();
     apply_start_end_segments();
     apply_min_max();
@@ -37,7 +40,7 @@ Segment* Rule::next_segment(Segment *segment) {
     }
 }
 
-//TODO: implement backwards
+//TODO: Just move to the next segment to search from here
 void Rule::init_searching() {
     m_cur_searching     = nullptr;
     m_next_colored      = nullptr;
@@ -176,32 +179,90 @@ void Rule::search_segments(const enum search_dir in_dir) {
 
 }
 
+/*
+Given that the current location is white.
+This function checks if the next segment can be "before" the current
+position, where before depends on the search direction
+Does not consider the values of other locations
+*/
+bool Rule::in_reach_of_next() {
+    if (m_next_colored == nullptr) {
+        return false;
+    }
+    if (m_search_dir == search_forward) {
+        return (m_cur_pos > m_next_colored->get_min_end());
+    } else {
+        return (m_cur_pos < m_next_colored->get_max_start());
+    }
+}
+
+/*
+Given that the current location is white.
+This function checks if the current segment we are
+searching for can be "after" this. Where after depends on the
+search direction
+*/
+bool Rule::in_reach_of_current() {
+    if (m_search_dir == search_forward) {
+        return (m_cur_pos < m_cur_searching->get_max_start());
+    } else {
+        return (m_cur_pos > m_cur_searching->get_min_end());
+    }
+}
+
 void Rule::parse_first_white() {
     m_w_count = 1;
+    // TODO: we are a bit to strict with u count in all the code
+    // we should add additional logic to check if the U space needs a leading white or not
     if (m_u_count > 0 ) {
-        //TODO: here we need to know if the next segment 
-        // has a min start before the current location
-        if (m_next_colored != nullptr && !m_next_colored->is_locked()) {
-            // there is a next segment that is not locked yet
-            // TODO: this case can be improved
-            if (m_u_count >=m_max_u_size) {
-                m_search_mode = search_stop;
+        // Here we need to know if the next segment 
+        // and the current segment can fir in the unkown
+        // space that we found
+        if (m_next_colored != nullptr) {
+            if (in_reach_of_next()) {
+                if (m_u_count >=m_max_u_size) {
+                    // yes both segments could be in the unknown space we found
+                    m_search_mode = search_stop;
+                } else {
+                    // no, both segments can not be in the unknown space we found
+                    if (m_search_dir==search_forward) {
+                        m_next_colored->set_min_start(m_cur_pos + 1);
+                    } else {
+                        m_next_colored->set_max_end(m_cur_pos - 1);
+                    }
+                }
+            } else {
+                // next segment can not be in the unknown space we found
+                // and the next segment already has this information
             }
         }  
-        // can the segment we are searching fit in the no_color area?
+        // can the segment we are searching fit in the unknown space?
         if (m_u_count < m_search_size) {
-            // the unknowns must be white
+            // the unknowns must be white, because this can not fit there
             if (m_search_dir == search_forward) {
-                mark_u_white(m_cur_pos -1,m_cur_searching->get_before());
+                mark_u_white(m_cur_pos - 1,m_cur_searching->get_before());
             } else {
                 mark_u_white(m_cur_pos + 1,m_cur_searching->get_after());
             }
             m_search_mode = search_next;
         } else {
-            // This could be this segment or the next segment
-            // might still be able to determine this segment 
-            // based on glue a split, but not here
-            m_search_mode = search_stop;
+            // This segment could be in the unknown space
+            // can it fit after this white space?
+            if (in_reach_of_current()) {
+                //TODO: current segment can be before or after this white space
+                //m_search_mode = search_count_u;
+                m_search_mode = search_stop;
+            } else {
+                // segment must be somewhere in the u space
+                if (m_search_dir == search_forward) {
+                    m_cur_searching->set_max_end(m_cur_pos - 1);
+                } else {
+                    m_cur_searching->set_min_start(m_cur_pos + 1);
+                }
+                // TODO: we can safely start the search for the next segment 
+                // in search_next mode, for now we just stop the search
+                m_search_mode = search_stop;
+            }
         }
     } else {
         if (m_search_mode == search_first) {
@@ -220,7 +281,7 @@ void Rule::parse_first_white() {
  void Rule::parse_first_not_white() {
     m_c_count = 1;
     if (m_u_count > 0 ) {
-        m_search_mode = search_count_not_white;
+        m_search_mode = search_count_c;
         if (m_next_colored != nullptr) {
             if (m_u_count > m_search_size) {
                 // this location belongs to the current segment or the next...
@@ -285,7 +346,7 @@ void Rule::parse_pos() {
             parse_first_not_white();
             return;
         }
-    } else if (m_search_mode == search_count_not_white) {
+    } else if (m_search_mode == search_count_c) {
         if (cur_color == no_color || cur_color == white) {
             previous_pos();
             parse_last_not_white(cur_color == white);
@@ -294,7 +355,7 @@ void Rule::parse_pos() {
             m_c_count++;
             return;
         }
-    } else if (m_search_mode == search_count_ready) {
+    } else if (m_search_mode == search_count_c_ready) {
         parse_last_not_white(true);
     }
 }
@@ -316,8 +377,8 @@ void Rule::next_pos() {
     }
 
     if (last) {
-        if ( m_search_mode == search_count_not_white) {
-            m_search_mode = search_count_ready;
+        if ( m_search_mode == search_count_c) {
+            m_search_mode = search_count_c_ready;
         } else {
             m_search_mode = search_stop;
         }

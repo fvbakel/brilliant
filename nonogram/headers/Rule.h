@@ -5,7 +5,7 @@
 #include <Segment.h>
 #include <Location.h>
 
-enum search_mode {search_first,search_next,search_count_not_white,search_count_ready,search_stop};
+enum search_mode {search_first,search_next,search_count_c,search_count_c_ready,search_count_u,search_stop};
 enum search_dir  {search_forward,search_back_ward};
 
 class Rule {
@@ -37,10 +37,15 @@ class Rule {
         void apply_out_of_reach();
 
         void search_segments(const enum search_dir in_dir);
+
+        bool in_reach_of_next();
+        bool in_reach_of_current();
+
         void parse_first_white();
         void parse_first_not_white();
         void parse_last_not_white(const bool end_found);
         void parse_pos();
+        
         void next_pos();
         void previous_pos();
 
