@@ -210,6 +210,31 @@ bool Rule::in_reach_of_current() {
     }
 }
 
+/*
+Given that the segment we are searching for must be atleast 
+"before" the current position, where before depends on the search direction
+*/
+// TODO: when ever this function is used, we can move to the next segment to search
+void Rule::set_segment_before_current() {
+    if (m_search_dir == search_forward) {
+        m_cur_searching->set_max_end(m_cur_pos - 1);
+    } else {
+        m_cur_searching->set_min_start(m_cur_pos + 1);
+    }
+}
+
+/*
+Given that the segment we are searching for must be atleast 
+"after" the current position, where after depends on the search direction
+*/
+void Rule::set_segment_after_current() {
+    if (m_search_dir==search_forward) {
+        m_next_colored->set_min_start(m_cur_pos + 1);
+    } else {
+        m_next_colored->set_max_end(m_cur_pos - 1);
+    }
+}
+
 void Rule::parse_first_white() {
     m_w_count = 1;
     // TODO: we are a bit to strict with u count in all the code
@@ -225,11 +250,7 @@ void Rule::parse_first_white() {
                     m_search_mode = search_stop;
                 } else {
                     // no, both segments can not be in the unknown space we found
-                    if (m_search_dir==search_forward) {
-                        m_next_colored->set_min_start(m_cur_pos + 1);
-                    } else {
-                        m_next_colored->set_max_end(m_cur_pos - 1);
-                    }
+                    set_segment_after_current();
                 }
             } else {
                 // next segment can not be in the unknown space we found
@@ -250,17 +271,10 @@ void Rule::parse_first_white() {
             // can it fit after this white space?
             if (in_reach_of_current()) {
                 //TODO: current segment can be before or after this white space
-                //m_search_mode = search_count_u;
-                m_search_mode = search_stop;
+                m_search_mode = search_count_u;
             } else {
                 // segment must be somewhere in the u space
-                if (m_search_dir == search_forward) {
-                    m_cur_searching->set_max_end(m_cur_pos - 1);
-                } else {
-                    m_cur_searching->set_min_start(m_cur_pos + 1);
-                }
-                // TODO: we can safely start the search for the next segment 
-                // in search_next mode, for now we just stop the search
+                set_segment_before_current();
                 m_search_mode = search_stop;
             }
         }
@@ -333,6 +347,52 @@ void Rule::parse_last_not_white(const bool end_found) {
     }
 }
 
+/*
+Given:
+- the segment we are searching for could fit in one or more u space blocks before.
+- the current position is on the white
+
+can it fit in the u space we just found? If not, could it fit after?
+
+*/
+void Rule::parse_count_u_white() {
+    if (m_u_count == 0) {
+        if (in_reach_of_current()) {
+            // continue the search
+            return;
+        } else {
+            set_segment_before_current();
+            m_search_mode = search_stop;
+        }
+    } else {
+        if ((m_u_count + m_c_count) < m_cur_searching->get_min_size()) {
+            // can not fit, u space + c space could be the next segment
+            if (in_reach_of_current()) {
+                // continue the search
+                return;
+            } else {
+                pos_to_previous_white();
+                set_segment_before_current();
+                m_search_mode = search_stop;
+            }
+        } else {
+            // can fit, do we need to look further?
+            if (in_reach_of_current()) {
+                // continue the search
+                return;
+            } else {
+                set_segment_before_current();
+                m_search_mode = search_stop;
+            }
+
+        }
+    }
+}
+
+/*
+Based on the search mode, decide what function should process the current
+position
+*/
 void Rule::parse_pos() {
     enum color cur_color = m_locations->at(m_cur_pos)->get_color();
     if (m_search_mode == search_first || m_search_mode == search_next) {
@@ -357,7 +417,21 @@ void Rule::parse_pos() {
         }
     } else if (m_search_mode == search_count_c_ready) {
         parse_last_not_white(true);
+        return;
+    } else if (m_search_mode == search_count_u) {
+        if (cur_color == no_color) {
+            m_u_count++;
+            return;
+        } else if (cur_color == white) {
+            parse_count_u_white();
+            return;
+        } else {
+            m_c_count++;
+            // no action needed in this case, just keep searching
+            return;
+        }
     }
+    // TODO: implement search_count_u ready
 }
 
 void Rule::next_pos() {
@@ -400,6 +474,24 @@ void Rule::previous_pos() {
         }
     }
 }
+
+/*
+Given that we are at a position and we know there must be atleast one white
+before. Where before depends on the search direction.
+This fuction will move the current position back to the previous white pos
+*/
+void Rule::pos_to_previous_white() {
+    bool found = false;
+    while (!found) {
+        previous_pos();
+        if (m_locations->at(m_cur_pos)->get_color() == white) {
+            found = true;
+        }
+        if (m_search_mode == search_stop) {
+            std::__throw_runtime_error("Can not find previous white (pos_to_previous_white)!");
+        }
+    }
+};
 
 void Rule::mark_u_white(const int start_pos, Segment *segment) {
     if (m_search_dir == search_forward) {
