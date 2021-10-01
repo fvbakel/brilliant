@@ -76,6 +76,7 @@ void test_Nonegram_file (string &filename) {
     printf("Start %s(%s)\n",__FUNCTION__,filename.c_str());
     Nonogram *nonogram = new Nonogram(filename);
 
+    nonogram->enable_rule_improve_log();
     nonogram->solve_constraint_backtrack();
     nonogram->print();
 
@@ -161,6 +162,7 @@ void test_Nonegram() {
     assert(!nonogram->is_solved());
 
     printf("Start constraint backtrack\n");
+    nonogram->enable_rule_improve_log();
     nonogram->solve_constraint_backtrack();
     nonogram->print();
     assert(nonogram->is_solved());
@@ -188,6 +190,37 @@ void test_constraint_rule(
     MainConstraint *constraint = create_main_constraint(x_dir,&blacks,start_state,locations);
 
     constraint->calc_locks_rules();
+    //constraint->debug_dump();
+    string result = constraint->loc_string();
+    printf("   result [%s]\n",result.c_str());
+    assert(result.compare(expected) == 0);
+
+    delete constraint;
+    delete_test_locations(locations);
+
+    printf("End %s clue %s with [%s] expected [%s]\n",__FUNCTION__,clue.str().c_str(),start_state.c_str(),expected.c_str());
+}
+
+void test_constraint_solution(
+    std::vector<int> &blacks,
+    string &start_state,
+    string &expected
+) {
+    std::stringstream clue;
+    clue<< "(";
+    for (int i = 0; i< blacks.size();i++) {
+        clue << blacks[i] << ",";
+    }
+    clue<< ")";
+    printf("Start %s clue %s with [%s] expected [%s]\n",__FUNCTION__,clue.str().c_str(),start_state.c_str(),expected.c_str());
+
+    locations locations;
+    create_test_locations(start_state.size(),locations);
+    MainConstraint *constraint = create_main_constraint(x_dir,&blacks,start_state,locations);
+
+    //constraint->calc_locks_rules();
+    constraint->calculate_solutions();
+    constraint->calc_locks();
     //constraint->debug_dump();
     string result = constraint->loc_string();
     printf("   result [%s]\n",result.c_str());
@@ -299,6 +332,24 @@ void test_constraint_rules() {
     test_constraint_rule(blacks,start_state,expected);
 */
     printf("End %s\n",__FUNCTION__);
+}
+
+void test_constraint_rules_vs_solutions() {
+    printf("Begin %s\n",__FUNCTION__);
+    std::vector<int> blacks;
+    string start_state;
+    string expected;
+
+    blacks.clear();
+    blacks.assign({ 1, 4});
+    //             012345 
+    start_state = "UUUUUU";
+    expected    = "X XXXX";
+    test_constraint_rule(blacks,start_state,expected);
+    test_constraint_solution(blacks,start_state,expected);
+
+    printf("End %s\n",__FUNCTION__);
+    
 }
 
 void test_reduce_constraint() {
@@ -646,6 +697,12 @@ int main(int argc, char *argv[]) {
     }
 
     test_constraint_rules();
+    if (argc >1) {
+        cout << "Any enter to continue";
+        char dummy = getchar();
+    }
+
+    test_constraint_rules_vs_solutions();
     if (argc >1) {
         cout << "Any enter to continue";
         char dummy = getchar();

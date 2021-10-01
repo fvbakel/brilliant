@@ -18,6 +18,7 @@ class Nonogram {
         bool                    m_valid             = false;
         bool                    m_valid_checked     = false;
         enum non_parse_state    m_non_parse_state   = searching;
+        bool                    m_rule_improve_log  = false;
 
         std::unordered_set<enum direction>  m_sol_calcs;
         main_constraints    m_x_contraints;
@@ -66,6 +67,7 @@ class Nonogram {
         bool is_input_valid_dir(enum direction for_direction);
         int get_colored_size_sum(enum direction for_direction,enum color for_color);
 
+        void rule_improve_log(Constraint *constraint);
     public:
         Nonogram();
         Nonogram(const string &filename);
@@ -84,6 +86,8 @@ class Nonogram {
         void print();
 
         void reset();
+
+        void enable_rule_improve_log();
 };
 
 #endif

@@ -66,6 +66,7 @@ class Constraint {
         int reduce_solutions();
 
         std::string loc_string();
+        std::string clue_string();
         std::string to_string();
         void debug_dump();
         void print();

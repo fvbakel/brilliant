@@ -484,6 +484,21 @@ void Constraint::debug_dump() {
     print();
 }
 
+std::string Constraint::clue_string(){
+    std::stringstream str_str;
+    bool first = true;
+    for(std::vector<Segment*>::iterator it = m_segments.begin(); it != m_segments.end(); ++it) {
+        if ((*it)->get_color() == black) {
+            if (!first) {
+                str_str << ",";
+            }
+            first =false;
+            str_str << (*it)->get_size() ;
+        }
+    }
+    return str_str.str();
+}
+
 std::string Constraint::loc_string(){
     std::stringstream str_str;
     int pos = 0;
@@ -503,11 +518,8 @@ std::string Constraint::to_string() {
         str_str << "Y: ";
     }
 
-    for(std::vector<Segment*>::iterator it = m_segments.begin(); it != m_segments.end(); ++it) {
-        if ((*it)->get_color() == black) {
-            str_str << (*it)->get_size() << " ";
-        }
-    }
+    str_str << clue_string();
+    str_str << " ";
     str_str << loc_string();
 
     return str_str.str();

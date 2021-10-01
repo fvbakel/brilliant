@@ -435,6 +435,9 @@ void Nonogram::init_constraint_solutions_2() {
     MainConstraint *constraint = get_next_to_calculate();
     while (constraint != nullptr) {
         constraint->calculate_solutions();
+        if (m_rule_improve_log) {
+            rule_improve_log(constraint);
+        }
         constraint->calc_locks();
         cur_dir = constraint->get_direction();
         cur_dir = reduce_and_lock(cur_dir);
@@ -507,6 +510,22 @@ bool Nonogram::solve_constraint_backtrack(int con_idx) {
         result = true;
     }
     return result;
+}
+
+void Nonogram::enable_rule_improve_log() {
+    m_rule_improve_log =true;
+}
+
+void Nonogram::rule_improve_log(Constraint *constraint) {
+    std::string before = constraint->loc_string();
+    constraint->calc_locks();
+    std::string after = constraint->loc_string();
+    if ( before.compare(after) != 0) {
+        std::cout << "Possible rule improvement Given: ";
+        std::cout << constraint->clue_string() << " [";
+        std::cout << before << "] expected: [";
+        std::cout << after << "]\n\n";
+    }
 }
 
 Nonogram::~Nonogram() {
