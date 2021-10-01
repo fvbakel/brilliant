@@ -270,7 +270,6 @@ void Rule::parse_first_white() {
             // This segment could be in the unknown space
             // can it fit after this white space?
             if (in_reach_of_current()) {
-                //TODO: current segment can be before or after this white space
                 m_search_mode = search_count_u;
             } else {
                 // segment must be somewhere in the u space
@@ -299,8 +298,8 @@ void Rule::parse_first_white() {
         if (m_next_colored != nullptr) {
             if (m_u_count > m_search_size) {
                 // this location belongs to the current segment or the next...
-                // TODO can still search for biggest
-                m_search_mode = search_stop;
+                // TODO can still search for a white to update the max end
+                m_search_mode = search_count_u;
             } else {
                 // Location is part of this segment
             }
@@ -372,8 +371,10 @@ void Rule::parse_count_u_white() {
                 return;
             } else {
                 pos_to_previous_white();
-                set_segment_before_current();
-                m_search_mode = search_stop;
+                if (m_search_mode != search_stop) {
+                    set_segment_before_current();
+                    m_search_mode = search_stop;
+                }
             }
         } else {
             // can fit, do we need to look further?
@@ -476,19 +477,19 @@ void Rule::previous_pos() {
 }
 
 /*
-Given that we are at a position and we know there must be atleast one white
-before. Where before depends on the search direction.
-This fuction will move the current position back to the previous white pos
+Given that we are at a position and we move to the previous until we find white.
+This fuction will move the current position back to the previous white pos, 
+or set the search mode to stop if that is not found
 */
 void Rule::pos_to_previous_white() {
     bool found = false;
     while (!found) {
         previous_pos();
+        if (m_search_mode == search_stop) {
+            break;
+        }
         if (m_locations->at(m_cur_pos)->get_color() == white) {
             found = true;
-        }
-        if (m_search_mode == search_stop) {
-            std::__throw_runtime_error("Can not find previous white (pos_to_previous_white)!");
         }
     }
 };
