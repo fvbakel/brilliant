@@ -2,6 +2,10 @@
 
 solver=~/bin/nonogram
 
+if [ -n "$2" ]; then
+  solver=$2
+fi
+
 if [ -n "$1" ]; then
   echo "Processing directory: $1"
   process_dir=$1
