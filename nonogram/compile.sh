@@ -4,9 +4,14 @@ CC_DEBUG="g++ -g"
 x=nonogram
 
 clear
-echo "compile start"
+echo "Compile start"
 $CC_DEBUG -I ./headers/ ./classes/*.cpp ./test/test_nonogram.cpp -o test_nonogram
 
-$CC_RELEASE -I ./headers/ ./classes/*.cpp ./main.cpp -o nonogram
+if [ -n "$1" ]; then
+  echo "Skipping release compile"
+else
+    echo "Compiling released"
+    $CC_RELEASE -I ./headers/ ./classes/*.cpp ./main.cpp -o nonogram
+fi
 
-echo "compile ready"
+echo "Compile ready"

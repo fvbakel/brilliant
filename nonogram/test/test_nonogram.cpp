@@ -335,6 +335,14 @@ void test_constraint_rules() {
     start_state = "  UXXUUUUUUUU  ";
     expected    = "  UXXXXU       ";
     test_constraint_rule(blacks,start_state,expected);
+/*
+    // continue search 
+    blacks.clear();
+    blacks.assign({ 7,2,2,6,7 });
+    //             0123456789ABCDE 
+    start_state = "UXXXXXXUUX UXUUXXXXXUUXXXXXXU";
+    expected    = "XXXXXXX XX UXUUXXXXXUUXXXXXXU";
+    test_constraint_rule(blacks,start_state,expected);
 
 /*
     // multipattern complete

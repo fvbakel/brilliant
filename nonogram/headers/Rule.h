@@ -36,6 +36,7 @@ class Rule {
         void set_initial_min_max_segments();
 
         void init_searching();
+        void next_to_search(); 
         Segment *next_segment(Segment *segment);
 
         void apply_min_max();

@@ -40,15 +40,25 @@ Segment* Rule::next_segment(Segment *segment) {
     }
 }
 
-//TODO: Just move to the next segment to search from here
+
+/*
+The procedure below starts the searching with the first
+segment that is not locked. The current pos is set to 
+the next pos after the end of the locked segment.
+*/
 void Rule::init_searching() {
     m_cur_searching     = nullptr;
     m_next_colored      = nullptr;
     m_search_size       = 0;
     m_max_u_size        = -1;
+    m_u_count           = 0;
+    m_w_count           = 0;
+    m_c_count           = 0;
+    m_search_mode       = search_stop;
+
     int white_size      = 0;
     Segment *segment    = nullptr;
-    m_search_mode       = search_stop;
+    
     if (m_search_dir == search_forward) {
         m_cur_pos       = 0;
         segment = m_segments->at(0);
@@ -66,14 +76,14 @@ void Rule::init_searching() {
         }
         if (segment->get_color() !=white) {
             if (m_cur_searching != nullptr) {
-                m_next_colored = segment;
-                m_max_u_size = m_search_size + white_size + m_next_colored->get_size();
+                m_next_colored  = segment;
+                m_max_u_size    = m_search_size + white_size + m_next_colored->get_size();
                 break;
             }
             if (m_cur_searching == nullptr && !segment->is_locked()) {
                 m_cur_searching = segment;
-                m_search_size = m_cur_searching->get_min_size();
-                m_search_mode = search_first;
+                m_search_size   = m_cur_searching->get_min_size();
+                m_search_mode   = search_first;
             }
         }
         if (m_cur_searching != nullptr && segment->get_color() == white)  {
@@ -81,9 +91,54 @@ void Rule::init_searching() {
         }
         segment = next_segment(segment);
     }
+}
+
+/*
+Given a search that is in process and we know that the next colored segment 
+must start after the current position,
+- reset the current search state.
+- move to the next position
+
+*/
+void Rule::next_to_search() {
+    m_max_u_size    = -1;
     m_u_count       = 0;
     m_w_count       = 0;
     m_c_count       = 0;
+    m_search_mode   = search_stop;
+
+    int white_size      = 0;
+    Segment *segment    = nullptr;
+
+    if (m_next_colored == nullptr) {
+        return;
+    }
+    if (m_cur_searching == nullptr) {
+        std::__throw_runtime_error("next_to_search preconditions is not met.");
+    }
+
+    m_cur_searching     = m_next_colored;
+    m_search_size       = m_cur_searching->get_min_size();
+    m_search_mode       = search_count_u;
+    m_next_colored      = nullptr;
+    segment = next_segment(m_cur_searching);
+    while (segment != nullptr) {
+        if (segment->get_color() !=white) {
+            if (m_cur_searching != nullptr) {
+                m_next_colored = segment;
+                m_max_u_size = m_search_size + white_size + m_next_colored->get_size();
+                break;
+            }
+            if (m_cur_searching == nullptr && !segment->is_locked()) {
+                m_cur_searching = segment;
+                m_search_size   = m_cur_searching->get_min_size();
+            }
+        }
+        if (m_cur_searching != nullptr && segment->get_color() == white)  {
+            white_size++;
+        }
+        segment = next_segment(segment);
+    }
 }
 
 void Rule::set_initial_min_max_segments() {
@@ -230,10 +285,9 @@ bool Rule::in_reach_of_current() {
 }
 
 /*
-Given that the segment we are searching for must be atleast 
+Given that the segment we are searching for must be at least 
 "before" the current position, where before depends on the search direction
 */
-// TODO: when ever this function is used, we can move to the next segment to search
 void Rule::set_segment_before_current() {
     if (m_search_dir == search_forward) {
         m_cur_searching->set_max_end(m_cur_pos - 1);
@@ -293,7 +347,7 @@ void Rule::parse_first_white() {
             } else {
                 // segment must be somewhere in the u space
                 set_segment_before_current();
-                m_search_mode = search_stop;
+                next_to_search();
             }
         }
     } else {
