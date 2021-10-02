@@ -62,7 +62,7 @@ class Rule {
         void pos_to_previous_white();
 
         void mark_u_white(const int start_pos, Segment *segment);
-        void mark_segment_reverse(const int start_pos, const int nr ,Segment *segment);
+        void mark_segment_reverse();
         void mark_and_lock(Segment *segment);
 
     public:

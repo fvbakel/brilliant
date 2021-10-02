@@ -251,7 +251,7 @@ void test_constraint_rules() {
     blacks.clear();
     blacks.assign({ 1, 4});
     //             012345 
-    start_state = "UUUUUU";
+    start_state = "X XXXX";
     expected    = "X XXXX";
     test_constraint_rule(blacks,start_state,expected);
                                        
@@ -296,7 +296,7 @@ void test_constraint_rules() {
     blacks.assign({ 3});
     //             01234567 
     start_state = "UUUXU UU";
-    expected    = " UUXU   ";
+    expected    = " UXXU   ";
     test_constraint_rule(blacks,start_state,expected);
 
     blacks.clear();
@@ -319,6 +319,21 @@ void test_constraint_rules() {
     //             012345 
     start_state = "UUUUUU";
     expected    = "      ";
+    test_constraint_rule(blacks,start_state,expected);
+
+    blacks.clear();
+    blacks.assign({ 5 });
+    //             0123456789ABCDE 
+    start_state = "  UXXUUU       ";
+    expected    = "  UXXXXU       ";
+    test_constraint_rule(blacks,start_state,expected);
+
+    // out of reach rule 
+    blacks.clear();
+    blacks.assign({ 5 });
+    //             0123456789ABCDE 
+    start_state = "  UXXUUUUUUUU  ";
+    expected    = "  UXXXXU       ";
     test_constraint_rule(blacks,start_state,expected);
 
 /*

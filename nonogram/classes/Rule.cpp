@@ -317,7 +317,6 @@ void Rule::parse_first_white() {
         if (m_next_colored != nullptr) {
             if (m_u_count > m_search_size) {
                 // this location belongs to the current segment or the next...
-                // TODO can still search for a white to update the max end
                 m_search_mode = search_count_u;
             } else {
                 // Location is part of this segment
@@ -360,8 +359,12 @@ void Rule::parse_last_not_white(const bool end_found) {
         previous_pos();
     } else {
         // we only found a part of this segment
-        mark_segment_reverse(m_cur_pos,m_c_count,m_cur_searching);
-        m_search_mode=search_stop;
+        mark_segment_reverse();
+
+        //TODO: we can improve here by continue of the search to improve the max end
+        // based on the number of unknowns we count
+        //m_search_mode=search_stop;
+        m_search_mode = search_count_u;
     }
 }
 
@@ -533,25 +536,28 @@ void Rule::mark_u_white(const int start_pos, Segment *segment) {
     }
 }
 
-void Rule::mark_segment_reverse(const int start_pos,const int nr, Segment *segment) {
+void Rule::mark_segment_reverse() {
+    int size = m_cur_searching->get_min_size();
+    int move_space = size - m_c_count;
+    int begin_move_space = move_space;
+    if (begin_move_space > m_u_count) {
+        begin_move_space = m_u_count;
+    }
     if (m_search_dir == search_forward) {
-        int last_pos = start_pos - (nr -1);
-        for (int pos = start_pos;pos >= last_pos;pos--) {
-            set_location_segment(pos,segment);
+        int start_pos = m_cur_pos - (m_c_count -1);
+        for (int pos = m_cur_pos;pos >= start_pos;pos--) {
+            set_location_segment(pos,m_cur_searching);
         }
-        int size = segment->get_min_size();
-        int move_space = size - m_c_count;
-        segment->set_min_start(last_pos - move_space);
-        segment->set_max_end(start_pos + move_space);
+
+        m_cur_searching->set_min_start(start_pos - begin_move_space);
+        m_cur_searching->set_max_end(m_cur_pos + move_space);
     } else {
-        int last_pos = start_pos + (nr - 1);
-        for (int pos = start_pos;pos <= last_pos;pos++) {
-            set_location_segment(pos,segment);
+        int last_pos = m_cur_pos + (m_c_count - 1);
+        for (int pos = m_cur_pos;pos <= last_pos;pos++) {
+            set_location_segment(pos,m_cur_searching);
         }
-        int size = segment->get_min_size();
-        int move_space = size - m_c_count;
-        segment->set_min_start(start_pos - move_space);
-        segment->set_max_end(last_pos + move_space);
+        m_cur_searching->set_min_start(m_cur_pos - move_space);
+        m_cur_searching->set_max_end(last_pos + begin_move_space);
     }
 }
 
