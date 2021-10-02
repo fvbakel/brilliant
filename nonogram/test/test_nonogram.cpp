@@ -314,6 +314,13 @@ void test_constraint_rules() {
     expected    = "UUU XX";
     test_constraint_rule(blacks,start_state,expected);
 
+    // the zero clue
+    blacks.clear();
+    //             012345 
+    start_state = "UUUUUU";
+    expected    = "      ";
+    test_constraint_rule(blacks,start_state,expected);
+
 /*
     // multipattern complete
     blacks.clear();

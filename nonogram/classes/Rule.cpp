@@ -97,6 +97,7 @@ void Rule::set_initial_min_max_segments() {
         if (m_segments->size() >= 2 ) {
             m_segments->at(m_segments->size()-2)->set_max_end(m_locations->size()-1);
         }
+        zero_special_case();
         m_min_max_set = true;
     }
 }
@@ -163,6 +164,24 @@ void Rule::apply_out_of_reach() {
     }
 }
 
+/*
+Mark all white if no colored is found
+*/
+void Rule::zero_special_case() {
+    bool colored_found = false;
+    for (int i = 0; i < m_segments->size(); i++) {
+        if (m_segments->at(i)->get_color() != white) {
+            colored_found =true;
+            break;
+        }
+    }
+    if (!colored_found) {
+        // white only
+        m_segments->at(0)->set_start(0);
+        m_segments->at(0)->set_end(m_locations->size()-1);
+    }
+    
+}
 
 /*
 Locate segments and update the start, end, min_start and max_end

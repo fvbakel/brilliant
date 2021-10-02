@@ -29,10 +29,12 @@ class Rule {
         int                 m_u_count       = 0;
         int                 m_w_count       = 0;
         int                 m_c_count       = 0;
+
         
         void set_location_color(const int pos, const enum color new_color);
         void set_location_segment(const int pos, Segment *segment);
         void set_initial_min_max_segments();
+
         void init_searching();
         Segment *next_segment(Segment *segment);
 
@@ -40,6 +42,7 @@ class Rule {
         void apply_start_end_segments();
         void apply_out_of_reach();
 
+        void zero_special_case();
         void search_segments(const enum search_dir in_dir);
 
         bool in_reach_of_next();
