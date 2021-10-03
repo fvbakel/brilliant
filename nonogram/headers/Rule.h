@@ -49,6 +49,7 @@ class Rule {
 
         void min_start_update(Segment *segment);
         void max_end_update(Segment *segment);
+        void max_end_update_based_on_black(Segment *segment);
 
         bool in_reach_of_next();
         bool in_reach_of_current();

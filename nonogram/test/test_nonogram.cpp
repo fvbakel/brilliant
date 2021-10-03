@@ -335,7 +335,7 @@ void test_constraint_rules() {
     start_state = "  UXXUUUUUUUU  ";
     expected    = "  UXXXXU       ";
     test_constraint_rule(blacks,start_state,expected);
-/*
+
     // continue search 
     blacks.clear();
     blacks.assign({ 7,2,2,6,7 });
@@ -343,6 +343,15 @@ void test_constraint_rules() {
     start_state = "UXXXXXXUUX UXUUXXXXXUUXXXXXXU";
     expected    = "XXXXXXX XX UXUUXXXXXUUXXXXXXU";
     test_constraint_rule(blacks,start_state,expected);
+
+    // detect must be other segment
+    blacks.clear();
+    blacks.assign({ 1,3,1,5,2,3,1,3,1 });
+    //             0123456789ABCDE 
+    start_state = "X XXX X UXXXXUUXUUXXUUXUXXXUU";
+    expected    = "X XXX X UXXXXUUXUUXXU X XXX X";
+    test_constraint_rule(blacks,start_state,expected);
+
 
 /*
     // multipattern complete

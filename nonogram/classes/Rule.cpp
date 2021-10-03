@@ -272,11 +272,11 @@ void Rule::min_start_update(Segment *segment) {
     int pos = segment->get_min_start();
     int stop_pos = segment->get_min_end();
     while (pos <= stop_pos) {
-        if (m_locations->at(pos)->get_color() == white) {
+        enum color loc_color = m_locations->at(pos)->get_color();
+        if (loc_color == white) {
             segment->set_min_start(pos+1);
             stop_pos = segment->get_min_end();
         }
-        pos++;
     }
 }
 
@@ -284,11 +284,36 @@ void Rule::max_end_update(Segment *segment) {
     int pos = segment->get_max_end();
     int stop_pos = segment->get_max_start();
     while (pos >= stop_pos) {
-        if (m_locations->at(pos)->get_color() == white) {
+        enum color loc_color = m_locations->at(pos)->get_color();
+        if (loc_color == white) {
             segment->set_max_end(pos  - 1);
             stop_pos = segment->get_max_start();
         }
         pos--;
+    }
+}
+
+/* if we find a sequence of black that is bigger than the segment
+   then this must be an other segment
+   If the other segment can be before or after the current segment then we can make no update
+ */
+void Rule::max_end_update_based_on_black(Segment *segment) {
+    int seg_col = segment->get_color();
+    int c_count=0;
+    int pos = segment->get_min_start();
+    int stop_pos = segment->get_max_end();
+    while (pos <=stop_pos) {
+        enum color loc_color = m_locations->at(pos)->get_color();
+        if (loc_color == seg_col) {
+            c_count++;
+            if (c_count > segment->get_min_size()) {
+                // get the other possible segments for this sequence of black
+                break;
+            }
+        } else {
+            c_count = 0;
+        }
+        pos++;
     }
 }
 

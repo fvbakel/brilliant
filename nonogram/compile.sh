@@ -9,6 +9,9 @@ $CC_DEBUG -I ./headers/ ./classes/*.cpp ./test/test_nonogram.cpp -o test_nonogra
 
 if [ -n "$1" ]; then
   echo "Skipping release compile"
+  if [ "$1" = "test" ]; then
+    ./test_nonogram
+  fi
 else
     echo "Compiling released"
     $CC_RELEASE -I ./headers/ ./classes/*.cpp ./main.cpp -o nonogram
