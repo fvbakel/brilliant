@@ -31,7 +31,7 @@ class Rule {
         int                 m_c_count       = 0;
 
         
-        void set_location_color(const int pos, const enum color new_color);
+       // void set_location_color(const int pos, const enum color new_color);
         void set_location_segment(const int pos, Segment *segment);
         void set_initial_min_max_segments();
 
@@ -45,6 +45,10 @@ class Rule {
 
         void zero_special_case();
         void search_segments(const enum search_dir in_dir);
+        void search_min_max_updates();
+
+        void min_start_update(Segment *segment);
+        void max_end_update(Segment *segment);
 
         bool in_reach_of_next();
         bool in_reach_of_current();

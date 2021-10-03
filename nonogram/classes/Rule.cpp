@@ -7,6 +7,7 @@ Rule::Rule(locations *locations,segments *segments) {
 }
 
 void Rule::calc_locks() {
+    search_min_max_updates();
     search_segments(search_forward);
     search_segments(search_back_ward);
 
@@ -17,11 +18,13 @@ void Rule::calc_locks() {
     apply_min_max();
 }
 
+/*
 void Rule::set_location_color(const int pos, const enum color new_color) {
     if (pos <m_locations->size()) {
         m_locations->at(pos)->set_solved_color(new_color);
     }
 }
+*/
 
 void Rule::set_location_segment(const int pos, Segment *segment) {
     if (pos <m_locations->size()) {
@@ -251,6 +254,42 @@ void Rule::search_segments(const enum search_dir in_dir) {
         next_pos();
     }
 
+}
+
+/*
+Given the min max setting of each segment, check if that min max is still possible
+*/
+void Rule::search_min_max_updates() {
+    for (int i = 0; i<m_segments->size();i++) {
+        if (m_segments->at(i)->get_color() != white) {
+            min_start_update(m_segments->at(i));
+            max_end_update(m_segments->at(i));
+        }
+    }
+}
+
+void Rule::min_start_update(Segment *segment) {
+    int pos = segment->get_min_start();
+    int stop_pos = segment->get_min_end();
+    while (pos <= stop_pos) {
+        if (m_locations->at(pos)->get_color() == white) {
+            segment->set_min_start(pos+1);
+            stop_pos = segment->get_min_end();
+        }
+        pos++;
+    }
+}
+
+void Rule::max_end_update(Segment *segment) {
+    int pos = segment->get_max_end();
+    int stop_pos = segment->get_max_start();
+    while (pos >= stop_pos) {
+        if (m_locations->at(pos)->get_color() == white) {
+            segment->set_max_end(pos  - 1);
+            stop_pos = segment->get_max_start();
+        }
+        pos--;
+    }
 }
 
 /*
