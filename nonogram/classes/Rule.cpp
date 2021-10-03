@@ -2,12 +2,14 @@
 
 Rule::Rule(locations *locations,segments *segments) {
     m_locations = locations;
-    m_segments = segments;
+    m_segments  = segments;
+    m_direction = segments->at(0)->get_direction();
     set_initial_min_max_segments();
 }
 
 void Rule::calc_locks() {
     search_min_max_updates();
+    detect_sequence_colered();
     search_segments(search_forward);
     search_segments(search_back_ward);
 
@@ -178,7 +180,6 @@ void Rule::apply_min_max() {
             if (min_end != POS_NA && max_start != POS_NA) {
                 enum color new_color = m_segments->at(i)->get_color();
                 for (int pos=max_start; pos <= min_end; pos++) {
-                    //set_location_color(pos,new_color);
                     set_location_segment(pos,m_segments->at(i));
                 }
             }
@@ -193,11 +194,9 @@ void Rule::apply_start_end_segments() {
                 mark_and_lock(m_segments->at(i));
             } else if (m_segments->at(i)->is_start_set()) {
                 int start = m_segments->at(i)->get_start();
-                //set_location_color(start,m_segments->at(i)->get_color());
                 set_location_segment(start,m_segments->at(i));
             } else if (m_segments->at(i)->is_end_set()) {
                 int end = m_segments->at(i)->get_end();
-                // set_location_color(end,m_segments->at(i)->get_color());
                 set_location_segment(end,m_segments->at(i));
             }
         }
@@ -277,6 +276,7 @@ void Rule::min_start_update(Segment *segment) {
             segment->set_min_start(pos+1);
             stop_pos = segment->get_min_end();
         }
+        pos++;
     }
 }
 
@@ -293,27 +293,108 @@ void Rule::max_end_update(Segment *segment) {
     }
 }
 
-/* if we find a sequence of black that is bigger than the segment
-   then this must be an other segment
-   If the other segment can be before or after the current segment then we can make no update
- */
-void Rule::max_end_update_based_on_black(Segment *segment) {
-    int seg_col = segment->get_color();
-    int c_count=0;
-    int pos = segment->get_min_start();
-    int stop_pos = segment->get_max_end();
-    while (pos <=stop_pos) {
+/*
+Find each sequence of colored locations. 
+*/
+void Rule::detect_sequence_colered() {
+    int start = POS_NA;
+    int last  = POS_NA;
+    for (int pos = 0; pos < m_locations->size();pos++) {
         enum color loc_color = m_locations->at(pos)->get_color();
-        if (loc_color == seg_col) {
-            c_count++;
-            if (c_count > segment->get_min_size()) {
-                // get the other possible segments for this sequence of black
-                break;
-            }
-        } else {
-            c_count = 0;
+        if (loc_color != white && loc_color != no_color && start == POS_NA) {
+            start = pos;
+            last  = pos;
+        } else if (loc_color != white && loc_color != no_color && start != POS_NA) {
+            last  = pos;
+        } else if ( (loc_color == white || loc_color == no_color) && start != POS_NA) {
+            detect_segment(start,last);
         }
-        pos++;
+        if (loc_color == white || loc_color == no_color) {
+            start = POS_NA;
+            last  = POS_NA;
+        }
+    }
+    if ( start != POS_NA ) {
+        detect_segment(start,last);
+    }
+}
+
+/*
+Given a start and end pos that are colored:
+1. If it must belongs to exactly one segment, apply that segment
+If 1 does not apply:
+2. Update the max end of segments that must be before
+3. Update the min start of segments that must be after
+*/
+void Rule::detect_segment(const int start, const int end) {
+    Segment *cur_segment   = nullptr;
+    Segment *found_segment = nullptr;
+    int nr_with_segment = 0;
+    int loc_color = m_locations->at(start)->get_color();
+    int size = (end - start) + 1;
+    for (int pos = start;pos <=end;pos++) {
+        cur_segment = m_locations->at(pos)->get_segment_for_dir(m_direction);
+        if (m_locations->at(pos)->has_segment_for_dir(m_direction)) {
+            nr_with_segment++;
+        }
+        if (cur_segment != nullptr) {
+            found_segment = cur_segment;
+        }
+    }
+
+    if (nr_with_segment > 0 && nr_with_segment < size) {
+        // one or more locations found that are not assigned to the same segment.
+        set_segment(found_segment,start,end);
+    }
+    if (nr_with_segment > 0) {
+        return;
+    }
+
+    segments possible;
+    for (int i = 0;i<m_segments->size();i++) {
+        cur_segment = m_segments->at(i);
+        if (    cur_segment->get_color()     == loc_color &&
+                cur_segment->get_max_end()   >= end && 
+                cur_segment->get_min_start() <= start &&
+                cur_segment->get_min_size()  >= size
+        ) {
+            possible.push_back(cur_segment);
+        }
+    }
+
+    if (possible.size() == 0) {
+        std::__throw_runtime_error("No segment possible?");
+    }
+
+    if (possible.size() == 1) {
+        set_segment(possible[0],start,end);
+        return;
+    } else {
+        if (    possible[0]->get_before() != nullptr &&
+                possible[0]->get_before()->get_max_end() >= start 
+        ) {
+                possible[0]->get_before()->set_max_end(start-1);
+        }
+        int last_i = possible.size() -1;
+        if (    possible[last_i]->get_after() != nullptr &&
+                possible[last_i]->get_after()->get_min_start() <= end 
+        ) {
+                possible[last_i]->get_after()->set_min_start(end+1);
+        }
+    }
+
+    //TODO: Can more be done, based on the information?
+
+}
+
+void Rule::set_segment(Segment *segment,const int start, const int end) {
+    int size = segment->get_min_size();
+    int c_count = (end - start) + 1;
+    int move_space = size - c_count;
+    segment->set_min_start(start - move_space);
+    segment->set_max_end(end + move_space);
+    for (int pos = start; pos <= end; pos++) {
+        set_location_segment(pos,segment);
     }
 }
 

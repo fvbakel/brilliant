@@ -17,6 +17,7 @@ class Rule {
     protected:
         locations          *m_locations     = nullptr;
         segments           *m_segments      = nullptr;
+        enum direction      m_direction     = x_dir;
 
         bool                m_min_max_set   = false;
         enum search_mode    m_search_mode   = search_first;
@@ -49,13 +50,16 @@ class Rule {
 
         void min_start_update(Segment *segment);
         void max_end_update(Segment *segment);
-        void max_end_update_based_on_black(Segment *segment);
+
+        void detect_sequence_colered();
+        void detect_segment(const int start, const int end);
 
         bool in_reach_of_next();
         bool in_reach_of_current();
 
         void set_segment_before_current();
         void set_segment_after_current();
+        void set_segment(Segment *segment,const int start, const int end);
 
         void parse_first_white();
         void parse_first_not_white();
