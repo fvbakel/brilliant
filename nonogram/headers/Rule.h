@@ -1,9 +1,13 @@
 #ifndef _RULE_H
 #define _RULE_H	1
 
+#include <unordered_set>
+
 #include <constants.h>
 #include <Segment.h>
 #include <Location.h>
+
+
 
 enum search_mode {  search_first,   search_next,
                     search_count_c, search_count_c_ready,
@@ -11,6 +15,13 @@ enum search_mode {  search_first,   search_next,
                     search_stop
                 };
 enum search_dir  {search_forward,search_back_ward};
+
+// todo: replace with two boolean
+enum detect_rule {  detect_include,     // actual size can be bigger on both sizes
+                    detect_start,       // must start exactly and have atleast the size
+                    detect_end,         // must end exactly
+                    detect_start_end    // start and end must match exactly
+                };
 
 class Rule {
     
@@ -32,7 +43,7 @@ class Rule {
         int                 m_c_count       = 0;
 
         
-       // void set_location_color(const int pos, const enum color new_color);
+        void set_location_color(const int pos, const enum color new_color);
         void set_location_segment(const int pos, Segment *segment);
         void set_initial_min_max_segments();
 
@@ -51,8 +62,28 @@ class Rule {
         void min_start_update(Segment *segment);
         void max_end_update(Segment *segment);
 
-        void detect_sequence_colered();
-        void detect_segment(const int start, const int end);
+        void detect_colered_sequences();
+        void detect_colered_sequence(
+            const int   start, 
+            const int   end,
+            bool        start_must_match,
+            bool        end_must_match
+        );
+        void get_possible_segments(
+            const int        start, 
+            const int        end,
+            enum color       allowed_color,
+            bool             start_must_match,
+            bool             end_must_match,
+            segments         &possible
+        );
+        void mark_common(
+            const int        start, 
+            const int        end,
+            bool             start_must_match,
+            bool             end_must_match,
+            segments        &possible
+        );
 
         bool in_reach_of_next();
         bool in_reach_of_current();
@@ -73,7 +104,7 @@ class Rule {
 
         void mark_u_white(const int start_pos, Segment *segment);
         void mark_segment_reverse();
-        void mark_and_lock(Segment *segment);
+        void mark_segment(Segment *segment);
 
     public:
         Rule(locations *locations,segments *segments);

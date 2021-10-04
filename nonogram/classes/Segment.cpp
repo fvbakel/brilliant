@@ -1,5 +1,6 @@
 #include <Segment.h>
 #include <stdio.h>
+#include <sstream>
 
 Segment::Segment(
     const enum color      color,
@@ -109,7 +110,7 @@ void Segment::set_min_start(const int min_start) {
         return;
     }
     m_min_start = min_start;
-    
+    update_if_one_solution();
     int min_start_next = min_start + m_min_size;
     if (min_start == POS_NA && m_before == nullptr) {
         min_start_next += -(POS_NA) ;
@@ -117,6 +118,7 @@ void Segment::set_min_start(const int min_start) {
     if(m_after != nullptr) {
         m_after->set_min_start(min_start_next);
     }
+    error_check();
 }
 int Segment::get_start() {
     return m_start;
@@ -134,6 +136,7 @@ void Segment::set_start(const int start) {
             m_before->set_end(m_start -1);
         }
     }
+    error_check();
 }
 int Segment::get_max_end() {
     return m_max_end;
@@ -146,10 +149,12 @@ void Segment::set_max_end(const int max_end) {
         return;
     }
     m_max_end = max_end;
+    update_if_one_solution();
     int max_end_next = max_end - m_min_size;
     if (max_end != POS_NA && m_after != nullptr && m_before != nullptr) {
         m_before->set_max_end(max_end_next);
     }
+    error_check();
 }
 int Segment::get_end() {
     return m_end;
@@ -163,8 +168,32 @@ void Segment::set_end(const int end) {
         m_before->set_end(m_start - 1);
         m_after->set_start(m_end + 1);
     }
+    error_check();
 }
-        
+
+void Segment::update_if_one_solution() {
+    if (m_locked) {
+        return;
+    } else if (is_start_and_end_set()) {
+        return;
+    } else {
+        int possible_size = m_max_end - m_min_start + 1;
+        if (    m_min_start   != POS_NA       &&
+                m_min_start   != POS_UNKNOWN  &&
+                m_max_end     != POS_NA       &&
+                m_max_end     != POS_UNKNOWN  &&
+                possible_size == m_min_size
+        ) {
+            if (!is_start_set()) {
+                set_start(m_min_start);
+            }
+            if (!is_end_set()) {
+                set_end(m_max_end);
+            }
+        }
+    }
+}
+
 void Segment::reset() {
     if (m_color == white) {
         m_size          = SIZE_UNKNOWN;
@@ -211,6 +240,52 @@ void Segment::print() {
         printf("--\n");
     }
 
+}
+
+void Segment::error_check() {
+    bool passed =true;
+    std::stringstream error_str;
+
+    if ( m_start != POS_NA &&
+         m_start != POS_UNKNOWN &&
+         m_end   != POS_NA &&
+         m_end   != POS_UNKNOWN &&
+         m_start > m_end
+    ) {
+        error_str << "m_start=" << m_start <<" larger than m_end=" << m_end << "\n";
+        passed =false;
+    }
+    if ( m_min_start != POS_NA &&
+         m_min_start != POS_UNKNOWN &&
+         m_max_end   != POS_NA &&
+         m_max_end   != POS_UNKNOWN &&
+         m_min_start > get_max_start()
+    ) {
+        error_str << "m_min_start=" << m_min_start <<" larger than max_start=" << get_max_start() << "\n";
+        passed =false;
+    }
+    if ( m_min_start != POS_NA &&
+         m_min_start != POS_UNKNOWN &&
+         m_start     != POS_NA &&
+         m_start     != POS_UNKNOWN &&
+         m_min_start > m_start
+    ) {
+        error_str << "m_min_start=" << m_min_start <<" larger than m_start=" << m_start << "\n";
+        passed =false;
+    }
+    if ( m_max_end != POS_NA &&
+         m_max_end != POS_UNKNOWN &&
+         m_end     != POS_NA &&
+         m_end     != POS_UNKNOWN &&
+         m_max_end >  m_end
+    ) {
+        error_str << "m_max_end=" << m_max_end <<" larger than m_end=" << m_end << "\n";
+        passed =false;
+    }
+
+    if (!passed) {
+        std::__throw_runtime_error(error_str.str().c_str());
+    }
 }
 
 Segment::~Segment() {

@@ -19,6 +19,8 @@ class Segment {
 
         Segment        *m_before       = nullptr;
         Segment        *m_after        = nullptr;
+
+        void update_if_one_solution();
         
     public:
         Segment();
@@ -68,8 +70,8 @@ class Segment {
         bool is_end_set();
         bool is_start_and_end_set();
 
-
         void print();
+        void error_check();
 };
 
 typedef std::vector<Segment*>    segments;

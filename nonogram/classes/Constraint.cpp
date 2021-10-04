@@ -88,23 +88,15 @@ int Constraint::get_variation() {
     if (estimate_white_var<0) {
         printf("ERROR: To many white space detected!: \n");
         print();
-        estimate_white_var =0;
+        estimate_white_var = 0;
     }
 
     int value = VarianceCalculator::getCalculator()->get_variance(nr_of_white_segments,estimate_white_var);
     if (value < 1) {
-        printf("WARNING: To many or no variation for: \n");
-        print();
-        value = (int) pow(2,( (8 * sizeof(int) ) -1 ));
-        int nr_known = 0;
-        for (int pos = 0; pos < m_locations.size();pos++) {
-        
-            if (m_locations[pos]->get_color() != no_color) {
-                nr_known++;
-            }
-        }
-        value -=nr_known;
-        printf("WARNING: falling back to %d \n",value);        
+        //printf("WARNING: To many or no variation for: \n");
+        //print();
+        value = MAX_VARIATION;
+        //printf("WARNING: falling back to %d \n",value);        
     }
     return value;
 }
@@ -253,6 +245,11 @@ void Constraint::calculate_solutions() {
         update_size();
     }
     
+    if (get_variation() == MAX_VARIATION) {
+        printf("WARNING: calculation solutions with maximum variance (%d)",MAX_VARIATION);
+        print();
+    }
+
     add_variation(
         &solution_base,
         0,

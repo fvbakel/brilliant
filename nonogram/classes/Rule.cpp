@@ -9,7 +9,7 @@ Rule::Rule(locations *locations,segments *segments) {
 
 void Rule::calc_locks() {
     search_min_max_updates();
-    detect_sequence_colered();
+    detect_colered_sequences();
     search_segments(search_forward);
     search_segments(search_back_ward);
 
@@ -21,13 +21,18 @@ void Rule::calc_locks() {
 }
 
 /*
+Given a location position, mark it with the given color. Note that this 
+is for cases where we know the color, but not the segment.
+*/
 void Rule::set_location_color(const int pos, const enum color new_color) {
     if (pos <m_locations->size()) {
         m_locations->at(pos)->set_solved_color(new_color);
     }
 }
-*/
 
+/*
+Given a location position, mark it with the given color and segment
+*/
 void Rule::set_location_segment(const int pos, Segment *segment) {
     if (pos <m_locations->size()) {
         m_locations->at(pos)->set_segment(segment);
@@ -191,7 +196,7 @@ void Rule::apply_start_end_segments() {
     for (int i = 0;i<m_segments->size();i++) {
         if (!m_segments->at(i)->is_locked()) {
             if (m_segments->at(i)->is_start_and_end_set()) {
-                mark_and_lock(m_segments->at(i));
+                mark_segment(m_segments->at(i));
             } else if (m_segments->at(i)->is_start_set()) {
                 int start = m_segments->at(i)->get_start();
                 set_location_segment(start,m_segments->at(i));
@@ -296,9 +301,11 @@ void Rule::max_end_update(Segment *segment) {
 /*
 Find each sequence of colored locations. 
 */
-void Rule::detect_sequence_colered() {
+void Rule::detect_colered_sequences() {
     int start = POS_NA;
     int last  = POS_NA;
+    bool start_must_match = true;
+    bool end_must_match   = false;
     for (int pos = 0; pos < m_locations->size();pos++) {
         enum color loc_color = m_locations->at(pos)->get_color();
         if (loc_color != white && loc_color != no_color && start == POS_NA) {
@@ -307,15 +314,27 @@ void Rule::detect_sequence_colered() {
         } else if (loc_color != white && loc_color != no_color && start != POS_NA) {
             last  = pos;
         } else if ( (loc_color == white || loc_color == no_color) && start != POS_NA) {
-            detect_segment(start,last);
+            if (loc_color == white) {
+                end_must_match = true;
+            }
+            detect_colered_sequence(start,last,start_must_match,end_must_match);
         }
         if (loc_color == white || loc_color == no_color) {
             start = POS_NA;
             last  = POS_NA;
+            if (loc_color == no_color) {
+                start_must_match = false;
+                end_must_match = false;
+            } 
+            if (loc_color == white) {
+                start_must_match = true;
+                end_must_match = false;
+            }
         }
     }
     if ( start != POS_NA ) {
-        detect_segment(start,last);
+        end_must_match = true;
+        detect_colered_sequence(start,last,start_must_match,end_must_match);
     }
 }
 
@@ -326,18 +345,24 @@ If 1 does not apply:
 2. Update the max end of segments that must be before
 3. Update the min start of segments that must be after
 */
-void Rule::detect_segment(const int start, const int end) {
+void Rule::detect_colered_sequence(
+    const int   start, 
+    const int   end,
+    bool        start_must_match,
+    bool        end_must_match
+) {
     Segment *cur_segment   = nullptr;
     Segment *found_segment = nullptr;
     int nr_with_segment = 0;
-    int loc_color = m_locations->at(start)->get_color();
+    enum color loc_color = m_locations->at(start)->get_color();
     int size = (end - start) + 1;
     for (int pos = start;pos <=end;pos++) {
         cur_segment = m_locations->at(pos)->get_segment_for_dir(m_direction);
-        if (m_locations->at(pos)->has_segment_for_dir(m_direction)) {
-            nr_with_segment++;
-        }
         if (cur_segment != nullptr) {
+            if (cur_segment->is_locked()) {
+                return;
+            }
+            nr_with_segment++;
             found_segment = cur_segment;
         }
     }
@@ -351,16 +376,7 @@ void Rule::detect_segment(const int start, const int end) {
     }
 
     segments possible;
-    for (int i = 0;i<m_segments->size();i++) {
-        cur_segment = m_segments->at(i);
-        if (    cur_segment->get_color()     == loc_color &&
-                cur_segment->get_max_end()   >= end && 
-                cur_segment->get_min_start() <= start &&
-                cur_segment->get_min_size()  >= size
-        ) {
-            possible.push_back(cur_segment);
-        }
-    }
+    get_possible_segments(start,end,loc_color,start_must_match,end_must_match,possible);
 
     if (possible.size() == 0) {
         std::__throw_runtime_error("No segment possible?");
@@ -383,7 +399,98 @@ void Rule::detect_segment(const int start, const int end) {
         }
     }
 
-    //TODO: Can more be done, based on the information?
+
+    mark_common(start,end,start_must_match,end_must_match,possible);
+
+}
+
+void Rule::get_possible_segments(
+    const int        start, 
+    const int        end,
+    enum color       allowed_color,
+    bool             start_must_match,
+    bool             end_must_match,
+    segments         &possible
+) {
+    int size = (end - start) + 1;
+    for (int i = 0;i<m_segments->size();i++) {
+        Segment *cur_segment = m_segments->at(i);
+        if (    
+                allowed_color                == cur_segment->get_color() &&
+                cur_segment->get_max_end()   >= end   && 
+                cur_segment->get_min_start() <= start && (
+                    start_must_match             == false ||
+                    cur_segment->get_max_start() >= start
+                ) && (
+                    end_must_match               == false ||
+                    cur_segment->get_min_end()   <= end
+                ) &&
+                cur_segment->get_min_size()  >= size
+        ) {
+            possible.push_back(cur_segment);
+        }
+        
+    }
+}
+
+/*
+Given that the segments in possible are possible solutions 
+for the given start and end position.
+
+Mark the locations with the color that must be common in all possible solutions
+
+Note that this might be an expensive function to use in some cases.
+*/
+void Rule::mark_common(
+    const int        start, 
+    const int        end,
+    bool             start_must_match,
+    bool             end_must_match,
+    segments        &possible
+) {
+    if (possible.size() < 2) {
+        std::__throw_runtime_error("Must have at least two possibilities!");
+    }
+    int     size                = (end - start) + 1;
+    int     common_atleast_size = possible[0]->get_min_size();
+    bool    all_same_size       = true;
+    for (int i = 1; i < possible.size(); i++) {
+        int this_size = possible[i]->get_min_size();
+        if (this_size != common_atleast_size) {
+            all_same_size = false;
+        }
+        if (common_atleast_size > this_size) {
+            common_atleast_size = this_size;
+        }
+        if (common_atleast_size == size && all_same_size == false) {
+            // no purpose to continue the search....
+            break;
+        }
+    }
+    int mark_extra = common_atleast_size - size;
+    if (mark_extra > 0) {
+        enum color seg_color = possible[0]->get_color();
+        if (start_must_match ) {
+            for (int pos = end + 1 ;pos <= (end + mark_extra) ;pos++) {
+                set_location_color(pos,seg_color);
+            }
+        }
+        if ( end_must_match ) {
+            for (int pos = start - 1 ;pos >= (start - mark_extra) ;pos--) {
+                set_location_color(pos,seg_color);
+            }
+        }
+
+        //TODO: we could further improve by checking the number of unknown+colored on both sides
+    }
+    if (all_same_size && mark_extra >= 0 && (start_must_match || end_must_match) ) {
+        if (start_must_match) {
+            set_location_color((end + mark_extra + 1),white);
+        }
+        if (end_must_match) {
+            set_location_color((start - mark_extra - 1),white);
+        }
+    }
 
 }
 
@@ -531,7 +638,7 @@ void Rule::parse_first_white() {
         } else {
             m_cur_searching->set_end(m_cur_pos);
         }
-        mark_and_lock(m_cur_searching);
+        mark_segment(m_cur_searching);
         // move the search status to the next unlocked segment
         init_searching();
         previous_pos();
@@ -552,7 +659,7 @@ void Rule::parse_last_not_white(const bool end_found) {
         } else {
             m_cur_searching->set_start(m_cur_pos);
         }
-        mark_and_lock(m_cur_searching);
+        mark_segment(m_cur_searching);
         // move the search status to the next unlocked segment
         init_searching();
         previous_pos();
@@ -764,7 +871,7 @@ void Rule::mark_segment_reverse() {
 Given a segment with a valid start and end set,
 mark all related locations and lock this segment
 */
-void Rule::mark_and_lock(Segment *segment) {
+void Rule::mark_segment(Segment *segment) {
     for(int pos = segment->get_start();pos <= segment->get_end();pos++) {
         set_location_segment(pos,segment);
         segment->lock();
