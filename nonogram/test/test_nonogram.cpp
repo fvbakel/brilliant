@@ -323,7 +323,6 @@ void test_constraint_rules() {
 
     blacks.clear();
     blacks.assign({ 5 });
-    //             0123456789ABCDE 
     start_state = "  UXXUUU       ";
     expected    = "  UXXXXU       ";
     test_constraint_rule(blacks,start_state,expected);
@@ -331,7 +330,6 @@ void test_constraint_rules() {
     // out of reach rule 
     blacks.clear();
     blacks.assign({ 5 });
-    //             0123456789ABCDE 
     start_state = "  UXXUUUUUUUU  ";
     expected    = "  UXXXXU       ";
     test_constraint_rule(blacks,start_state,expected);
@@ -339,7 +337,6 @@ void test_constraint_rules() {
     // continue search 
     blacks.clear();
     blacks.assign({ 7,2,2,6,7 });
-    //             0123456789ABCDE 
     start_state = "UXXXXXXUUX UXUUXXXXXUUXXXXXXU";
     expected    = "XXXXXXX XX UXUUXXXXXUUXXXXXXU";
     test_constraint_rule(blacks,start_state,expected);
@@ -347,7 +344,6 @@ void test_constraint_rules() {
     // detect must be other segment
     blacks.clear();
     blacks.assign({ 1,3,1,5,2,3,1,3,1 });
-    //             0123456789ABCDE 
     start_state = "X XXX X UXXXXUUXUUXXUUXUXXXUU";
     expected    = "X XXX X UXXXXUUXUUXXU X XXX X";
     test_constraint_rule(blacks,start_state,expected);
@@ -355,7 +351,6 @@ void test_constraint_rules() {
     // detect end
     blacks.clear();
     blacks.assign({ 1,1,6,1,1,1 });
-    //             0123456789ABCDE 
     start_state = "X     X UUUUUXUXUUUUUUX    UU";
     expected    = "X     X UUUUUXUXUUUUU X    UU";
     test_constraint_rule(blacks,start_state,expected);
@@ -363,14 +358,18 @@ void test_constraint_rules() {
     // bug
     blacks.clear();
     blacks.assign({ 7,1,1,1,1,1,1,1,7 });
-    //             0123456789ABCDE 
     start_state = "XUUUUUXUUUUUUUUUUUUUUUXUUUUUU";
     expected    = "XXXXXXX X X X X X X X XXXXXXX";
     test_constraint_rule(blacks,start_state,expected);
 
-/*
-    // multipattern complete
     blacks.clear();
+    blacks.assign({ 4,4});
+    start_state = "  UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU U UUUU UUU UUUUUUUUUUU UUUUUUUUUUUUUUUUUU";
+    expected    = "  UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU   UUUU     UUUUUUUUUUU UUUUUUUUUUUUUUUUUU";
+    test_constraint_rule(blacks,start_state,expected);
+
+    // multipattern complete
+/*    blacks.clear();
     blacks.assign({ 1,1,1});
     //             0123456789A 
     start_state = "UUXUUXUUXUU";
@@ -384,7 +383,7 @@ void test_constraint_rules() {
     start_state = "UUUXUUUUXUUUUXUUU";
     expected    = "  UXU  UXU  UXU  ";
     test_constraint_rule(blacks,start_state,expected);
-*/
+//*/
     printf("End %s\n",__FUNCTION__);
 }
 

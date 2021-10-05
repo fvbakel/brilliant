@@ -69,6 +69,11 @@ class Rule {
             bool        start_must_match,
             bool        end_must_match
         );
+        void detect_unkown_sequences();
+        void detect_unkown_sequence(
+            const int   start, 
+            const int   end
+        );
         void get_possible_segments(
             const int        start, 
             const int        end,

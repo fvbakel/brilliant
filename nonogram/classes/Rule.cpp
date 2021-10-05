@@ -10,6 +10,7 @@ Rule::Rule(locations *locations,segments *segments) {
 void Rule::calc_locks() {
     search_min_max_updates();
     detect_colered_sequences();
+    detect_unkown_sequences();
     search_segments(search_forward);
     search_segments(search_back_ward);
 
@@ -398,10 +399,61 @@ void Rule::detect_colered_sequence(
                 possible[last_i]->get_after()->set_min_start(end+1);
         }
     }
-
-
     mark_common(start,end,start_must_match,end_must_match,possible);
+}
 
+void Rule::detect_unkown_sequences() {
+    int start = POS_NA;
+    int last  = POS_NA;
+    for (int pos = 0; pos < m_locations->size();pos++) {
+        enum color loc_color = m_locations->at(pos)->get_color();
+        if (loc_color == white && last == POS_NA ) {
+            start = pos;
+        } else if (loc_color != white && (start != POS_NA || pos == 0) && last == POS_NA) {
+            start = pos;
+            last  = pos;
+        } else if (loc_color != white && start != POS_NA && last != POS_NA) {    
+            last  = pos;
+        } else if ( loc_color == white && start != POS_NA  && last != POS_NA) {
+            detect_unkown_sequence(start,last);
+            start = pos;
+            last  = POS_NA;
+        }
+    }
+    if ( start != POS_NA  && last !=POS_NA) {
+        detect_unkown_sequence(start,last);
+    }
+}
+
+/*
+Given a sequence of unknown and colored, determine if any segment can fit in
+this exact space. If not, it must be white
+*/
+void Rule::detect_unkown_sequence(
+    const int   start, 
+    const int   end
+) {
+    bool can_have_one =false;
+    int size = (end - start) + 1;
+    for (int i = 0;i<m_segments->size();i++) {
+        Segment *cur_segment = m_segments->at(i);
+        if (    
+                cur_segment->get_color()     != white &&
+                cur_segment->get_max_start() >= start && 
+                cur_segment->get_min_start() <= end && 
+                cur_segment->get_max_end()   >= start   && 
+                cur_segment->get_min_end()   <= end   && 
+                cur_segment->get_min_size()  <= size
+        ) {
+            can_have_one = true;
+            break;
+        }
+    }
+    if (!can_have_one) {
+        for (int pos =start; pos<=end;pos++) {
+            set_location_color(pos,white);
+        }
+    }
 }
 
 void Rule::get_possible_segments(
@@ -483,11 +535,17 @@ void Rule::mark_common(
 
         //TODO: we could further improve by checking the number of unknown+colored on both sides
     }
-    if (all_same_size && mark_extra >= 0 && (start_must_match || end_must_match) ) {
-        if (start_must_match) {
+    if (    all_same_size       && 
+            mark_extra >= 0     && (
+                start_must_match ||
+                end_must_match   ||
+                (mark_extra == 0)
+            ) 
+        ) {
+        if (start_must_match || mark_extra == 0) {
             set_location_color((end + mark_extra + 1),white);
         }
-        if (end_must_match) {
+        if (end_must_match  || mark_extra == 0) {
             set_location_color((start - mark_extra - 1),white);
         }
     }
