@@ -102,11 +102,8 @@ int Segment::get_min_end() {
 int Segment::get_min_start() {
     return m_min_start;
 }
+
 void Segment::set_min_start(const int min_start) {
-    /* Not allowed to smaller than current value with exceptions:
-      from POS_UNKNOWN to POS_NA
-      from POS_UNKNOWN or POS_NA to >= 0
-    */
     if ( !  ((m_min_start == POS_UNKNOWN && min_start == POS_NA) ||
             (m_min_start < 0 && min_start >=0)                   ||
             (min_start > m_min_start))
