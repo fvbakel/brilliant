@@ -8,6 +8,7 @@ Rule::Rule(locations *locations,segments *segments) {
 }
 
 void Rule::calc_locks() {
+    //TODO: determine the best order of calculations
     search_min_max_updates();
     detect_colered_sequences();
     detect_unkown_sequences();
@@ -160,8 +161,9 @@ void Rule::set_initial_min_max_segments() {
         if (m_segments->size() >= 1 ) {
             m_segments->at(m_segments->size()-1)->set_max_end(POS_NA);
         }
-        if (m_segments->size() >= 2 ) {
+        if (m_segments->size() > 2 ) {
             m_segments->at(m_segments->size()-2)->set_max_end(m_locations->size()-1);
+            m_segments->at(1)->set_min_start(0);
         }
         zero_special_case();
         m_min_max_set = true;
@@ -276,7 +278,13 @@ void Rule::search_min_max_updates() {
 void Rule::min_start_update(Segment *segment) {
     int pos = segment->get_min_start();
     int stop_pos = segment->get_min_end();
-    while (pos <= stop_pos) {
+    if (pos < 0) {
+        std::__throw_runtime_error("Min start can not be smaller than zero for a non white segment!\n");
+    }
+    while (pos <= stop_pos ) {
+        if (stop_pos >= m_locations->size()) {
+            std::__throw_runtime_error("Min end can not be larger than the location size for a non white segment!\n");
+        }
         enum color loc_color = m_locations->at(pos)->get_color();
         if (loc_color == white) {
             segment->set_min_start(pos+1);

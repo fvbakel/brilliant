@@ -368,6 +368,21 @@ void test_constraint_rules() {
     expected    = "  UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU   UUUU     UUUUUUUUUUU UUUUUUUUUUUUUUUUUU";
     test_constraint_rule(blacks,start_state,expected);
 
+    // bug?
+    blacks.clear();
+    blacks.assign({ 28});
+    start_state = "UUXXXXXXXXXXXXXXXXXXXXXXXXXXUU";
+    expected    = "UUXXXXXXXXXXXXXXXXXXXXXXXXXXUU";
+    test_constraint_rule(blacks,start_state,expected);
+
+    // bug
+    blacks.clear();
+    blacks.assign({ 28});
+    start_state = "UUUUUUUUUUUUUUUXUUUUUUUUUXUUUU";
+    expected    = "UUXXXXXXXXXXXXXXXXXXXXXXXXXXUU";
+    test_constraint_rule(blacks,start_state,expected);
+
+
     // multipattern complete
 /*    blacks.clear();
     blacks.assign({ 1,1,1});
@@ -779,6 +794,12 @@ int main(int argc, char *argv[]) {
     test_Nonegram_file (filename);
 
     filename = string("./puzzles/54.non");
+    test_Nonegram_file (filename);
+
+    filename = string("./puzzles/125.non");
+    test_Nonegram_file (filename);
+
+    filename = string("./puzzles/spade.non");
     test_Nonegram_file (filename);
 
     // a large file with a wide solution space...

@@ -103,12 +103,17 @@ int Segment::get_min_start() {
     return m_min_start;
 }
 void Segment::set_min_start(const int min_start) {
-    if (    m_min_start!=POS_UNKNOWN &&
-            min_start!=POS_NA &&
-            min_start <=m_min_start
-    ) {
+    /* Not allowed to smaller than current value with exceptions:
+      from POS_UNKNOWN to POS_NA
+      from POS_UNKNOWN or POS_NA to >= 0
+    */
+    if ( !  ((m_min_start == POS_UNKNOWN && min_start == POS_NA) ||
+            (m_min_start < 0 && min_start >=0)                   ||
+            (min_start > m_min_start))
+    ) {    
         return;
     }
+
     m_min_start = min_start;
     update_if_one_solution();
     int min_start_next = min_start + m_min_size;
@@ -142,9 +147,11 @@ int Segment::get_max_end() {
     return m_max_end;
 }
 void Segment::set_max_end(const int max_end) {
-    if (    m_max_end!=POS_UNKNOWN &&
-            max_end!=POS_NA &&
-            max_end >=m_max_end
+    if ( !( 
+           ( m_max_end == POS_UNKNOWN && max_end == POS_NA ) ||
+           ( (m_max_end == POS_UNKNOWN || m_max_end == POS_NA)  && max_end >= 0) ||
+           ( m_max_end > max_end && m_max_end >= 0)
+        )
     ) {
         return;
     }
