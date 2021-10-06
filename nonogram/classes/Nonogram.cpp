@@ -371,6 +371,7 @@ MainConstraint *Nonogram::get_next_to_calculate_dir(enum direction for_direction
     for (MainConstraint *constraint : *p_constraints) {
         if (constraint->get_solution_size() == 0) {
             int variation = constraint->get_variation();
+            
             if (    smallest_variation == -1 ||
                     variation < smallest_variation
             ) {
@@ -430,7 +431,6 @@ enum direction Nonogram::reduce_and_lock (
 }
 
 bool Nonogram::solve() {
-    bool result = false;
     if (m_solving == false) {
         m_solving = true;
         if (!is_input_valid()) {
@@ -442,10 +442,16 @@ bool Nonogram::solve() {
             printf("Solved with rules only.\n");
             return true;
         } else {
-            printf("Solve with rules ony ready, solve the remaining with solutions reduction and rules.\n");
+            printf("Solve with rules only ready, solve the remaining with solutions reduction and rules.\n");
         }
 
-        apply_solutions_and_rules();
+        try {
+            apply_solutions_and_rules();
+        } catch (std::domain_error &e) {
+            std::cout << e.what() << "\n"; 
+            std::cout << "Unable to solve.\n";
+            return false;
+        }
         if (is_solved()) {
             printf("Solved with rules and constraints only.\n");
             return true;
@@ -453,6 +459,7 @@ bool Nonogram::solve() {
             printf("Solve with solution reduction and rules ready, solve the remaining with backtracking.\n");
         }
     }
+
     return solve_constraint_backtrack();
 }
 

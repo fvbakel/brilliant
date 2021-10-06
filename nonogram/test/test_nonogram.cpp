@@ -72,6 +72,15 @@ void test_Nonegram_file_wrong (string &filename) {
     printf("End %s(%s)\n",__FUNCTION__,filename.c_str());
 }
 
+void test_nonegram_cant_solve (string &filename) {
+    printf("Start %s(%s)\n",__FUNCTION__,filename.c_str());
+    Nonogram *nonogram = new Nonogram(filename);
+    nonogram->solve();
+    assert(!nonogram->is_solved());
+    delete nonogram;
+    printf("End %s(%s)\n",__FUNCTION__,filename.c_str());
+}
+
 void test_Nonegram_file (string &filename) {
     printf("Start %s(%s)\n",__FUNCTION__,filename.c_str());
     Nonogram *nonogram = new Nonogram(filename);
@@ -460,10 +469,13 @@ void test_reduce_constraint() {
 
     //
     int var = constraint->get_variation();
-    printf("Variation estimate = %d \n",var);
-    
+    printf("Variation estimate before = %d \n",var);
     assert(var <= 7726160);
-    //assert(var == 2);
+    constraint->calc_locks_rules();
+    constraint->calc_locks_rules();
+    var = constraint->get_variation();
+    printf("Variation estimate after = %d \n",var);
+    assert(var == 2);
 
     // check
     constraint->calculate_solutions();
@@ -473,7 +485,7 @@ void test_reduce_constraint() {
     constraint->calc_locks();
     constraint->debug_dump();
     printf("constraint->get_nr_dirty()= %d \n",constraint->get_nr_dirty());
-    assert(constraint->get_nr_dirty() ==17);
+    assert(constraint->get_nr_dirty() ==0);
 
     delete constraint;
 
@@ -760,25 +772,25 @@ int main(int argc, char *argv[]) {
     test_segment();
     test_segment_location();
     if (argc >1) {
-        cout << "Any enter to continue";
+        cout << "Enter to continue";
         char dummy = getchar();
     }
     test_constraint();
     test_reduce_constraint();
     if (argc >1) {
-        cout << "Any enter to continue";
+        cout << "Enter to continue";
         char dummy = getchar();
     }
 
     test_constraint_rules();
     if (argc >1) {
-        cout << "Any enter to continue";
+        cout << "Enter to continue";
         char dummy = getchar();
     }
 
     test_constraint_rules_vs_solutions();
     if (argc >1) {
-        cout << "Any enter to continue";
+        cout << "Enter to continue";
         char dummy = getchar();
     }
     test_Nonegram();
@@ -815,8 +827,13 @@ int main(int argc, char *argv[]) {
     filename = string("./puzzles/tiger.non");
     test_Nonegram_file (filename);
 
-    //filename = string("./puzzles/45_45_large.txt");
-    //test_Nonegram_file (filename);
+    if (argc >1) {
+        cout << "About to run slow exception tests\n";
+        cout << "Enter to continue";
+        char dummy = getchar();
+        filename = string("./puzzles/45_45_large.txt");
+        test_nonegram_cant_solve(filename);
+    }
     
     printf("Ready\n");
     return 0;

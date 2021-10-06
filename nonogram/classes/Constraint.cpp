@@ -69,11 +69,14 @@ int Constraint::get_variation() {
     }
 
     for (Segment *segment : m_segments) {
-        if (segment->get_color() == white) {
+        if (segment->get_color() == white && !segment->is_locked()) {
             nr_of_white_segments++;
         }
     }
-    assert(nr_of_white_segments > 1);
+
+    if (nr_of_white_segments < 2) {
+        return 1;
+    }
 
     int white_sequence = 0;
     bool first_segment = true;
@@ -103,10 +106,7 @@ int Constraint::get_variation() {
 
     int value = VarianceCalculator::getCalculator()->get_variance(nr_of_white_segments,estimate_white_var);
     if (value < 1) {
-        //printf("WARNING: To many or no variation for: \n");
-        //print();
         value = MAX_VARIATION;
-        //printf("WARNING: falling back to %d \n",value);        
     }
     return value;
 }
@@ -259,9 +259,10 @@ void Constraint::calculate_solutions() {
         update_size();
     }
     
-    if (get_variation() == MAX_VARIATION) {
-        printf("WARNING: calculation solutions with maximum variance (%d)",MAX_VARIATION);
+    if (get_variation() > MAX_SOLUTIONS) {
+        printf("ERROR: Contraint has more than the maximum variance (%d)",MAX_SOLUTIONS);
         print();
+        std::__throw_domain_error("ERROR: Contraint has more than the maximum variance");
     }
 
     add_variation(
