@@ -1,9 +1,20 @@
 #!/bin/sh
 
 solver=~/bin/nonogram
+log_rule_improve=''
 
 if [ -n "$2" ]; then
-  solver=$2
+  if [ "-r" = "$2" ]; then
+    log_rule_improve=$2
+  else
+    solver=$2
+  fi
+fi
+
+if [ -n "$3" ]; then
+  if [ "-r" = "$3" ]; then
+    log_rule_improve=$3
+  fi
 fi
 
 if [ -n "$1" ]; then
@@ -18,7 +29,7 @@ fi
 FILES=`find -L ${process_dir} -name "*.non"`
 for file in $FILES
 do
-    CMD="${solver} ${file}"
+    CMD="${solver} ${file} ${log_rule_improve}"
     echo $CMD
     $CMD
 done

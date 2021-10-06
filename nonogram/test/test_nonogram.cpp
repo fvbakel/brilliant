@@ -77,7 +77,7 @@ void test_Nonegram_file (string &filename) {
     Nonogram *nonogram = new Nonogram(filename);
 
     nonogram->enable_rule_improve_log();
-    nonogram->solve_constraint_backtrack();
+    nonogram->solve();
     nonogram->print();
 
     assert(nonogram->is_solved());
@@ -152,18 +152,12 @@ void test_Nonegram() {
     nonogram->reset();
     assert(!nonogram->is_solved());
 
-    printf("Start location backtrack\n");
-    nonogram->solve_location_backtrack();
-    nonogram->print();
-    assert(nonogram->is_solved());
-    printf("End location backtrack\n");
-
     nonogram->reset();
     assert(!nonogram->is_solved());
 
     printf("Start constraint backtrack\n");
     nonogram->enable_rule_improve_log();
-    nonogram->solve_constraint_backtrack();
+    nonogram->solve();
     nonogram->print();
     assert(nonogram->is_solved());
     printf("End constraint backtrack\n");

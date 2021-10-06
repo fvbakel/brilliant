@@ -19,12 +19,13 @@ class Nonogram {
         bool                    m_valid_checked     = false;
         enum non_parse_state    m_non_parse_state   = searching;
         bool                    m_rule_improve_log  = false;
+        bool                    m_solving           = false;
 
-        std::unordered_set<enum direction>  m_sol_calcs;
         main_constraints    m_x_contraints;
         main_constraints    m_y_contraints;
         locations           m_locations;
 
+        bool solve_constraint_backtrack(int constraint_index = 0);
         void read_file();
 
         void create_locations();
@@ -59,9 +60,8 @@ class Nonogram {
 
         enum direction swap_direction(enum direction cur_dir);
 
-        void init_constraint_solutions_1();
-        void init_constraint_solutions_2();
-        void initial_constraints_rules();
+        void apply_rules_only();
+        void apply_solutions_and_rules();
 
         bool is_consistent_dir(enum direction for_direction);
         bool is_input_valid_dir(enum direction for_direction);
@@ -73,8 +73,7 @@ class Nonogram {
         Nonogram(const string &filename);
         ~Nonogram();
 
-        bool solve_location_backtrack(int location_index = 0);
-        bool solve_constraint_backtrack(int constraint_index = 0);
+        bool solve();
 
         Location *get_Location(const int x, const int y);
 
