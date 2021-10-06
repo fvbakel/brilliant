@@ -396,7 +396,7 @@ void test_constraint_rules() {
     test_constraint_rule(blacks,start_state,expected);
 
     // multipattern complete
-/*    blacks.clear();
+    blacks.clear();
     blacks.assign({ 1,1,1});
     //             0123456789A 
     start_state = "UUXUUXUUXUU";
@@ -404,7 +404,7 @@ void test_constraint_rules() {
     test_constraint_rule(blacks,start_state,expected);
 
     // multipattern incomplete
-    blacks.clear();
+/*    blacks.clear();
     blacks.assign({ 2,2,2});
     //             0123456789ABCDEFG 
     start_state = "UUUXUUUUXUUUUXUUU";
@@ -812,6 +812,9 @@ int main(int argc, char *argv[]) {
     test_Nonegram_file (filename);
 
     filename = string("./puzzles/spade.non");
+    test_Nonegram_file (filename);
+
+    filename = string("./puzzles/16.non");
     test_Nonegram_file (filename);
 
     // a large file with a wide solution space...

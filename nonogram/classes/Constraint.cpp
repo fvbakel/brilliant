@@ -31,6 +31,16 @@ int Constraint::get_white_var() {
     return m_white_var;
 }
 
+int Constraint::get_segment_size() {
+    return m_segments.size();
+}
+Segment* Constraint::get_segment(int index) {
+    return m_segments.at(index);
+}
+Location* Constraint::get_location(int index) {
+    return m_locations.at(index);
+}
+
 int Constraint::get_nr_dirty() {
     int count = 0;
     for (Location* location : m_locations ) {
@@ -117,6 +127,10 @@ void Constraint::update_size() {
     }
 }
 
+/*
+Given a color, get the total number of locations that are expected to
+have this color in the correct solution.
+*/
 int Constraint::get_colored_size(enum color for_color) {
     int count = 0;
     for (Segment *segment : m_segments) {
@@ -389,7 +403,7 @@ void Constraint::calc_locks() {
 
 void Constraint::calc_locks_rules() {
     if (m_Rule == nullptr) {
-        m_Rule = new Rule(&m_locations,&m_segments);
+        m_Rule = new Rule(this);
     }
     bool first = true;
     while (get_nr_dirty() > 0  || first) {

@@ -8,6 +8,7 @@
 #include <Location.h>
 #include <Rule.h>
 
+class Rule;
 class Constraint {
     protected:
         enum direction      m_direction    = x_dir;
@@ -47,6 +48,10 @@ class Constraint {
         int get_variation(); 
 
         void add_location(Location *location);
+
+        int get_segment_size();
+        Segment *get_segment(int index);
+        Location *get_location(int index);
 
         bool is_valid();
         bool is_passed();

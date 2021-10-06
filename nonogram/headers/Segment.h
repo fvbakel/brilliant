@@ -9,7 +9,6 @@ class Segment {
         enum color      m_color        = white;
         enum direction  m_direction    = x_dir;
         int             m_min_size     = SIZE_UNKNOWN;
-        // TODO: get rid of max_size
         int             m_max_size     = SIZE_UNKNOWN;
         int             m_size         = SIZE_UNKNOWN;
         bool            m_locked       = false;

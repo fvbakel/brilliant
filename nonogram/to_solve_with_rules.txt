@@ -1,3 +1,4 @@
 Possible rule improvement Given: 1,1,2,1,1,2,2,1 [X X XX UUUU   U    XUUUXUUUUU] expected: [X X XX UUUU   U    XU UXUUUUU]
 Possible rule improvement Given: 1,1,1,2,2,1,1,2 [ UUUU X UUUXU UUUU  UXUXUUUUU] expected: [ UUUU X UUUXU UUUU  UX XUUUUU]
+Possible rule improvement Given: 2,1,1,2,2,1,1,2 [ UXUU  X   XUUUX  XUUUX   X  UUXU ] expected: [ UXU   X   X  XX  XX  X   X   UXU ]
 Possible rule improvement Given: 9,3,3,3,2,1,2 [      XXXXXXXXX       XXX  XXX XXX   UXUUUXUUUUUUU] expected: [      XXXXXXXXX       XXX  XXX XXX   UXUU XUUUUUUU]

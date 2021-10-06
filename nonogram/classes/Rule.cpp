@@ -1,13 +1,12 @@
 #include <Rule.h>
 
-Rule::Rule(locations *locations,segments *segments) {
-    m_locations = locations;
-    m_segments  = segments;
-    m_direction = segments->at(0)->get_direction();
+Rule::Rule(Constraint *contraint) {
+    m_constraint = contraint;
     set_initial_min_max_segments();
 }
 
 void Rule::calc_locks() {
+    detect_ready();
     search_min_max_updates();
     detect_colered_sequences();
     detect_unkown_sequences();
@@ -24,8 +23,8 @@ Given a location position, mark it with the given color. Note that this
 is for cases where we know the color, but not the segment.
 */
 void Rule::set_location_color(const int pos, const enum color new_color) {
-    if (pos <m_locations->size()) {
-        m_locations->at(pos)->set_solved_color(new_color);
+    if (pos <m_constraint->get_size()) {
+        m_constraint->get_location(pos)->set_solved_color(new_color);
     }
 }
 
@@ -33,23 +32,23 @@ void Rule::set_location_color(const int pos, const enum color new_color) {
 Given a location position, mark it with the given color and segment
 */
 void Rule::set_location_segment(const int pos, Segment *segment) {
-    if (pos <m_locations->size()) {
-        m_locations->at(pos)->set_segment(segment);
+    if (pos <m_constraint->get_size()) {
+        m_constraint->get_location(pos)->set_segment(segment);
     }
 }
 
 void Rule::set_initial_min_max_segments() {
     if (m_min_max_set == false) {
-        if (m_segments->size() >= 0) {
-            m_segments->at(0)->set_min_start(POS_NA);
+        if (m_constraint->get_segment_size() >= 0) {
+            m_constraint->get_segment(0)->set_min_start(POS_NA);
         }
-        if (m_segments->size() >= 1 ) {
-            m_segments->at(m_segments->size()-1)->set_max_end(POS_NA);
-            m_segments->at(m_segments->size()-1)->set_limit(m_locations->size()-1);
+        if (m_constraint->get_segment_size() >= 1 ) {
+            m_constraint->get_segment(m_constraint->get_segment_size()-1)->set_max_end(POS_NA);
+            m_constraint->get_segment(m_constraint->get_segment_size()-1)->set_limit(m_constraint->get_size()-1);
         }
-        if (m_segments->size() > 2 ) {
-            m_segments->at(m_segments->size()-2)->set_max_end(m_locations->size()-1);
-            m_segments->at(1)->set_min_start(0);
+        if (m_constraint->get_segment_size() > 2 ) {
+            m_constraint->get_segment(m_constraint->get_segment_size()-2)->set_max_end(m_constraint->get_size()-1);
+            m_constraint->get_segment(1)->set_min_start(0);
         }
         zero_special_case();
         m_min_max_set = true;
@@ -67,14 +66,14 @@ Given               | Result
 1 4: UUUUUUUU       | UUUUXXUU
 */
 void Rule::apply_min_max() {
-    for (int i = 0;i<m_segments->size();i++) {
-        if (!m_segments->at(i)->is_locked()) {
-            int min_end = m_segments->at(i)->get_min_end();
-            int max_start = m_segments->at(i)->get_max_start();
+    for (int i = 0;i<m_constraint->get_segment_size();i++) {
+        if (!m_constraint->get_segment(i)->is_locked()) {
+            int min_end = m_constraint->get_segment(i)->get_min_end();
+            int max_start = m_constraint->get_segment(i)->get_max_start();
             if (min_end != POS_NA && max_start != POS_NA) {
-                enum color new_color = m_segments->at(i)->get_color();
+                enum color new_color = m_constraint->get_segment(i)->get_color();
                 for (int pos=max_start; pos <= min_end; pos++) {
-                    set_location_segment(pos,m_segments->at(i));
+                    set_location_segment(pos,m_constraint->get_segment(i));
                 }
             }
         }
@@ -82,34 +81,34 @@ void Rule::apply_min_max() {
 }
 
 void Rule::apply_start_end_segments() {
-    for (int i = 0;i<m_segments->size();i++) {
-        if (!m_segments->at(i)->is_locked()) {
-            if (m_segments->at(i)->is_start_and_end_set()) {
-                mark_segment(m_segments->at(i));
-            } else if (m_segments->at(i)->is_start_set()) {
-                int start = m_segments->at(i)->get_start();
-                set_location_segment(start,m_segments->at(i));
-            } else if (m_segments->at(i)->is_end_set()) {
-                int end = m_segments->at(i)->get_end();
-                set_location_segment(end,m_segments->at(i));
+    for (int i = 0;i<m_constraint->get_segment_size();i++) {
+        if (!m_constraint->get_segment(i)->is_locked()) {
+            if (m_constraint->get_segment(i)->is_start_and_end_set()) {
+                mark_segment(m_constraint->get_segment(i));
+            } else if (m_constraint->get_segment(i)->is_start_set()) {
+                int start = m_constraint->get_segment(i)->get_start();
+                set_location_segment(start,m_constraint->get_segment(i));
+            } else if (m_constraint->get_segment(i)->is_end_set()) {
+                int end = m_constraint->get_segment(i)->get_end();
+                set_location_segment(end,m_constraint->get_segment(i));
             }
         }
     }
 }
 
 void Rule::apply_out_of_reach() {
-    for (int i = 0;i<m_segments->size();i++) {
-        if (!m_segments->at(i)->is_locked()) {
+    for (int i = 0;i<m_constraint->get_segment_size();i++) {
+        if (!m_constraint->get_segment(i)->is_locked()) {
             int prev_max_end = -1;
-            int next_min_start = m_locations->size();
-            if (m_segments->at(i)->get_before() != nullptr) {
-                prev_max_end = m_segments->at(i)->get_before()->get_max_end();
+            int next_min_start = m_constraint->get_size();
+            if (m_constraint->get_segment(i)->get_before() != nullptr) {
+                prev_max_end = m_constraint->get_segment(i)->get_before()->get_max_end();
             } 
-            if (m_segments->at(i)->get_after() != nullptr) {
-                next_min_start = m_segments->at(i)->get_after()->get_min_start();
+            if (m_constraint->get_segment(i)->get_after() != nullptr) {
+                next_min_start = m_constraint->get_segment(i)->get_after()->get_min_start();
             }
             for (int pos=prev_max_end+1 ; pos < next_min_start;pos++) {
-                set_location_segment(pos,m_segments->at(i));
+                set_location_segment(pos,m_constraint->get_segment(i));
             }
         }
     }
@@ -120,16 +119,16 @@ Mark all white if no colored is found
 */
 void Rule::zero_special_case() {
     bool colored_found = false;
-    for (int i = 0; i < m_segments->size(); i++) {
-        if (m_segments->at(i)->get_color() != white) {
+    for (int i = 0; i < m_constraint->get_segment_size(); i++) {
+        if (m_constraint->get_segment(i)->get_color() != white) {
             colored_found =true;
             break;
         }
     }
     if (!colored_found) {
         // white only
-        m_segments->at(0)->set_start(0);
-        m_segments->at(0)->set_end(m_locations->size()-1);
+        m_constraint->get_segment(0)->set_start(0);
+        m_constraint->get_segment(0)->set_end(m_constraint->get_size()-1);
     }
     
 }
@@ -138,10 +137,10 @@ void Rule::zero_special_case() {
 Given the min max setting of each segment, check if that min max is still possible
 */
 void Rule::search_min_max_updates() {
-    for (int i = 0; i<m_segments->size();i++) {
-        if (m_segments->at(i)->get_color() != white) {
-            min_start_update(m_segments->at(i));
-            max_end_update(m_segments->at(i));
+    for (int i = 0; i<m_constraint->get_segment_size();i++) {
+        if (m_constraint->get_segment(i)->get_color() != white) {
+            min_start_update(m_constraint->get_segment(i));
+            max_end_update(m_constraint->get_segment(i));
         }
     }
 }
@@ -153,10 +152,10 @@ void Rule::min_start_update(Segment *segment) {
         std::__throw_runtime_error("Min start can not be smaller than zero for a non white segment!\n");
     }
     while (pos <= stop_pos ) {
-        if (stop_pos >= m_locations->size()) {
+        if (stop_pos >= m_constraint->get_size()) {
             std::__throw_runtime_error("Min end can not be larger than the location size for a non white segment!\n");
         }
-        enum color loc_color = m_locations->at(pos)->get_color();
+        enum color loc_color = m_constraint->get_location(pos)->get_color();
         if (loc_color == white) {
             segment->set_min_start(pos+1);
             stop_pos = segment->get_min_end();
@@ -169,12 +168,47 @@ void Rule::max_end_update(Segment *segment) {
     int pos = segment->get_max_end();
     int stop_pos = segment->get_max_start();
     while (pos >= stop_pos) {
-        enum color loc_color = m_locations->at(pos)->get_color();
+        enum color loc_color = m_constraint->get_location(pos)->get_color();
         if (loc_color == white) {
             segment->set_max_end(pos  - 1);
             stop_pos = segment->get_max_start();
         }
         pos--;
+    }
+}
+
+void Rule::detect_ready() {
+    int c_count = 0;
+    int w_count = 0;
+    int u_count = 0;
+    int w_expect = m_constraint->get_colored_size(white);
+    int c_expect = m_constraint->get_size() - w_expect;
+    for (int pos = 0; pos < m_constraint->get_size();pos++) {
+        enum color loc_color = m_constraint->get_location(pos)->get_color();
+        if (loc_color == white)     w_count++;
+        if (loc_color == black)     c_count++;
+        if (loc_color == no_color)  u_count++;
+    }
+
+    enum color mark_color = no_color;
+    if (u_count != 0 && c_count == c_expect) {
+        // all u is white  
+        mark_color = white;
+    } else if (u_count != 0 && w_count == w_expect) {
+        // all u is colored
+        // assume black for now ....
+        mark_color = black;
+    } else {
+        return;
+    }
+
+    if (mark_color != no_color) {
+        for (int pos = 0; pos < m_constraint->get_size();pos++) {
+            enum color loc_color = m_constraint->get_location(pos)->get_color();
+            if (loc_color == no_color) {
+                set_location_color(pos,mark_color);
+            } 
+        }
     }
 }
 
@@ -186,8 +220,8 @@ void Rule::detect_colered_sequences() {
     int last  = POS_NA;
     bool start_must_match = true;
     bool end_must_match   = false;
-    for (int pos = 0; pos < m_locations->size();pos++) {
-        enum color loc_color = m_locations->at(pos)->get_color();
+    for (int pos = 0; pos < m_constraint->get_size();pos++) {
+        enum color loc_color = m_constraint->get_location(pos)->get_color();
         if (loc_color != white && loc_color != no_color && start == POS_NA) {
             start = pos;
             last  = pos;
@@ -234,10 +268,10 @@ void Rule::detect_colered_sequence(
     Segment *cur_segment   = nullptr;
     Segment *found_segment = nullptr;
     int nr_with_segment = 0;
-    enum color loc_color = m_locations->at(start)->get_color();
+    enum color loc_color = m_constraint->get_location(start)->get_color();
     int size = (end - start) + 1;
     for (int pos = start;pos <=end;pos++) {
-        cur_segment = m_locations->at(pos)->get_segment_for_dir(m_direction);
+        cur_segment = m_constraint->get_location(pos)->get_segment_for_dir(m_constraint->get_direction());
         if (cur_segment != nullptr) {
             if (cur_segment->is_locked()) {
                 return;
@@ -284,8 +318,8 @@ void Rule::detect_colered_sequence(
 void Rule::detect_unkown_sequences() {
     int start = POS_NA;
     int last  = POS_NA;
-    for (int pos = 0; pos < m_locations->size();pos++) {
-        enum color loc_color = m_locations->at(pos)->get_color();
+    for (int pos = 0; pos < m_constraint->get_size();pos++) {
+        enum color loc_color = m_constraint->get_location(pos)->get_color();
         if (loc_color == white && last == POS_NA ) {
             start = pos;
         } else if (loc_color != white && (start != POS_NA || pos == 0) && last == POS_NA) {
@@ -314,8 +348,8 @@ void Rule::detect_unkown_sequence(
 ) {
     bool can_have_one =false;
     int size = (end - start) + 1;
-    for (int i = 0;i<m_segments->size();i++) {
-        Segment *cur_segment = m_segments->at(i);
+    for (int i = 0;i<m_constraint->get_segment_size();i++) {
+        Segment *cur_segment = m_constraint->get_segment(i);
         if (    
                 cur_segment->get_color()     != white &&
                 cur_segment->get_max_start() >= start && 
@@ -344,8 +378,8 @@ void Rule::get_possible_segments(
     segments         &possible
 ) {
     int size = (end - start) + 1;
-    for (int i = 0;i<m_segments->size();i++) {
-        Segment *cur_segment = m_segments->at(i);
+    for (int i = 0;i<m_constraint->get_segment_size();i++) {
+        Segment *cur_segment = m_constraint->get_segment(i);
         if (    
                 allowed_color                == cur_segment->get_color() &&
                 cur_segment->get_max_end()   >= end   && 

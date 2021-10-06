@@ -4,16 +4,15 @@
 #include <unordered_set>
 
 #include <constants.h>
+#include <Constraint.h>
 #include <Segment.h>
 #include <Location.h>
 
+class Constraint;
 class Rule {
     
     protected:
-        locations          *m_locations     = nullptr;
-        segments           *m_segments      = nullptr;
-        enum direction      m_direction     = x_dir;
-
+        Constraint         *m_constraint    = nullptr; 
         bool                m_min_max_set   = false;
         
         void set_location_color(const int pos, const enum color new_color);
@@ -30,6 +29,7 @@ class Rule {
         void min_start_update(Segment *segment);
         void max_end_update(Segment *segment);
 
+        void detect_ready();
         void detect_colered_sequences();
         void detect_colered_sequence(
             const int   start, 
@@ -62,7 +62,7 @@ class Rule {
         void mark_segment(Segment *segment);
 
     public:
-        Rule(locations *locations,segments *segments);
+        Rule(Constraint *contraint);
         ~Rule();
 
         
