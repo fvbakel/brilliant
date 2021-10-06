@@ -507,6 +507,102 @@ std::string Constraint::loc_string(){
     return str_str.str();
 }
 
+std::string Constraint::loc_dirty_string(){
+    std::stringstream str_str;
+    int pos = 0;
+    while (pos < m_locations.size()) {
+        Location *location = m_locations.at(pos);
+        if (location->is_dirty(m_direction)) {
+            str_str << "D";
+        } else {
+            str_str << "C";
+        }
+        pos++;
+    }
+    return str_str.str();
+}
+
+std::string Constraint::loc_seg_string(){
+    std::stringstream str_str;
+    int pos = 0;
+    while (pos < m_locations.size()) {
+        Location *location = m_locations.at(pos);
+        str_str << location->has_segment_for_dir(m_direction);
+        pos++;
+    }
+    return str_str.str();
+}
+
+std::string Constraint::loc_seg_locked_string(){
+    std::stringstream str_str;
+    int pos = 0;
+    pos = 0;
+    while (pos < m_locations.size()) {
+        Location *location = m_locations.at(pos);
+        bool seg_locked = false;
+        if (location->has_segment_for_dir(m_direction)) {
+            Segment *cur_segment = location->get_segment_for_dir(m_direction);
+            seg_locked = cur_segment->is_locked();
+        }
+        if (seg_locked) {
+            str_str << "L";
+        } else {
+            str_str << "F";
+        }
+        pos++;
+    }
+    return str_str.str();
+}
+
+std::string Constraint::seg_string(){
+    std::stringstream str_str;
+    std::string prefix = "   ";
+    str_str << "<NU0123";
+    for (int pos = 7; pos <m_size + 3;pos++) {
+        str_str << "." ;
+    }
+    str_str << "UN>\n" ;
+    str_str << prefix << loc_string() << "\n";
+    str_str << prefix << loc_seg_string() << "\n";
+    str_str << prefix << loc_seg_locked_string() << "\n";
+    str_str << prefix << loc_dirty_string() << "\n";
+ 
+    for(int i = 0; i< m_segments.size();i++) {
+        int start = m_segments[i]->get_min_start();
+        int end = m_segments[i]->get_max_end();
+        char seg_char = '.';
+        if (i>=0 && i<26) {
+            seg_char = (char) (i + 65);
+        } else if (i>=26 && i<52) {
+            seg_char = (char) (i + 97);
+        } else {
+            seg_char = '.';
+        }
+
+        if (start < -2) {
+            start = -3;
+        }
+        if (end < 0) {
+            if (end == POS_NA || end == POS_UNKNOWN) {
+                end = (m_size - 1) + (-end);
+            } else {
+                end = (m_size - 1) + 3;
+            }
+        }
+        for (int pos = -3; pos <start;pos++) {
+            str_str << " " ;
+        }
+        for (int pos = start; pos <=end;pos++) {
+            str_str << seg_char ;
+        }
+        for (int pos = end +1; pos <=m_size + 3;pos++) {
+            str_str << " " ;
+        }
+        str_str << "\n";
+    }
+    return str_str.str();
+}
+
 std::string Constraint::to_string() {
     std::stringstream str_str;
     if (m_direction == x_dir) {
@@ -525,7 +621,10 @@ std::string Constraint::to_string() {
 void Constraint::print() {
     std::cout << to_string();
     printf("\n");
-    
+}
+
+void Constraint::print_seg() {
+    std::cout << seg_string();
 }
 
 Constraint::~Constraint() {

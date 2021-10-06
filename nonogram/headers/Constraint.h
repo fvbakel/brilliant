@@ -65,11 +65,16 @@ class Constraint {
         void calc_locks();
         int reduce_solutions();
 
-        std::string loc_string();
         std::string clue_string();
+        std::string loc_string();
+        std::string loc_seg_string();
+        std::string loc_seg_locked_string();
+        std::string loc_dirty_string();
+        std::string seg_string();
         std::string to_string();
         void debug_dump();
         void print();
+        void print_seg();
 };
 
 typedef std::vector<Constraint*>    constraints;

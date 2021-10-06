@@ -1,3 +1,4 @@
 nonogram
 *.o
 test_nonogram
+*.seg

@@ -358,7 +358,13 @@ void Rule::get_possible_segments(
                 ) &&
                 cur_segment->get_min_size()  >= size
         ) {
-            possible.push_back(cur_segment);
+            if (start_must_match && end_must_match) {
+                if (cur_segment->get_min_size()  == size) {
+                    possible.push_back(cur_segment);
+                }
+            } else {
+                possible.push_back(cur_segment);
+            }
         }
         
     }

@@ -58,6 +58,8 @@ void Location::set_segment(Segment *segment) {
             printf("\n");
             throw std::runtime_error("Setting location to two different segments");
         }
+        // now dirty location for this direction, because segment was not known
+        set_dirty(segment->get_direction());
         *p_segment = segment;
         set_solved_color(segment->get_color());
     }

@@ -382,6 +382,18 @@ void test_constraint_rules() {
     expected    = "UUXXXXXXXXXXXXXXXXXXXXXXXXXXUU";
     test_constraint_rule(blacks,start_state,expected);
 
+    // detect based on sequence
+    blacks.clear();
+    blacks.assign({ 7,1,1,1,2,1,1});
+    start_state = "XXXXXXX  X UUUUU XU XU X X   ";
+    expected    = "XXXXXXX  X UUUUU X  XX X X   ";
+    test_constraint_rule(blacks,start_state,expected);
+
+    blacks.clear();
+    blacks.assign({ 3,4,4,1,3,2,3,5,4,7});
+    start_state = "      XXX XXXX  XXXX X UUUUUUUUUUU   XX      UUUUUUUUUUU  XXXX  XXXXXXX    ";
+    expected    = "      XXX XXXX  XXXX X UUUUUUUUUUU   XX      UUXUUUXXXUU  XXXX  XXXXXXX    ";
+    test_constraint_rule(blacks,start_state,expected);
 
     // multipattern complete
 /*    blacks.clear();
