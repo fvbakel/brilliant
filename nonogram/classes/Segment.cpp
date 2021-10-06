@@ -51,6 +51,15 @@ enum direction Segment::get_direction() {
     return m_direction;
 }
 
+void Segment::set_limit(const int limit) {
+    if (m_after == nullptr) {
+        m_limit = limit;
+    }
+}
+int Segment::get_limit() {
+    return m_limit;
+}
+
 void Segment::set_before(Segment *before) {
     m_before = before;
     if (before != nullptr) {
@@ -138,6 +147,15 @@ void Segment::set_start(const int start) {
             m_before->set_end(m_start -1);
         }
     }
+    if (m_after == nullptr && m_color == white && m_start >=0 ) {
+        if (m_start >m_limit) {
+            // This segment does not exists
+            set_end(m_limit +1);
+            lock();
+        } else {
+            set_end(m_limit);
+        }
+    }
     error_check();
 }
 int Segment::get_max_end() {
@@ -172,6 +190,10 @@ void Segment::set_end(const int end) {
         m_before->set_end(m_start - 1);
         m_after->set_start(m_end + 1);
     }
+    if (m_before == nullptr && m_color == white && m_end >=0) {
+        set_start(0);
+    }
+
     error_check();
 }
 

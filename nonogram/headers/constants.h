@@ -10,8 +10,8 @@ enum non_parse_state {searching,parsing_rows,parsing_cols};
 
 const int SIZE_UNKNOWN = -1;
 
-const int POS_UNKNOWN = -1;
-const int POS_NA = -2;
+const int POS_UNKNOWN = -2;
+const int POS_NA = -1;
 
 constexpr int MAX_VARIATION =  std::numeric_limits<int>::max();
 

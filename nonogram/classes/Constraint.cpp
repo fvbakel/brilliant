@@ -465,13 +465,21 @@ void Constraint::print_solution(std::vector<enum color> *solution_base,int max_p
     printf("\"\n");
 }
 
+static char to_letter(int i) {
+    char seg_char = '.';
+    if (i>=0 && i<26) {
+        seg_char = (char) (i + 65);
+    } else if (i>=26 && i<52) {
+        seg_char = (char) (i + 97);
+    } else {
+        seg_char = '.';
+    }
+    return seg_char;
+}
+
 void Constraint::debug_dump() {
     printf("Start dump of: ");
     print();
-    printf("Segments min max are are:\n");
-    for (int i = 0; i < m_segments.size();i++) {
-        m_segments[i]->print();
-    }
     printf("Solutions are:\n");
     for (int i = 0; i < m_solutions.size();i++) {
         print_solution(&(m_solutions[i]));
@@ -556,35 +564,43 @@ std::string Constraint::loc_seg_locked_string(){
 
 std::string Constraint::seg_string(){
     std::stringstream str_str;
-    std::string prefix = "   ";
-    str_str << "<NU0123";
+    std::string head_tail = "   ";
+    str_str << "\n***\n";
+    for(int i = 0; i< m_segments.size();i++) {
+        str_str << to_letter(i);
+        if (m_segments[i]->get_color() != white) {
+            str_str << m_segments[i]->get_min_size();
+        }
+        if (i!=m_segments.size()-1) {
+            str_str << "-";
+        }
+    }
+    str_str << "\n";
+    str_str << "<UN0123";
     for (int pos = 7; pos <m_size + 3;pos++) {
         str_str << "." ;
     }
-    str_str << "UN>\n" ;
-    str_str << prefix << loc_string() << "\n";
-    str_str << prefix << loc_seg_string() << "\n";
-    str_str << prefix << loc_seg_locked_string() << "\n";
-    str_str << prefix << loc_dirty_string() << "\n";
+    str_str << "NU>\n" ;
+    str_str << head_tail << loc_string()            << head_tail << "\n";
+    str_str << head_tail << loc_seg_string()        << head_tail << "\n";
+    str_str << head_tail << loc_seg_locked_string() << head_tail << "\n";
+    str_str << head_tail << loc_dirty_string()      << head_tail << "\n";
  
     for(int i = 0; i< m_segments.size();i++) {
         int start = m_segments[i]->get_min_start();
         int end = m_segments[i]->get_max_end();
-        char seg_char = '.';
-        if (i>=0 && i<26) {
-            seg_char = (char) (i + 65);
-        } else if (i>=26 && i<52) {
-            seg_char = (char) (i + 97);
-        } else {
-            seg_char = '.';
-        }
+        char seg_char = to_letter(i);
 
         if (start < -2) {
             start = -3;
         }
         if (end < 0) {
             if (end == POS_NA || end == POS_UNKNOWN) {
-                end = (m_size - 1) + (-end);
+                if (i==0 && m_segments[1]->get_color()!=white && m_segments[1]->get_start() == 0) {
+                    end = start;
+                } else {
+                    end = (m_size - 1) + (-end);
+                }
             } else {
                 end = (m_size - 1) + 3;
             }
@@ -595,11 +611,12 @@ std::string Constraint::seg_string(){
         for (int pos = start; pos <=end;pos++) {
             str_str << seg_char ;
         }
-        for (int pos = end +1; pos <=m_size + 3;pos++) {
+        for (int pos = end +1; pos < m_size + 3;pos++) {
             str_str << " " ;
         }
         str_str << "\n";
     }
+    str_str << "***\n";
     return str_str.str();
 }
 

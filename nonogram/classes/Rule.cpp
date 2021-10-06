@@ -8,7 +8,6 @@ Rule::Rule(locations *locations,segments *segments) {
 }
 
 void Rule::calc_locks() {
-    //TODO: determine the best order of calculations
     search_min_max_updates();
     detect_colered_sequences();
     detect_unkown_sequences();
@@ -46,6 +45,7 @@ void Rule::set_initial_min_max_segments() {
         }
         if (m_segments->size() >= 1 ) {
             m_segments->at(m_segments->size()-1)->set_max_end(POS_NA);
+            m_segments->at(m_segments->size()-1)->set_limit(m_locations->size()-1);
         }
         if (m_segments->size() > 2 ) {
             m_segments->at(m_segments->size()-2)->set_max_end(m_locations->size()-1);

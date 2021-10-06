@@ -9,6 +9,7 @@ class Segment {
         enum color      m_color        = white;
         enum direction  m_direction    = x_dir;
         int             m_min_size     = SIZE_UNKNOWN;
+        // TODO: get rid of max_size
         int             m_max_size     = SIZE_UNKNOWN;
         int             m_size         = SIZE_UNKNOWN;
         bool            m_locked       = false;
@@ -16,6 +17,7 @@ class Segment {
         int             m_start        = POS_UNKNOWN;
         int             m_max_end      = POS_UNKNOWN;
         int             m_end          = POS_UNKNOWN;
+        int             m_limit        = POS_UNKNOWN;
 
         Segment        *m_before       = nullptr;
         Segment        *m_after        = nullptr;
@@ -35,11 +37,14 @@ class Segment {
         int get_min_size();
 
         void set_max_size(const int max_size);
-        void update_other_size();
         int get_max_size();
         int get_size();
         enum color get_color();
         enum direction get_direction();
+        void set_limit(const int limit);
+        int get_limit();
+
+        void update_other_size();
 
         int get_max_start();
         int get_min_end();
