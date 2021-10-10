@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "*.nim": "nim",
+        "cmath": "cpp"
+    },
+    "cmake.configureOnOpen": true
+}
