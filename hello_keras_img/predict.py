@@ -16,7 +16,8 @@ model = load_model('model_1.h5')
 def predict(filename):
     image = load_img(filename, target_size=(25, 25))
     img = np.array(image)
-    #img = img / 255.0
+    # todo, check if below makes a difference at all
+    img = img / 255.0
     img = img.reshape(1,25,25,3)
     label_distribution = model.predict(img)
     label_index = label_distribution.argmax()

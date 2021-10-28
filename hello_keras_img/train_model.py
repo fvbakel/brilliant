@@ -24,13 +24,13 @@ model.add(Activation('relu'))
 model.add(MaxPooling2D(pool_size=(2, 2)))
 
  
-model.add(Conv2D(32, (2, 2)))
-model.add(Activation('relu'))
-model.add(MaxPooling2D(pool_size=(2, 2)))
+#model.add(Conv2D(32, (2, 2)))
+#model.add(Activation('relu'))
+#model.add(MaxPooling2D(pool_size=(2, 2)))
  
-model.add(Conv2D(64, (2, 2)))
-model.add(Activation('relu'))
-model.add(MaxPooling2D(pool_size=(2, 2)))
+#model.add(Conv2D(64, (2, 2)))
+#model.add(Activation('relu'))
+#model.add(MaxPooling2D(pool_size=(2, 2)))
  
 model.add(Flatten())
 model.add(Dense(64))
@@ -43,9 +43,9 @@ model.compile(loss='categorical_crossentropy',
               optimizer='adam',
               metrics=['accuracy'])
 
-train_datagen = ImageDataGenerator()
+train_datagen = ImageDataGenerator(rescale=1. / 255)
  
-test_datagen = ImageDataGenerator()
+test_datagen = ImageDataGenerator(rescale=1. / 255)
  
 train_generator = train_datagen.flow_from_directory(
     train_data_dir,
@@ -69,4 +69,4 @@ model.fit(
     validation_steps=nb_validation_samples // batch_size)
 
 
-model.save("model_1.h5")
+model.save("model_1.h5", include_optimizer=False)
