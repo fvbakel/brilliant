@@ -14,9 +14,9 @@ epochs = 40
 batch_size = 57
 
 if K.image_data_format() == 'channels_first':
-    input_shape = (3, img_width, img_height)
+    input_shape = (1, img_width, img_height)
 else:
-    input_shape = (img_width, img_height, 3)
+    input_shape = (img_width, img_height, 1)
 
 model = Sequential()
 model.add(Conv2D(32, (2, 2), input_shape=input_shape))
@@ -50,6 +50,7 @@ test_datagen = ImageDataGenerator(rescale=1. / 255)
 train_generator = train_datagen.flow_from_directory(
     train_data_dir,
     target_size=(img_width, img_height),
+    color_mode = 'grayscale',
     batch_size=batch_size,
    # save_to_dir='/data/tmp/train',
     class_mode='categorical')
@@ -58,6 +59,7 @@ train_generator = train_datagen.flow_from_directory(
 validation_generator = test_datagen.flow_from_directory(
     validation_data_dir,
     target_size=(img_width, img_height),
+    color_mode = 'grayscale',
     batch_size=batch_size,
     class_mode='categorical')
 

@@ -11,7 +11,7 @@ WORKDIR /opt/app
 #COPY requirements.txt ./
 #RUN pip install --no-cache-dir -r requirements.txt
 # RUN pip install keras tensorflow opencv-python matplotlib sklearn torch
-RUN pip install keras tensorflow matplotlib SciPy
+RUN pip install keras tensorflow matplotlib SciPy opencv-python
 
 VOLUME /data
 VOLUME /opt/app
