@@ -4,14 +4,14 @@ from keras.layers import Conv2D, MaxPooling2D
 from keras.layers import Activation, Dropout, Flatten, Dense
 from keras import backend as K
  
-img_width, img_height = 25, 25
+img_width, img_height = 10, 20
 
 train_data_dir = '/data/digits-data/Train'
 validation_data_dir = '/data/digits-data/Validation'
-nb_train_samples =57
-nb_validation_samples = 57
+nb_train_samples =25
+nb_validation_samples = 25
 epochs = 40
-batch_size = 57
+batch_size = 25
 
 if K.image_data_format() == 'channels_first':
     input_shape = (1, img_width, img_height)
@@ -33,7 +33,7 @@ model.add(MaxPooling2D(pool_size=(2, 2)))
 #model.add(MaxPooling2D(pool_size=(2, 2)))
  
 model.add(Flatten())
-model.add(Dense(64))
+model.add(Dense(32))
 model.add(Activation('relu'))
 #model.add(Dropout(0.5))
 model.add(Dense(10))
@@ -49,16 +49,16 @@ test_datagen = ImageDataGenerator(rescale=1. / 255)
  
 train_generator = train_datagen.flow_from_directory(
     train_data_dir,
-    target_size=(img_width, img_height),
+    target_size=(img_height,img_width),
     color_mode = 'grayscale',
     batch_size=batch_size,
-   # save_to_dir='/data/tmp/train',
+    save_to_dir='/data/tmp/train',
     class_mode='categorical')
 
 
 validation_generator = test_datagen.flow_from_directory(
     validation_data_dir,
-    target_size=(img_width, img_height),
+    target_size=(img_height,img_width),
     color_mode = 'grayscale',
     batch_size=batch_size,
     class_mode='categorical')

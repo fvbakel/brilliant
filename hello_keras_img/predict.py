@@ -15,13 +15,14 @@ from keras.models import load_model
 pb  = './model_1/saved_model.pb'
 
 model = load_model('model_1.h5')
+img_width, img_height = 10, 20
 
 def predict(filename):
-    image = load_img(filename, target_size=(25, 25),color_mode="grayscale")
+    image = load_img(filename, target_size=(img_height,img_width),color_mode="grayscale")
     img = np.array(image)
     # todo, check if below makes a difference at all
     img = img / 255.0
-    img = img.reshape(1,25,25,1)
+    img = img.reshape(1,img_height,img_width,1)
     label_distribution = model.predict(img)
     label_index = label_distribution.argmax()
 

@@ -6,9 +6,10 @@ import sys
 net = cv.dnn.readNetFromTensorflow('./frozen_models/frozen_graph.pb')
 
 def predict(filename):
-    inWidth = 25
-    inHeight = 25
+    inWidth = 10
+    inHeight = 20
     img_cv2 = cv.imread(filename,cv.IMREAD_GRAYSCALE)
+    
     resize_img = cv.resize(img_cv2  , (inWidth , inHeight), interpolation = cv.INTER_NEAREST)
     #print("[INFO]Image shape: ", img_cv2.shape)
 
