@@ -52,7 +52,7 @@ train_generator = train_datagen.flow_from_directory(
     target_size=(img_height,img_width),
     color_mode = 'grayscale',
     batch_size=batch_size,
-    save_to_dir='/data/tmp/train',
+ #   save_to_dir='/data/tmp/train',
     class_mode='categorical')
 
 

@@ -11,14 +11,18 @@ def predict(filename):
     img_cv2 = cv.imread(filename,cv.IMREAD_GRAYSCALE)
     
     resize_img = cv.resize(img_cv2  , (inWidth , inHeight), interpolation = cv.INTER_NEAREST)
-    #print("[INFO]Image shape: ", img_cv2.shape)
 
+    #print("[INFO]Image shape: ", img_cv2.shape)
+    print("Scale=", (1.0 / 255))
     blob = cv.dnn.blobFromImage(resize_img,
-                                    scalefactor=1.0 / 255,
-                                    size=(inWidth, inHeight),
-                                    mean=(0, 0, 0),
-                                    swapRB=False,
-                                    crop=False)
+                                    scalefactor=1.0 / 255
+                                #    ,
+                                #    size=(inWidth, inHeight),
+                                #    mean=(0, 0, 0),
+                                #    swapRB=False,
+                                #    crop=False
+                                    
+                                    )
                                     
     cv.imwrite('resize_img_debug.png',resize_img)
     # blob = np.transpose(blob, (0,2,3,1)) 
