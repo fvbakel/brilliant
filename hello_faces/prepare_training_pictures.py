@@ -15,7 +15,7 @@ raw_dir = data_dir + "/raw"
 train_dir = data_dir + "/train_data"
 
 face_cascade = cv2.CascadeClassifier(default_model_file)
-sampleN = 63
+sampleN = 65
 
 def process_image(img):
     global sampleN
@@ -49,14 +49,17 @@ def process_web_cam():
     cap = cv2.VideoCapture(0)
     while True:
         ret, img = cap.read()
-        process_image(img)
-        choice = input("Again? (Y/n) \n")
-        if choice == "n":
-            break
+        cv2.imshow('WebCam',img)
+        if cv2.waitKey(1) == 27:
+            process_image(img)
+            choice = input("Again? (Y/n) \n")
+            if choice == "n":
+                break
     cap.release()
 
 #process_dir(raw_dir)
 
 process_web_cam()
+
 
 cv2.destroyAllWindows()
