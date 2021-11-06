@@ -15,7 +15,7 @@ raw_dir = data_dir + "/raw"
 train_dir = data_dir + "/train_data"
 
 face_cascade = cv2.CascadeClassifier(default_model_file)
-sampleN = 65
+sampleN = 67
 
 def process_image(img):
     global sampleN
