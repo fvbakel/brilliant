@@ -10,7 +10,7 @@ raw_dir = data_dir + "/raw"
 train_dir = data_dir + "/train_data"
 
 face_cascade = cv2.CascadeClassifier(default_model_file)
-sampleN = 70
+sampleN = 82
 
 def get_first_face(img,out_w,out_h):
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -55,10 +55,11 @@ def start_dialog():
 
     layout = [  [sg.Frame("", left_frame),sg.Frame("", right_frame)]]
 
-    window = sg.Window('Window Title', layout)
+    window = sg.Window('Face recognition training centre', layout)
                                                     
     cap = cv2.VideoCapture(0)
     ret, frame = cap.read()
+    mirror = flipHorizontal = cv2.flip(frame, 1)
     while True:
         event, values = window.Read(timeout=20, timeout_key='timeout')
         if event is None or event == 'Quit':
@@ -67,11 +68,13 @@ def start_dialog():
             person_name = values[0]
             if person_name is not None and person_name != "":
                 process_image(person_name,frame)
-        ret, frame = cap.read()
 
-        imgbytes=cv2.imencode('.png', frame)[1].tobytes()
+        ret, frame = cap.read()
+        mirror = flipHorizontal = cv2.flip(frame, 1)
+
+        imgbytes=cv2.imencode('.png', mirror)[1].tobytes()
         window.FindElement('_IMAGE_').Update(data=imgbytes)
-        person_img = get_first_face(frame,200,200)
+        person_img = get_first_face(mirror,200,200)
         if person_img is not None:
             imgbytes=cv2.imencode('.png', person_img)[1].tobytes()
             window.FindElement('_PERSON_').Update(data=imgbytes)

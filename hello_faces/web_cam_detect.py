@@ -27,24 +27,38 @@ print(names)
 colors = np.random.uniform(0, 255, size=(len(names), 3))
 
 id=0
+previous = []
 while True:
     ret, img = cap.read()
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
     faces = face_cascade.detectMultiScale(gray, 1.5, 5)
+    new_names = []
+    index = 0
     for (x,y,w,h) in faces:
         cv2.rectangle(img,(x,y),(x+w,y+h),(255,0,0),2)
         id,conf=rec.predict(gray[y:y+h,x:x+w])
         person_name = "Unknown"
         if id in names:
             person_name = names[id]
+            new_names.append(person_name)
 
         if conf > 255:
             conf = 255
         percentage = ((255- conf) / 255) * 100
-        label = "{} ({:.0f} % sure)".format(person_name,percentage )
+        #label = "{} ({:.0f} % sure)".format(person_name,percentage )
+        if index < len(previous):
+            if person_name == previous[index]:
+                label = person_name
+            else:
+                label = previous[index]
+        else:
+            label = ""
         #
         cv2.putText(img, label, (int(x), int(y)),cv2.FONT_HERSHEY_SIMPLEX, .75, colors[id], 2)
+        index +=1
+    previous = new_names
+    
         
     cv2.imshow("Webcam",img)
     
