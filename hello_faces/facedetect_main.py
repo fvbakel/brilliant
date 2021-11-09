@@ -68,7 +68,7 @@ class FaceDetector:
         for (x,y,w,h) in faces:
             face_img = gray[y:y+h, x:x+w]
             cv2.imshow('Captured face',face_img)
-            cv2.waitKey(1000)
+            cv2.waitKey(2000)
             cv2.destroyAllWindows()
             
             timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
@@ -172,23 +172,28 @@ class FaceDetectDialog:
     def __init__(self,face_detector):
         self.face_detect = face_detector
         self.right_width = 200
+        self.auto_capture_name= None
         left_frame = [
             [sg.Image(filename='', key='_IMAGE_')]
         ]
-        self.radio_1 =sg.Radio('On', 1,enable_events=True,key='__AUTO_ON__')
         right_frame = [ 
             [sg.Image(filename='', key='_PERSON_',size=(self.right_width,200))],
-            [sg.Text("Name:"),sg.Input(key='__NAME__',size=(self.right_width - 35,20))],
-            [sg.Text('Auto capture'),self.radio_1, sg.Radio('Off', 1, default=True)],
-            [sg.Button('Capture',size=(self.right_width + 5,20))],
-            [sg.Button('Train model',size=(self.right_width + 5,20))], 
-            [sg.Text('Sensitivity',size=(self.right_width + 5,20))],
-            [sg.Slider(range=(5,50),key='__SCALE_FACTOR__',default_value=30,orientation='h',size=(self.right_width,20))],
+            [   sg.Text("Name:"),
+                sg.Input(key='__NAME__',size=(self.right_width - 35,sg.DEFAULT_ELEMENT_SIZE[1]))
+            ],
+            [   sg.Text('Auto capture'),
+                sg.Radio('On', 1,enable_events=True,key='__AUTO_ON__'),
+                sg.Radio('Off', 1, default=True,key='__AUTO_OFF__')
+            ],
+            [sg.Button('Capture',key='__CAPTURE__',size=(self.right_width + 5,sg.DEFAULT_ELEMENT_SIZE[1]))],
+            [sg.Button('Train model',key='__TRAIN__',size=(self.right_width + 5,sg.DEFAULT_ELEMENT_SIZE[1]))], 
+            [sg.Text('Sensitivity',size=(self.right_width + 5,sg.DEFAULT_ELEMENT_SIZE[1]))],
+            [sg.Slider(range=(5,50),key='__SCALE_FACTOR__',default_value=30,orientation='h',size=(self.right_width,sg.DEFAULT_ELEMENT_SIZE[1]))],
             [sg.Text('Recognize threshold')],
-            [sg.Slider(range=(5,150),key='__THRESHOLD__',default_value=70,orientation='h',size=(self.right_width,20))],
+            [sg.Slider(range=(5,150),key='__THRESHOLD__',default_value=70,orientation='h',size=(self.right_width,sg.DEFAULT_ELEMENT_SIZE[1]))],
             [sg.Text('Number of matches')],
-            [sg.Slider(range=(0,10),key='__NR_MATCH__',default_value=3,orientation='h',size=(self.right_width,20))],
-            [sg.Button('Quit',size=(self.right_width + 5,20))]
+            [sg.Slider(range=(0,10),key='__NR_MATCH__',default_value=3,orientation='h',size=(self.right_width,sg.DEFAULT_ELEMENT_SIZE[1]))],
+            [sg.Button('Quit',key='__QUIT__',size=(self.right_width + 5,sg.DEFAULT_ELEMENT_SIZE[1]))]
         ]
         layout = [  
             [sg.Frame("", left_frame),sg.Frame("", right_frame)]
@@ -219,10 +224,14 @@ class FaceDetectDialog:
         self.person_img = self.face_detect.get_first_face(self.right_width,200)
         faces = self.face_detect.get_faces_rectangles()
         person_names = self.face_detect.get_person_names()
+        if      self.auto_capture_name is not None and\
+                len(faces)==1 and\
+                len(person_names) > 0 and\
+                person_names[0] != self.auto_capture_name:
+            self.face_detect.make_train_image(self.auto_capture_name,self.frame)
+
         index = 0
         for (x,y,w,h) in faces:
-        #for person_name in person_names:
-            #x,y,w,h = faces[index]
             cv2.rectangle(self.mirror,(x,y),(x+w,y+h),(255,0,0),2)
             if index < len(person_names):
                 label = person_names[index]
@@ -252,16 +261,31 @@ class FaceDetectDialog:
     def run(self):
         while True:
             event, values = self.window.Read(timeout=20, timeout_key='timeout')
-            if event is None or event == 'Quit':
+            if event is None or event == '__QUIT__':
                 break
-            if event == 'Capture':
+            if event == '__CAPTURE__':
                 person_name = values['__NAME__']
                 if person_name is not None and person_name != "":
                     self.face_detect.make_train_image(person_name,self.frame)
-            if event == 'Train model':
+                else:
+                    sg.Popup('A name is required for Capture.', location =(200,200) )
+            if event == '__TRAIN__':
                 self.face_detect.run_training()
                 self.update_colors()
-            
+            if event == '__AUTO_ON__':
+                auto_capture = values['__AUTO_ON__']
+                if auto_capture:
+                    person_name = values['__NAME__']
+                    if person_name is not None and person_name != '':
+                        self.window.FindElement('__NAME__').update(disabled=True)
+                        self.auto_capture_name =person_name
+                    else:
+                        self.window.FindElement('__AUTO_OFF__').update(value=True)
+                        sg.Popup('A name is required for auto capture.', location =(200,200) )
+                else:
+                    self.window.FindElement('__NAME__').update(disabled=False)
+                    self.auto_capture_name =None
+
             self.update_scale_factor(values['__SCALE_FACTOR__'])
             self.update_threshold(values['__THRESHOLD__'])
             self.update_nr_of_matches(values['__NR_MATCH__'])
