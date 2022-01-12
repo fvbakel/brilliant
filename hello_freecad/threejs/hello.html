@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>My first three.js app</title>
+		<style>
+			body { margin: 0; }
+		</style>
+	</head>
+	<body>
+		<script type="module">
+
+            // Find the latest version by visiting https://cdn.skypack.dev/three.
+          
+            import * as THREE from 'https://cdn.skypack.dev/three@0.136.0';
+            import { GLTFLoader } from 'https://cdn.skypack.dev/three@0.136.0/examples/jsm/loaders/GLTFLoader.js';
+			import { OrbitControls } from 'https://cdn.skypack.dev/three@0.136.0/examples/jsm/controls/OrbitControls.js';
+
+            const scene = new THREE.Scene();
+            const loader = new GLTFLoader();
+			const material = new THREE.MeshBasicMaterial( { color: 0x00ff00 } );
+			scene.background = new THREE.Color( 0xffffff );
+            loader.load( '1x1x3.gltf', function ( gltf ) {
+				gltf.scene.traverse(function(child){
+				if (child.isMesh){
+					child.material = material;
+					console.log("Material is set!");
+				}
+			} );
+                scene.add( gltf.scene );
+            }, undefined, function ( error ) {
+                console.error( error );
+            } );
+			
+			const camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
+
+			const renderer =  new THREE.WebGLRenderer({
+				logarithmicDepthBuffer: true
+			});
+			renderer.setSize( window.innerWidth, window.innerHeight );
+			document.body.appendChild( renderer.domElement );
+
+			const geometry = new THREE.BoxGeometry();
+			const cube = new THREE.Mesh( geometry, material );
+		//	scene.add( cube );
+            
+			const controls = new OrbitControls( camera, renderer.domElement );
+
+			camera.position.z = 25;
+            controls.update();
+
+			function animate() {
+				requestAnimationFrame( animate );
+				controls.update();
+				renderer.render( scene, camera );
+			};
+
+			animate();
+            //renderer.render( scene, camera );
+		</script>
+	</body>
+</html>
