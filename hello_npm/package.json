@@ -1,0 +1,15 @@
+{
+  "dependencies": {
+    "http-server": "^14.1.0"
+  },
+  "name": "hello_npm",
+  "version": "1.0.0",
+  "description": "Just a tryout",
+  "main": "index.html",
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "MIT"
+}
