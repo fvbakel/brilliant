@@ -1,0 +1,20 @@
+{
+  "name": "rollup",
+  "version": "1.0.0",
+  "description": "Just a test with rollup",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "rollup -c \"./scripts/rollup.config.js\"",
+    "start": "http-server ./ -S --cert ~/.my_secrets/cert.pem  --key ~/.my_secrets/key.pem -o"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@rollup/plugin-node-resolve": "^13.1.3",
+    "http-server": "^14.1.0"
+  },
+  "dependencies": {
+    "three": "^0.136.0"
+  }
+}
