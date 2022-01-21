@@ -18,17 +18,39 @@
 
             const scene = new THREE.Scene();
             const loader = new GLTFLoader();
-			const material = new THREE.MeshBasicMaterial( { color: 0x00ff00 } );
+			const material = new THREE.MeshBasicMaterial( {
+				color: 0x00ff00,
+				wireframe: false
+			} );
 			scene.background = new THREE.Color( 0xffffff );
             loader.load( '1x1x3.gltf', function ( gltf ) {
 				gltf.scene.traverse(function(child){
-			/*	if (child.isMesh){
+				if (child.isMesh){
 					child.material = material;
+					var geo = new THREE.EdgesGeometry( child.geometry ); // or WireframeGeometry( geometry )
+					var mat = new THREE.LineBasicMaterial( { color: 0x000000, linewidth: 2 } );
+
+					var wireframe = new THREE.LineSegments( geo, mat );
+					gltf.scene.add(wireframe)
+					//scene.add(wireframe)
 					console.log("Material is set!");
 				}
+			
+		/*		if (child.isMesh){
+					const wireframe = new THREE.WireframeGeometry( child.geometry );
+
+					const line = new THREE.LineSegments( wireframe );
+					line.material.depthTest = false;
+					line.material.opacity = 0.25;
+					line.material.transparent = true;
+
+					scene.add( line )
+				}
 				*/
+				
 			} );
                 scene.add( gltf.scene );
+
             }, undefined, function ( error ) {
                 console.error( error );
             } );
