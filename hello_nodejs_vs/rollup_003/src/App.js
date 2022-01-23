@@ -7,9 +7,10 @@ import {
 	WebGLRenderer
 } from 'three';
 
-//import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
 import { Creature } from '../src/Creature.mjs';
+import { Coordinate } from '../src/Coordinate.mjs';
 
 //let camera, scene, renderer;
 
@@ -25,8 +26,8 @@ class App {
 		const geometry = new BoxBufferGeometry( 200, 200, 200 );
 		const material = new MeshBasicMaterial();
 
-		const mesh = new Mesh( geometry, material );
-		this.scene.add( mesh );
+		this.mesh = new Mesh( geometry, material );
+		this.scene.add( this.mesh );
 
 		this.renderer = new WebGLRenderer( { antialias: true } );
 		this.renderer.setPixelRatio( window.devicePixelRatio );
@@ -34,8 +35,10 @@ class App {
 		document.body.appendChild( this.renderer.domElement );
 
 		window.addEventListener( 'resize', onWindowResize, false );
-		this.creature = new Creature();
-		//const controls = new OrbitControls( this.camera, this.renderer.domElement );
+
+		const controls = new OrbitControls( this.camera, this.renderer.domElement );
+
+		this.create_Creature();
 		this.create_GUI();
 		animate();
 	}
@@ -61,6 +64,22 @@ class App {
 		alert("shape changed to: " + this.current_shape.name);
 	}
 
+	create_Creature() {
+		const coordinate = new Coordinate(0,0,0);
+		this.creature = new Creature(coordinate);
+	}
+
+	move_cycle() {
+		if (this.creature.coordinate.y<50) {
+			this.creature.move_forward(1);
+		}
+		this.mesh.position.x = this.creature.coordinate.x;
+		this.mesh.position.y = this.creature.coordinate.y;
+		this.mesh.position.z = this.creature.coordinate.z;
+		
+
+	}
+
 }
 
 function onWindowResize() {
@@ -75,6 +94,7 @@ function onWindowResize() {
 function animate() {
 
 	requestAnimationFrame( animate );
+	window.app.move_cycle();
 	window.app.renderer.render( window.app.scene, window.app.camera );
 
 }

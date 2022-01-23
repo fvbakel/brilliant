@@ -1,33 +1,31 @@
 export class Creature {
 
-    constructor(x,y,z) {
-        this.x = x;
-        this.y = y;
-        this.z = z;
+    constructor(coordinate) {
+        this.coordinate = coordinate;
     }
 
     move_left(value) {
-        this.x = this.x - value;
+        this.coordinate.x = this.coordinate.x - value;
     }
 
     move_right(value) {
-        this.x = this.x + value;
+        this.coordinate.x = this.coordinate.x + value;
     }
 
     move_forward(value) {
-        this.y = this.y + value;
+        this.coordinate.y = this.coordinate.y + value;
     }
 
     move_backward(value) {
-        this.y = this.y - value;
+        this.coordinate.y = this.coordinate.y - value;
     }
 
     move_up(value) {
-        this.y = this.y + value;
+        this.coordinate.z = this.coordinate.z + value;
     }
 
     move_down(value) {
-        this.y = this.y - value;
+        this.coordinate.z = this.coordinate.z - value;
     }
 
 }
