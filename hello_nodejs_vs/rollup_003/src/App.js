@@ -4,7 +4,12 @@ import {
 	MeshBasicMaterial,
 	PerspectiveCamera,
 	Scene,
-	WebGLRenderer
+	WebGLRenderer,
+	EdgesGeometry,
+	LineBasicMaterial,
+	LineSegments,
+	Object3D,
+	SphereBufferGeometry
 } from 'three';
 
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -23,11 +28,7 @@ class App {
 
 		this.scene = new Scene();
 
-		const geometry = new BoxBufferGeometry( 200, 200, 200 );
-		const material = new MeshBasicMaterial();
-
-		this.mesh = new Mesh( geometry, material );
-		this.scene.add( this.mesh );
+		this.create_Box();
 
 		this.renderer = new WebGLRenderer( { antialias: true } );
 		this.renderer.setPixelRatio( window.devicePixelRatio );
@@ -41,6 +42,40 @@ class App {
 		this.create_Creature();
 		this.create_GUI();
 		animate();
+	}
+
+	create_Box() {
+		this.main_object = new Object3D();
+		// mesh
+		const geometry = new BoxBufferGeometry(200, 200, 200);
+		const material = new MeshBasicMaterial();
+		const mesh = new Mesh(geometry, material);
+		this.main_object.add(mesh);
+
+		// add lines for the edges
+		const geo = new EdgesGeometry(geometry); // or WireframeGeometry( geometry )
+		const mat = new LineBasicMaterial({ color: 0x000000, linewidth: 2 });
+
+		const wireframe = new LineSegments(geo, mat);
+		this.main_object.add(wireframe);
+		this.scene.add(this.main_object);
+	}
+
+	create_Sphere() {
+		this.main_object = new Object3D();
+		// mesh
+		const geometry = new SphereBufferGeometry(100);
+		const material = new MeshBasicMaterial();
+		const mesh = new Mesh(geometry, material);
+		this.main_object.add(mesh);
+
+		// add lines for the edges
+		const geo = new EdgesGeometry(geometry); // or WireframeGeometry( geometry )
+		const mat = new LineBasicMaterial({ color: 0x000000, linewidth: 2 });
+
+		const wireframe = new LineSegments(geo, mat);
+		this.main_object.add(wireframe);
+		this.scene.add(this.main_object);
 	}
 
 	create_GUI() {
@@ -61,7 +96,12 @@ class App {
 	}
 
 	shapeChange() {
-		alert("shape changed to: " + this.current_shape.name);
+		this.main_object.removeFromParent();
+		if (this.current_shape.name === 'Box') {
+			this.create_Box();
+		} else if (this.current_shape.name === 'Sphere') {
+			this.create_Sphere();
+		}
 	}
 
 	create_Creature() {
@@ -73,11 +113,9 @@ class App {
 		if (this.creature.coordinate.y<50) {
 			this.creature.move_forward(1);
 		}
-		this.mesh.position.x = this.creature.coordinate.x;
-		this.mesh.position.y = this.creature.coordinate.y;
-		this.mesh.position.z = this.creature.coordinate.z;
-		
-
+		this.main_object.position.x = this.creature.coordinate.x;
+		this.main_object.position.y = this.creature.coordinate.y;
+		this.main_object.position.z = this.creature.coordinate.z;
 	}
 
 }
