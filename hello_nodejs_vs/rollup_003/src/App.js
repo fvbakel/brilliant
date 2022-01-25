@@ -90,46 +90,31 @@ class App {
 
 	activate_model() {
 		this.main_object = this.load_model('https://fvbakel.github.io/web-xr-hello/assets/2x4x3.gltf');
-		for (const child of this.main_object.children) {
-			if (child.isMesh) {
-				this.create_edges(this.main_object ,child);
-			}
-		}
-		
 		this.scene.add(this.main_object);
 	}
 
 	load_model(url) {
 		const loaded_model = new Object3D();
+		
 		const loader = new GLTFLoader();
 		loader.load( url, ( gltf ) => {
-			loaded_model.add(gltf.scene);
-			/*gltf.scene.traverse( (child) => {
+	//	const gltf = await loader.loadAsync( url);
+
+			const tmpMeshArray = [];
+			gltf.scene.traverse( (child) => {
 				if (child.isMesh) {
-					loaded_model.add(child);
-					if (child.material === undefined) {
-						this.assign_default_material(child);
-					} else {
-						console.log('Using model defined material');
-					}
+					tmpMeshArray.push(child);
 				}
 			} );
-		/*	for (const child of gltf.scene.children) {
-				if (child.isMesh) {
-					loaded_model.add(child);
-					if (child.material === undefined) {
-						this.assign_default_material(child);
-					} else {
-						console.log('Using model defined material');
-					}
-				}
+			for (const mesh of tmpMeshArray) {
+				loaded_model.add(mesh);
+				this.assign_default_material(mesh);
+				this.create_edges(loaded_model ,mesh);
 			}
-			*/
-
 		} );
-
-
+		
 		return loaded_model;
+
 	}
 
 	assign_default_material(mesh) {
