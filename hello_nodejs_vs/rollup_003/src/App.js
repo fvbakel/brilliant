@@ -11,13 +11,13 @@ import {
 	LineSegments,
 	Object3D,
 	SphereBufferGeometry,
-	Box3
+	BufferGeometry
 } from 'three';
 
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-
+import  * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { Creature } from '../src/Creature.mjs';
 import { Coordinate } from '../src/Coordinate.mjs';
 
@@ -56,13 +56,7 @@ class App {
 		const material = new MeshBasicMaterial();
 		const mesh = new Mesh(geometry, material);
 		this.main_object.add(mesh);
-
-		// add lines for the edges
-		const geo = new EdgesGeometry(geometry); // or WireframeGeometry( geometry )
-		const mat = new LineBasicMaterial({ color: 0x000000, linewidth: 2 });
-
-		const wireframe = new LineSegments(geo, mat);
-		this.main_object.add(wireframe);
+		this.create_edges(this.main_object, mesh.geometry);
 		this.scene.add(this.main_object);
 	}
 
@@ -74,14 +68,14 @@ class App {
 		const mesh = new Mesh(geometry, material);
 
 		this.main_object.add(mesh);
-		this.create_edges(this.main_object, mesh);
+		this.create_edges(this.main_object, mesh.geometry);
 
 		this.scene.add(this.main_object);
 	}
 
-	create_edges(parentObject3D, mesh) {
+	create_edges(parentObject3D, geometry) {
 		// add lines for the edges
-		const geo = new EdgesGeometry(mesh.geometry); // or WireframeGeometry( geometry )?
+		const geo = new EdgesGeometry(geometry); // or WireframeGeometry( geometry )?
 		const mat = new LineBasicMaterial({ color: 0x000000, linewidth: 2 });
 
 		const wireframe = new LineSegments(geo, mat);
@@ -98,19 +92,24 @@ class App {
 		
 		const loader = new GLTFLoader();
 		loader.load( url, ( gltf ) => {
-	//	const gltf = await loader.loadAsync( url);
-
-			const tmpMeshArray = [];
+			// TODO cleanup and add loading progress bar
+			const tmpGeomArray = [];
 			gltf.scene.traverse( (child) => {
 				if (child.isMesh) {
-					tmpMeshArray.push(child);
+					tmpGeomArray.push(child.geometry);
 				}
 			} );
-			for (const mesh of tmpMeshArray) {
+			const material = new MeshBasicMaterial();
+			const geometry = BufferGeometryUtils.mergeBufferGeometries(tmpGeomArray,false);
+			const mesh = new Mesh(geometry, material);
+			loaded_model.add(mesh);
+			this.create_edges(loaded_model ,geometry);
+		/*	for (const mesh of tmpMeshArray) {
 				loaded_model.add(mesh);
-				this.assign_default_material(mesh);
+    			this.assign_default_material(mesh);
 				this.create_edges(loaded_model ,mesh);
 			}
+			*/
 		} );
 		
 		return loaded_model;
@@ -119,7 +118,7 @@ class App {
 
 	assign_default_material(mesh) {
 		const material = new MeshBasicMaterial( {
-			color: 0x00ff00,
+			color: 0xffffff,
 			wireframe: false
 		} );
 		mesh.material = material;
