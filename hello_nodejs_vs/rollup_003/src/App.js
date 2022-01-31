@@ -1,23 +1,3 @@
-/*import {
-	BoxBufferGeometry,
-	Mesh,
-	MeshBasicMaterial,
-//	MeshPhongMaterial, because that requires light
-	PerspectiveCamera,
-	Scene,
-	Color,
-	WebGLRenderer,
-	EdgesGeometry,
-//	WireframeGeometry,
-	LineBasicMaterial,
-	LineSegments,
-	Object3D,
-	SphereBufferGeometry,
-	AxesHelper,
-	BufferGeometry
-} from 'three';
-*/
-
 import * as THREE from 'three';
 
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -48,7 +28,6 @@ class App {
 		this.camera.position.y = 400;
 		this.camera.position.z = 400;
 		
-
 		this.scene = new THREE.Scene();
 		this.scene.background = new THREE.Color( 0xffffff );
 
@@ -94,6 +73,7 @@ class App {
 		this.main_object.add(mesh);
 		this.create_edges(this.main_object, mesh.geometry);
 		this.scene.add(this.main_object);
+		this.fitCameraToObject(mesh);
 	}
 
 	create_Sphere() {
@@ -107,6 +87,8 @@ class App {
 		this.create_edges(this.main_object, mesh.geometry);
 
 		this.scene.add(this.main_object);
+		this.fitCameraToObject(mesh);
+
 	}
 
 	create_edges(parentObject3D, geometry) {
@@ -121,7 +103,8 @@ class App {
 	}
 
 	activate_model() {
-		this.main_object = this.load_model('https://fvbakel.github.io/web-xr-hello/assets/2x4x3.gltf');
+		//this.main_object = this.load_model('https://fvbakel.github.io/web-xr-hello/assets/2x4x3.gltf');
+		this.main_object = this.load_model('https://fvbakel.github.io/web-xr-hello/assets/' + this.guiState.modelName + '.gltf');
 		this.scene.add(this.main_object);
 	}
 
@@ -142,8 +125,8 @@ class App {
 			const mesh = new THREE.Mesh(geometry, this.material);
 			loaded_model.add(mesh);
 			this.create_edges(loaded_model ,geometry);
-			const axesHelper = new THREE.AxesHelper(3);
-			loaded_model.add(axesHelper);
+		//	const axesHelper = new THREE.AxesHelper(3);
+		//	loaded_model.add(axesHelper);
 		//	loaded_model.position = new Vector3(0,0,0);
 
 			this.fitCameraToObject(mesh);
@@ -165,7 +148,7 @@ class App {
 	}
 
 	fitCameraToObject(mesh) {
-		const offset = 2;
+		const offset = 1.25;
 	//	const boundingBox = new Box3();
 	
 		if ( mesh.geometry.boundingBox == null ) mesh.geometry.computeBoundingBox();
@@ -179,15 +162,15 @@ class App {
 	
 		// get the max side of the bounding box (fits to width OR height as needed )
 		const maxDim = Math.max( size.x, size.y, size.z );
-		const fov 	 = this.camera.fov * ( Math.PI / 180 );
-		let cameraZ  = Math.abs( maxDim / 4 * Math.tan( fov * 2 ) );
+	//	const fov 	 = this.camera.fov * ( Math.PI / 180 );
+//		let cameraZ  = Math.abs( maxDim / 4 * Math.tan( fov * 2 ) );
 	
-		cameraZ *= offset; // zoom out a little so that objects don't fill the screen
+	//	cameraZ *= offset; // zoom out a little so that objects don't fill the screen
 	
 	//	this.camera.position.z = cameraZ;
 	
-		const minZ = boundingBox.min.z;
-		const cameraToFarEdge = ( minZ < 0 ) ? -minZ + cameraZ : cameraZ - minZ;
+	//	const minZ = boundingBox.min.z;
+	//	const cameraToFarEdge = ( minZ < 0 ) ? -minZ + cameraZ : cameraZ - minZ;
 	
 	//	this.camera.far = cameraToFarEdge * 3;
 	//	this.camera.updateProjectionMatrix();
@@ -195,10 +178,11 @@ class App {
 		this.camera.position.x = maxDim * offset;
 		this.camera.position.y = maxDim * offset;
 		this.camera.position.z = maxDim * offset;
-		center.z = -center.z;
+	//	center.z = -center.z;
 		if ( this.controls ) {
 			// set camera to rotate around center of loaded object
-			this.controls.target = center;
+		//	this.controls.target = center;
+		this.controls.target = wcs_center;
 
 			// prevent camera from zooming out far enough to create far plane cutoff
 		//	this.controls.maxDistance = cameraToFarEdge * 2;
@@ -217,15 +201,52 @@ class App {
 		const shapes = [ 'Box', 'Sphere','Load model' ];
 		
 		this.gui = new GUI();
-		const shape_folder = this.gui.addFolder('shape'); 
-		const shapeCtrl = shape_folder.add( this.current_shape, 'name' ).options( shapes );
-		
-		shapeCtrl.onChange( function () {
+		this.guiState = {
+			awcsEnabled : true,
+			wcsScale : 1,
+			zoomFit : function() {
+				window.app.zoomFit();
+			},
+			modelName : '2x4x3'
+		}
 
-			window.app.shapeChange();
+		const viewControls = this.gui.addFolder('View');
+		viewControls.add(this.guiState,'awcsEnabled')
+			.name('Show WCS')
+			.onChange(() => {
+				if (this.axesHelper) {
+					this.axesHelper.visible = this.guiState.awcsEnabled;
+				}
+		} );
+		viewControls.add(this.guiState,'wcsScale',1,100,1)
+			.name('WCS Size')
+			.onChange(()=>{
+				this.updateWcsScale();
+		});
+		viewControls.add(this.guiState,'zoomFit');
+		viewControls.open();
+
+		const shape_folder = this.gui.addFolder('Shape'); 
+		const shapeCtrl = shape_folder.add( this.current_shape, 'name' ).options( shapes );
+		shapeCtrl.name('Name');
+		shapeCtrl.onChange( () => {
+			this.shapeChange();
 
 		} );
+		shape_folder.add(this.guiState, 'modelName')
+			.name('Model Name')
+			.onChange( () => {
+			this.shapeChange();
+			} );
 		shape_folder.open();
+	}
+
+	updateWcsScale() {
+		if (this.axesHelper) {
+			this.axesHelper.scale.x = this.guiState.wcsScale;
+			this.axesHelper.scale.y = this.guiState.wcsScale;
+			this.axesHelper.scale.z = this.guiState.wcsScale;
+		}
 	}
 
 	shapeChange() {
@@ -244,6 +265,22 @@ class App {
 			this.activate_model();
 		}
 		
+	}
+
+	zoomFit() {
+		// for now, just zoom to the first mesh
+		if (this.main_object) {
+			let mesh = null;
+			for (const child of this.main_object.children) {
+				if (child.isMesh) {
+					mesh = child;
+					break;
+				}
+			}
+			if (mesh) {
+				this.fitCameraToObject(mesh);
+			}
+		}
 	}
 
 	create_Creature() {
