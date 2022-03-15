@@ -214,8 +214,8 @@ def loadParameters(configFilename):
 
 def writeSampleConfig():
     param = ParametersWiki2Sqlite(
-        input_file      = 'nlwiki-20220301-pagelinks.sql',
-        input_page_file = 'nlwiki-20220301-pages-articles-multistream-index.txt',
+        input_file      = 'nlwiki-latest-pagelinks.sql',
+        input_page_file = 'nlwiki-latest-pages-articles-multistream-index.txt',
         output_file     = 'pagelinks.db',
         error_file      = 'error.txt'
     )
