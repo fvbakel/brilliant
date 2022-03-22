@@ -179,6 +179,7 @@ class FindWikiPath:
 
     def _makeGraph(self):
         dot = graphviz.Digraph()
+        dot.attr(rankdir='LR')
         for page_id,page in self._pages.items():
             dot.node(name=str(page_id),label=page.title,URL=page.getUrl())
             if page.hasLinks():
