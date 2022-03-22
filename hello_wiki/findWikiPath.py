@@ -237,7 +237,7 @@ class FindWikiPath:
         nr_found = len(rows)
 
         if  nr_found == 1:
-            return rows[0][0]
+            return str(rows[0][0])
         elif nr_found == 0:
             self._eventLog.report('ERROR','Page id not found: {}'.format(page_id))
             return None
