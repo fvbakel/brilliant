@@ -97,16 +97,25 @@ class Wiki2Sqlite:
         self.conn.execute(sql)
         self._endEvent('Post process: create pages index')
 
+        event_name = 'Post process: create pages title index'
+        self._startEvent(event_name)
+        sql = """
+            create index i_pages_title
+                on pages (title)
+            ;
+        """
+        self.conn.execute(sql)
+        self._endEvent(event_name)
+
         self._startEvent('Post process: create new table')
         sql = """
             create table pagelinks_clean as
                 SELECT 
-                    l.pl_from  as pl_from,
-                    l.pl_title as pl_title
+                    l.pl_from       as pl_from,
+                    p_to.page_id    as pl_to
                     FROM pagelinks l
-                    left join pages p on p.page_id = l.pl_from
-                WHERE
-                    p.page_id is not NULL
+                    join pages p_from on p_from.page_id = l.pl_from
+                    join pages p_to on p_to.title = replace(l.pl_title,'_',' ')
             ;
         """
         self.conn.execute(sql)
@@ -128,8 +137,8 @@ class Wiki2Sqlite:
 
         self._startEvent('Post process: create pagelinks index')
         sql = """
-            create index i_pagelinks_title 
-                on pagelinks(pl_title)
+            create index i_pagelinks_from
+                on pagelinks(pl_from,pl_to)
             ;
         """
         self.conn.execute(sql)
@@ -233,7 +242,7 @@ def main():
 
     if args.config:
         writeSampleConfig()
-    elif args.help:
+    elif hasattr(args, 'help') and args.help:
         parser.print_help()
     else:
         parameters=loadParameters(args.file)

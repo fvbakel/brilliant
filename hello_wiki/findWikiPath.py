@@ -37,18 +37,8 @@ class FindWikiPath:
         self.parameters = parameters
         self.conn = None
         self.eventLog = EventLog()
-        self._reset()
         self._open_db()
-
-    def _reset(self):
-        # internal start variables
-        self._start = None
-        self._end = None
-        self._searched = set()
-        self._to_search = dict()
-        self._next_to_search = dict()
-        self._cur_depth = 0
-    
+   
     def find(self,start: str,end: str):
         event = 'Search [{}] start at [{}] max search dept [{}]'.format(
             end,
@@ -56,58 +46,57 @@ class FindWikiPath:
             self.parameters.max_depth
         )
         self.eventLog.startEvent(event)
-        self._reset()
 
-        self._start=start
-        self._end=end
-        self._cur_depth = 1
         start_page_id = self._getPageId4Title(start)
-        if start_page_id != None:        
-            self._to_search[start_page_id] = []
-            if self._find():
+        end_page_id = self._getPageId4Title(start)
+
+        if start_page_id != None and end_page_id != None:        
+            paths = self._find(start_page_id,end_page_id, self.parameters.max_depth)
+            if paths != None and len(paths) > 0:
                 print('Path found')
+                print(paths)
             else:
                 print('No path not found')
 
         self.eventLog.endEvent(event)
     
-    def _find(self):
+    def _find(self, start_id:int,end_id:int,max_level:int):
+        cursor = self.conn.cursor()
+        sql = """   
+            WITH RECURSIVE
+                parameters(start_id,end_id,max_level) as (
+                    select 
+                        ?,
+                        ?,
+                        ?
+                ),
+                sub_rels(child,level,path) AS (
+                    SELECT 
+                        start_id,
+                        0,
+                        '' || start_id
+                        from parameters
+                        where 
+                                start_id is not null
+                            and end_id is not null
+                    UNION ALL
+                    SELECT 
+                        rels.pl_from,
+                        sub_rels.level + 1,
+                        sub_rels.path || '-' || rels.pl_to
+                    FROM pagelinks rels, sub_rels
+                    WHERE 
+                            rels.pl_from = sub_rels.child
+                        and sub_rels.level < (select max_level from parameters)
+                )
+            SELECT sub_rels.path 
+            FROM sub_rels,parameters
+            WHERE   sub_rels.child = parameters.end_id
+            ;
         """
-        Process the search que
-        """
-        if self._cur_depth > self.parameters.max_depth:
-            return
-        event = 'Current dept [{}]'.format(self._cur_depth)
-        
-        self.eventLog.startEvent(event)
-        found = False
-        for page_id,path in self._to_search.items():
-            new_path = path
-            new_path.append(page_id)
-            if self._checkChilds(page_id,new_path):
-                self.eventLog('INFO:','Found a path: {}'.format(path))
-                found = True
-                break
-
-        if not found:
-            self._to_search = self._next_to_search
-            self._next_to_search = dict()
-            self._cur_depth +=1
-            self._find()
-
-        self.eventLog.endEvent(event)
-        return found
-    
-    def _checkChilds(self,page_id:int,path:list):
-        childs = self._getChilds(page_id)
-        for child in childs:
-            if child[1] == self._end:
-                return True
-            elif child[1] not in self._searched:
-                self._next_to_search[child[0]] = path
-        self._searched.add(page_id)
-                
-        return False
+        #cursor.row_factory = lambda cursor, row: {'foo': row[0]}
+        cursor.execute(sql,[start_id,end_id,max_level])
+        return cursor.fetchall()
 
     def _getChilds(self,page_id:int):
         cursor = self.conn.cursor()
