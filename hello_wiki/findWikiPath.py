@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from argparse import ArgumentParser
 
 import json
-import wikipagelinks
+import wikipagelinks as pl
 
 
 def loadParameters(configFilename):
@@ -37,9 +37,15 @@ def main():
 #    elif args.help is not None:
 #        parser.print_help()
     else:
-        parameters=loadParameters(args.file)
-        
-        
+        param=loadParameters(args.file)
 
+        db = pl.PagesDb(db_file=param['db_file'],source_url=param['source_url'] )
+        finder = pl.PagePathFinder(pagesDb=db,start_title=args.start,end_title=args.end)
+        finder.find(max_depth=param['max_depth'])
+
+        if finder.pathsfound > 0:
+            finder.writeGraph(directory=param['graph_dir'])
+
+        
 if __name__ == '__main__':  
     main()

@@ -140,10 +140,10 @@ class PagesDb:
         if  nr_found == 1:
             return rows[0][0]
         elif nr_found == 0:
-            self.eventLog.report('ERROR','Title not found: {}'.format(title))
+            self._eventLog.report('ERROR','Title not found: {}'.format(title))
             return None
         else:
-            self.eventLog.report('ERROR','Title found multiple times: {}'.format(nr_found))
+            self._eventLog.report('ERROR','Title found multiple times: {}'.format(nr_found))
             return None
 
     def getTitle4PageId(self,page_id:int):
