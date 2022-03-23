@@ -1,0 +1,38 @@
+CREATE TABLE pages (
+    `page_id` int(11) DEFAULT 0,
+    `title` varbinary(255) NOT NULL DEFAULT ''
+);
+
+CREATE TABLE `pagelinks` (
+    `pl_from` int(8) NOT NULL DEFAULT 0,
+    `pl_to` int(8) NOT NULL DEFAULT 0
+);
+
+insert into pages values 
+    (1,'title 1'),
+    (2,'title 2'),
+    (3,'title 3'),
+    (4,'title 4'),
+    (5,'title 5'),
+    (6,'title 6'),
+    (7,'title 7'),
+    (8,'title 8'),
+    (9,'title 9')
+;
+
+insert into pagelinks values
+    (1,2),
+    (2,3),
+    (3,4),
+    (4,5),
+    (5,6),
+    (6,7),
+    (7,8),
+    (8,9),
+    (2,4),
+    (4,6),
+    (6,8),
+    (3,6),
+    (6,9),
+    (4,8)
+;
