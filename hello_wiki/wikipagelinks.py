@@ -181,13 +181,14 @@ class PagesDb:
             self._conn.close()
         self._eventLog.endEvent(event)
 
-class Pages:
+class PageHandler:
     def __init__(self,pagesDb:PagesDb):
         self.pagesDb    = pagesDb
         self._eventLog  = EventLog()
+        self.clear()
     
     def clear(self):
-        self.pages = Dict[int, Page]    = dict()
+        self.pages:Dict[int, Page]    = dict()
 
     def getPage(self,page_id:int) -> Page:
         if isinstance(page_id,str):
@@ -227,32 +228,36 @@ class Pages:
 
 class PagePathFinder:
     def __init__(self,pagesDb:PagesDb,start_title:str,end_title:str):
-        self.pagesDb    = pagesDb
-        self.pages      = Pages(self.pagesDb)
-        self.pathsfound = None
+        self.pagesDb        = pagesDb
+        self.pageHandler    = PageHandler(self.pagesDb)
+        self.pathsfound     = None
 
-        self._eventLog  = EventLog()
+        self._eventLog      = EventLog()
 
-        self.startPage = self.pages.getPage4Title(start_title)
+        self.startPage      = self.pageHandler.getPage4Title(start_title)
+        self.endPage        = self.pageHandler.getPage4Title(end_title)
+        
         if self.startPage is None:
-            raise ValueError('Can not find page: [{}]'.format(start_title))
-        self.endPage   = self.pages.getPage4Title(end_title)
+            msg = 'Can not find page: [{}]'.format(start_title)
+            raise ValueError(msg)
+        
         if self.endPage is None:
-            raise ValueError('Can not find page: [{}]'.format(end_title))
+            msg = 'Can not find page: [{}]'.format(end_title)
+            raise ValueError(msg)
 
     def find(self,max_depth:int):
         if self.pathsfound is None:
-            self.pathsfound = self.pages.findPaths(self.startPage,self.endPage,max_depth)
+            self.pathsfound = self.pageHandler.findPaths(self.startPage,self.endPage,max_depth)
         return self.pathsfound
     
     def clear(self):
-        self.pages.clear()
-        self.startPage  = self.pages.getPage(self.startPage.page_id)
-        self.endPage    = self.pages.getPage(self.endPage.page_id)
+        self.pageHandler.clear()
+        self.startPage  = self.pageHandler.getPage(self.startPage.page_id)
+        self.endPage    = self.pageHandler.getPage(self.endPage.page_id)
         self.pathsfound = None
 
     def writeGraph(self,directory:str):
-        graph = Pages2Graph(self.pages)
+        graph = Pages2Graph(self.pageHandler)
         filename = str(self.startPage.page_id) + '-' + str(self.endPage.page_id)
         graph.render(filename=filename,directory=directory, format='svg')
         return filename
@@ -270,17 +275,14 @@ class PagePathFinder:
         
 class Pages2Graph:
 
-    def __init__(self,pages:Pages):
+    def __init__(self,pageHandler:PageHandler):
         self.dot = graphviz.Digraph()
         self.dot.attr(rankdir='LR')
-        for page_id,page in self.pages.pages.items():
-            self.dot.node(name=str(page_id),label=page.title,URL=pages.pagesDb.getUrl(page_id))
+        for page_id,page in pageHandler.pages.items():
+            self.dot.node(name=str(page_id),label=page.title,URL=pageHandler.pagesDb.getUrl(page_id))
             if page.hasLinks():
                 for child in page.page_links:
                     self.dot.edge(str(page_id),str(child.page_id))
 
-    def render(self,**args):
-        self.dot.render(args)
-    
-
-    
+    def render(self,filename:str,directory:str, format='svg'):
+        self.dot.render(filename=filename,directory=directory, format=format)

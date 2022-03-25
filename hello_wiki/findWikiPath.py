@@ -44,6 +44,7 @@ def main():
         finder.find(max_depth=param['max_depth'])
 
         if finder.pathsfound > 0:
+            finder.dumpPaths()
             finder.writeGraph(directory=param['graph_dir'])
 
         
