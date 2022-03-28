@@ -9,6 +9,18 @@ import json
 
 import graphviz
 
+from enum import Enum
+
+class ExtendedEnum(Enum):
+
+    @classmethod
+    def list(cls):
+        return list(map(lambda c: c.value, cls))
+
+class RelationDirection(ExtendedEnum):
+    DIR_TO   = 'to'
+    DIR_FROM_= 'from'
+
 class EventLog:
 
     def __init__(self):
@@ -110,7 +122,7 @@ class PagesDb:
         self._eventLog.endEvent(event)
         return cursor.fetchall()
             
-    def _getChilds(self,page_id:int):
+    def getChilds(self,page_id:int):
         cursor = self._conn.cursor()
         sql = """   
             SELECT 
@@ -167,6 +179,30 @@ class PagesDb:
             self._eventLog.report('ERROR','Page id found multiple times: {}'.format(nr_found))
             return None
 
+    def top(self,direction:RelationDirection,number:int):
+        cursor = self._conn.cursor()
+        sql = """   
+            SELECT
+                p.page_id,
+                p.title,
+                top.nr
+            FROM (
+                SELECT 
+                    l.pl_to as page_id,
+                    count(l.pl_from) as nr
+                FROM pagelinks l
+                GROUP BY l.pl_to
+                ORDER BY count(l.pl_to) DESC
+                LIMIT ?
+            ) top
+            JOIN pages p ON p.page_id = top.page_id
+        """
+        if direction == 'from':
+            sql = sql.replace('pl_from','pl_tmp')
+            sql = sql.replace('pl_to','pl_from')
+            sql = sql.replace('pl_tmp','pl_to')
+        cursor.execute(sql,[number])
+        return cursor.fetchall()
 
     def _open_db(self):
         event = 'Open database'
@@ -283,7 +319,22 @@ class PagePathFinder:
                 self._printPath(child,path + [child.title])
         else:
             print(path)
-        
+
+class PageTopFinder:
+
+    def __init__(self,pagesDb:PagesDb):
+        self.pagesDb        = pagesDb
+        self._results       = None
+
+    def find(self,direction:RelationDirection,number:int):
+        self._results = self.pagesDb.top(direction=direction,number=number)
+
+    def dumpResults(self):
+        if self._results != None:
+            width = len(str(self._results[0][2]))
+            for result in self._results:
+                print(f"{ result[2]:{' '}{'>'}{width}} : {result[1]}")
+
 class Pages2Graph:
 
     def __init__(self,pageHandler:PageHandler):
@@ -317,4 +368,9 @@ def findPaths(
             finder.dumpPaths()
             finder.writeGraph(directory=graph_dir)
 
+def top(db_file:str,direction:RelationDirection,number:int):
+    db  = PagesDb(db_file=db_file)
+    top = PageTopFinder(pagesDb=db)
+    top.find(direction=direction,number=number)
 
+    top.dumpResults()
