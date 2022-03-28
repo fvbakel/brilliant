@@ -1,6 +1,7 @@
 {
     "db_file": "test.db",
     "max_depth": 3,
+    "max_nr_of_paths": 100,
     "source_url": "https://www.google.nl/search?q=",
     "graph_dir": "graphs"
 }

@@ -61,7 +61,7 @@ class PagesDb:
     def getUrl(self,page_id:int) -> str:
         return self.source_url + str(page_id)
 
-    def findPaths(self, start_id:int,end_id:int,max_level:int):
+    def findPaths(self, start_id:int,end_id:int,max_level:int,max_nr_of_paths:int):
         event = 'Search paths to [{}] start at [{}] max search dept [{}]'.format(
             end_id,
             start_id,
@@ -102,11 +102,11 @@ class PagesDb:
             WHERE   
                     sub_rels.child = parameters.end_id
             --ORDER BY sub_rels.level ASC
-            LIMIT 100
+            LIMIT ?
             ;
         """
         #cursor.row_factory = lambda cursor, row: row[0]
-        cursor.execute(sql,[start_id,end_id,max_level])
+        cursor.execute(sql,[start_id,end_id,max_level,max_nr_of_paths])
         self._eventLog.endEvent(event)
         return cursor.fetchall()
             
@@ -213,10 +213,20 @@ class PageHandler:
         else:
             return None
     
-    def findPaths(self,start:Page,end:Page,max_depth:int) -> int:
-        paths = self.pagesDb.findPaths(start_id=start.page_id,end_id=end.page_id,max_level = max_depth)
-        if paths != None and len(paths) > 0:
-            print('Nr of paths found: [{}]'.format(len(paths)))
+    def findPaths(self,start:Page,end:Page,max_depth:int,max_nr_of_paths = 100) -> int:
+        paths = self.pagesDb.findPaths(
+            start_id=start.page_id,
+            end_id=end.page_id,
+            max_level = max_depth,
+            max_nr_of_paths=max_nr_of_paths
+        )
+
+        nrOfPaths = 0
+        if paths != None:
+            nrOfPaths = len(paths)
+        self._eventLog.report('INFO','Nr of paths found: [{}]'.format(nrOfPaths))
+
+        if paths != None:
             for path in paths:
                 page_ids = path[1].split('-')
                 tailPage = self.getPage(page_ids[0])
@@ -224,7 +234,8 @@ class PageHandler:
                     childPage = self.getPage(page_id)
                     tailPage.addLink(childPage)
                     tailPage = childPage
-        return len(paths)
+        
+        return nrOfPaths
 
 class PagePathFinder:
     def __init__(self,pagesDb:PagesDb,start_title:str,end_title:str):
@@ -245,9 +256,9 @@ class PagePathFinder:
             msg = 'Can not find page: [{}]'.format(end_title)
             raise ValueError(msg)
 
-    def find(self,max_depth:int):
+    def find(self,max_depth:int,max_nr_of_paths = 100):
         if self.pathsfound is None:
-            self.pathsfound = self.pageHandler.findPaths(self.startPage,self.endPage,max_depth)
+            self.pathsfound = self.pageHandler.findPaths(self.startPage,self.endPage,max_depth,max_nr_of_paths)
         return self.pathsfound
     
     def clear(self):
@@ -286,3 +297,24 @@ class Pages2Graph:
 
     def render(self,filename:str,directory:str, format='svg'):
         self.dot.render(filename=filename,directory=directory, format=format)
+
+#
+# Facades
+
+def findPaths(
+    db_file:str,
+    start_title:str,
+    end_title:str,
+    graph_dir:str,
+    max_depth=3,
+    max_nr_of_paths=100,
+    source_url:str = ''):
+        db = PagesDb(db_file=db_file,source_url=source_url)
+        finder = PagePathFinder(pagesDb=db,start_title=start_title,end_title=end_title)
+        finder.find(max_depth=max_depth,max_nr_of_paths=max_nr_of_paths)
+
+        if finder.pathsfound > 0:
+            finder.dumpPaths()
+            finder.writeGraph(directory=graph_dir)
+
+

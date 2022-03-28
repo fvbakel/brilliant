@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from argparse import ArgumentParser
 
 import json
-import wikipagelinks as pl
+import pagelinks as pl
 
 
 def loadParameters(configFilename):
@@ -15,6 +15,7 @@ def writeSampleConfig():
     param = dict()
     param['db_file']         = 'pagelinks.db'
     param['max_depth']       = 3
+    param['max_nr_of_paths'] = 100
     param['source_url']      = 'https://nl.wikipedia.org/?curid='
     param['graph_dir']       = 'graphs'
     
@@ -38,15 +39,16 @@ def main():
 #        parser.print_help()
     else:
         param=loadParameters(args.file)
-
-        db = pl.PagesDb(db_file=param['db_file'],source_url=param['source_url'] )
-        finder = pl.PagePathFinder(pagesDb=db,start_title=args.start,end_title=args.end)
-        finder.find(max_depth=param['max_depth'])
-
-        if finder.pathsfound > 0:
-            finder.dumpPaths()
-            finder.writeGraph(directory=param['graph_dir'])
-
+        pl.findPaths(
+            db_file = param['db_file'],
+            start_title=args.start,
+            end_title=args.end,
+            graph_dir=param['graph_dir'],
+            max_depth=param['max_depth'],
+            max_nr_of_paths=param['max_nr_of_paths'],
+            source_url=param['source_url']
+        )
+        
         
 if __name__ == '__main__':  
     main()
