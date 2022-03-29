@@ -11,6 +11,7 @@ import json
 class ParametersWiki2Sqlite:
     input_file:      str
     input_page_file: str
+    source_url:      str
     output_file:     str
     error_file:      str
 
@@ -28,6 +29,7 @@ class Wiki2Sqlite:
         self.last_time = self.start_time
         self._openOutput()
         self._createImportTables()
+        self._setMetaValues()
         self._importPagelinks()
         self._importPages()
         self._postImport()
@@ -46,6 +48,17 @@ class Wiki2Sqlite:
         duration = now - self.last_time
         msg = '{} took {:.2f} seconds'.format(event,duration)
         self._report('INFO',msg)
+
+    def _setMetaValues(self):
+        event = 'Set meta values'
+        self._startEvent(event)
+
+        sql = """
+            insert into meta values ('source_url',?)
+        """
+        self.conn.execute(sql,[self.parameters.source_url])
+
+        self._endEvent(event)
 
     def _importPagelinks(self):
         self._startEvent('Pagelink import')
@@ -76,6 +89,15 @@ class Wiki2Sqlite:
             );
         """
         self.conn.execute(sql)
+
+        sql = """
+            CREATE TABLE `meta` (
+                `field` varbinary(255) NOT NULL DEFAULT '',
+                `value` varbinary(255) NOT NULL DEFAULT ''
+            );
+        """
+        self.conn.execute(sql)
+
         self._endEvent('Create import tables')
     
     def _postImport(self):
@@ -225,6 +247,7 @@ def writeSampleConfig():
     param = ParametersWiki2Sqlite(
         input_file      = 'nlwiki-latest-pagelinks.sql',
         input_page_file = 'nlwiki-latest-pages-articles-multistream-index.txt',
+        source_url      = 'https://nl.wikipedia.org/?curid='
         output_file     = 'pagelinks.db',
         error_file      = 'error.txt'
     )

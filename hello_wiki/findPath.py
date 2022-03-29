@@ -58,8 +58,7 @@ class FindPageCommand:
             end_title=self._args.end,
             graph_dir=param['graph_dir'],
             max_depth=param['max_depth'],
-            max_nr_of_paths=param['max_nr_of_paths'],
-            source_url=param['source_url']
+            max_nr_of_paths=param['max_nr_of_paths']
         )
 
     def _clusters(self):
@@ -79,7 +78,6 @@ class FindPageCommand:
         param['db_file']         = 'pagelinks.db'
         param['max_depth']       = 3
         param['max_nr_of_paths'] = 100
-        param['source_url']      = 'https://nl.wikipedia.org/?curid='
         param['graph_dir']       = 'graphs'
         
         #write it back to the file

@@ -61,14 +61,35 @@ class Page:
 
     
 class PagesDb:
-    def __init__(self, db_file:str,source_url:str = ''):
+    def __init__(self, db_file:str):
         self.db_file                    = db_file
-        self.source_url                 = source_url
         self._conn                      = None
         self._eventLog                  = EventLog()
 
-        self._open_db()        
+        self._open_db()
+        self.source_url                 = self._getSourceUrl()
     
+    def _getSourceUrl(self):
+        cursor = self._conn.cursor()
+        sql = """   
+            SELECT value
+            FROM meta
+            where 
+                field = 'source_url'
+        """
+        cursor.execute(sql,)
+        rows = cursor.fetchall()
+
+        nr_found = len(rows)
+        if  nr_found == 1:
+            return rows[0][0]
+        elif nr_found == 0:
+            self._eventLog.report('ERROR','source_url not found in meta table')
+            return None
+        else:
+            self._eventLog.report('ERROR','source_url found multiple times in meta table: {}'.format(nr_found))
+            return None
+
     def getUrl(self,page_id:int) -> str:
         return self.source_url + str(page_id)
 
@@ -159,8 +180,8 @@ class PagesDb:
         """
         cursor.execute(sql,[title])
         rows = cursor.fetchall()
-        nr_found = len(rows)
 
+        nr_found = len(rows)
         if  nr_found == 1:
             return rows[0][0]
         elif nr_found == 0:
@@ -396,14 +417,14 @@ class Pages2Graph:
 # Facades
 
 def findPaths(
-    db_file:str,
-    start_title:str,
-    end_title:str,
-    graph_dir:str,
-    max_depth=3,
-    max_nr_of_paths=100,
-    source_url:str = ''):
-        db = PagesDb(db_file=db_file,source_url=source_url)
+        db_file:str,
+        start_title:str,
+        end_title:str,
+        graph_dir:str,
+        max_depth=3,
+        max_nr_of_paths=100
+    ):
+        db = PagesDb(db_file=db_file)
         finder = PagePathFinder(pagesDb=db,start_title=start_title,end_title=end_title)
         finder.find(max_depth=max_depth,max_nr_of_paths=max_nr_of_paths)
 

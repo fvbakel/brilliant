@@ -8,6 +8,12 @@ CREATE TABLE `pagelinks` (
     `pl_to` int(8) NOT NULL DEFAULT 0
 );
 
+CREATE TABLE `meta` (
+    `field` varbinary(255) NOT NULL DEFAULT '',
+    `value` varbinary(255) NOT NULL DEFAULT ''
+);
+
+
 insert into pages values 
     (1,'title 1'),
     (2,'title 2'),
@@ -35,4 +41,8 @@ insert into pagelinks values
     (3,6),
     (6,9),
     (4,8)
+;
+
+insert into meta values 
+(   'source_url','https://www.google.nl/search?q=')
 ;
