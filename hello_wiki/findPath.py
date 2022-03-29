@@ -21,13 +21,20 @@ class FindPageCommand:
         parser_1.add_argument("end", help="The page to find", type=str, default=None)
         parser_1.set_defaults(func=self._path)
 
-        parser_2 = sub_parsers.add_parser('config',help="Write an example config file named example_config.json")
-        parser_2.set_defaults(func=self._config)
+        parser_2 = sub_parsers.add_parser('top',help="Make a list of the top pages ranked by number of links")
+        parser_2.add_argument("-d","--direction", choices=pl.RelationDirection.list(),help="Rank by the most links to or from this page, default to", type=str, required=False, default='to')
+        parser_2.add_argument("-n","--number", help="Number of links to report, default 10", type=int, required=False, default=10)
+        parser_2.set_defaults(func=self._top)
 
-        parser_3 = sub_parsers.add_parser('top',help="Make a list of the top pages ranked by number of links")
-        parser_3.add_argument("-d","--direction", choices=pl.RelationDirection.list(),help="Rank by the most links to or from this page, default to", type=str, required=False, default='to')
-        parser_3.add_argument("-n","--number", help="Number of links to report, default 10", type=int, required=False, default=10)
-        parser_3.set_defaults(func=self._top)
+        parser_3 = sub_parsers.add_parser('clusters',help="Make separate clusters of pages")
+        parser_3.set_defaults(func=self._clusters)
+
+        parser_4 = sub_parsers.add_parser('graph',help="Make a graph of the page")
+        parser_4.add_argument("title", help="The title of the page to use as the top of the graph", type=str, default=None)
+        parser_4.set_defaults(func=self._graph)
+
+        parser_99 = sub_parsers.add_parser('config',help="Write an example config file named example_config.json")
+        parser_99.set_defaults(func=self._config)
          
         self._args = self._parser.parse_args()
 
@@ -53,6 +60,18 @@ class FindPageCommand:
             max_depth=param['max_depth'],
             max_nr_of_paths=param['max_nr_of_paths'],
             source_url=param['source_url']
+        )
+
+    def _clusters(self):
+        param=self._loadParameters(self._args.file)
+        pl.clusters(db_file = param['db_file'])
+    
+    def _graph(self):
+        param=self._loadParameters(self._args.file)
+        pl.graph(
+            db_file = param['db_file'],
+            title=self._args.title,
+            directory=param['graph_dir']
         )
 
     def _config(self):

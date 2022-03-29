@@ -5,7 +5,6 @@ from typing import Dict
 
 import sqlite3
 import time
-import json
 
 import graphviz
 
@@ -51,13 +50,13 @@ class Page:
     def __hash__(self):
         return self.page_id
 
-    def addLink(self,childPage:'Page'):
+    def addChild(self,childPage:'Page'):
         if self.page_id != childPage.page_id:
             if self.page_links is None:
                 self.page_links = set()
             self.page_links.add(childPage)
     
-    def hasLinks(self) -> bool:
+    def hasChilds(self) -> bool:
         return self.page_links != None
 
     
@@ -126,8 +125,7 @@ class PagesDb:
         cursor = self._conn.cursor()
         sql = """   
             SELECT 
-                p.page_id,
-                p.title
+                p.page_id
             FROM pagelinks l
             join pages p on p.page_id = l.pl_to
             where 
@@ -135,7 +133,21 @@ class PagesDb:
         """
         #cursor.row_factory = lambda cursor, row: {'foo': row[0]}
         cursor.execute(sql,[page_id])
-        return cursor.fetchall()
+        return cursor
+
+    def getParents(self,page_id:int):
+        cursor = self._conn.cursor()
+        sql = """   
+            SELECT 
+                p.page_id
+            FROM pagelinks l
+            join pages p on p.page_id = l.pl_from
+            where 
+                pl_to = ?
+        """
+        #cursor.row_factory = lambda cursor, row: {'foo': row[0]}
+        cursor.execute(sql,[page_id])
+        return cursor
 
     def getPageId4Title(self,title:str):
         cursor = self._conn.cursor()
@@ -226,19 +238,25 @@ class PageHandler:
     def clear(self):
         self.pages:Dict[int, Page]    = dict()
 
-    def getPage(self,page_id:int) -> Page:
+    def getPage(self,page_id:int,loadTile = True) -> Page:
         if isinstance(page_id,str):
             page_id = int(page_id)
         
-        if isinstance(page_id,int):
-            if page_id not in self.pages:
-                title = self.pagesDb.getTitle4PageId(page_id)
-                result_page = Page(page_id,title)
-                self.pages[page_id] = result_page
-            return self.pages[page_id]
-        else:
+        if not isinstance(page_id,int):
             self._eventLog.report("ERROR"," invalid page_id [{}] type is [{}]".format(page_id,type(page_id)))
+            return
+
+        if page_id not in self.pages:
+            title = ''
+            if loadTile:
+                title = self.pagesDb.getTitle4PageId(page_id)
+            result_page = Page(page_id,title)
+            self.pages[page_id] = result_page
+        return self.pages[page_id]
     
+    def loadTitle(self,page:Page):
+        page.title = self.pagesDb.getTitle4PageId(page.page_id)
+
     def getPage4Title(self,title:str) -> Page:
         page_id = self.pagesDb.getPageId4Title(title)
         if isinstance(page_id,int):
@@ -268,10 +286,35 @@ class PageHandler:
                 tailPage = self.getPage(page_ids[0])
                 for page_id in page_ids[1:]:
                     childPage = self.getPage(page_id)
-                    tailPage.addLink(childPage)
+                    tailPage.addChild(childPage)
                     tailPage = childPage
         
         return nrOfPaths
+
+    def loadChilds(self,parent:Page):
+        event = f'Load child relations for {parent.page_id}'
+        self._eventLog.startEvent(event)
+        cursor      = self.pagesDb.getChilds(parent.page_id)
+        chunk_size  = 10000
+        chunk       = cursor.fetchmany(chunk_size)
+        while len(chunk) > 0:
+            for row in chunk:
+                parent.addChild(self.getPage(row[0]))
+            chunk = cursor.fetchmany(chunk_size)
+        self._eventLog.endEvent(event)
+    
+    def loadParents(self,child:Page):
+        event = f'Load parent relations for {child.page_id}'
+        self._eventLog.startEvent(event)
+        cursor      = self.pagesDb.getParents(child.page_id)
+        chunk_size  = 10000
+        chunk       = cursor.fetchmany(chunk_size)
+        while len(chunk) > 0:
+            for row in chunk:
+                parent = self.getPage(row[0])
+                parent.addChild(child)
+            chunk = cursor.fetchmany(chunk_size)
+        self._eventLog.endEvent(event)
 
 class PagePathFinder:
     def __init__(self,pagesDb:PagesDb,start_title:str,end_title:str):
@@ -313,7 +356,7 @@ class PagePathFinder:
         self._printPath(self.startPage,[self.startPage.title])
     
     def _printPath(self,page:Page,path:list):
-        if page.hasLinks():
+        if page.hasChilds():
            for child in page.page_links:
                if child.title not in set(path):
                 self._printPath(child,path + [child.title])
@@ -321,7 +364,6 @@ class PagePathFinder:
             print(path)
 
 class PageTopFinder:
-
     def __init__(self,pagesDb:PagesDb):
         self.pagesDb        = pagesDb
         self._results       = None
@@ -335,6 +377,7 @@ class PageTopFinder:
             for result in self._results:
                 print(f"{ result[2]:{' '}{'>'}{width}} : {result[1]}")
 
+
 class Pages2Graph:
 
     def __init__(self,pageHandler:PageHandler):
@@ -342,7 +385,7 @@ class Pages2Graph:
         self.dot.attr(rankdir='LR')
         for page_id,page in pageHandler.pages.items():
             self.dot.node(name=str(page_id),label=page.title,URL=pageHandler.pagesDb.getUrl(page_id))
-            if page.hasLinks():
+            if page.hasChilds():
                 for child in page.page_links:
                     self.dot.edge(str(page_id),str(child.page_id))
 
@@ -374,3 +417,17 @@ def top(db_file:str,direction:RelationDirection,number:int):
     top.find(direction=direction,number=number)
 
     top.dumpResults()
+
+def clusters(db_file:str):
+    db  = PagesDb(db_file=db_file)
+    print('Sorry not implemented')
+
+def graph(db_file:str,title:str,directory:str):
+    db  = PagesDb(db_file=db_file)
+    ph = PageHandler(db)
+    basePage = ph.getPage4Title(title)
+    ph.loadChilds(basePage)
+    ph.loadParents(basePage)
+    graph = Pages2Graph(ph)
+    filename = str(basePage.page_id)
+    graph.render(filename=filename,directory=directory)
