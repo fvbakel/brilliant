@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from argparse import ArgumentParser
+from re import sub
 from tabnanny import filename_only
 from typing import Dict
 
@@ -45,20 +46,34 @@ class Page:
     def __init__(self,page_id:int,title:str = ''):
         self.page_id    = page_id
         self.title      = title
-        self.page_links:  set('Page') = None
+        self.children:set['Page'] = None
+        self.parents: set['Page'] = None
 
     def __hash__(self):
         return self.page_id
 
     def addChild(self,childPage:'Page'):
-        if self.page_id != childPage.page_id:
-            if self.page_links is None:
-                self.page_links = set()
-            self.page_links.add(childPage)
-    
-    def hasChilds(self) -> bool:
-        return self.page_links != None
+        if self.page_id == childPage.page_id:
+            return
 
+        if self.children is None:
+            self.children = set()
+        self.children.add(childPage)
+        childPage._addParent(self)
+    
+    def _addParent(self,parentPage:'Page'):
+        if self.page_id == parentPage.page_id:
+            return
+
+        if self.parents is None:
+            self.parents = set()
+        self.parents.add(parentPage)
+    
+    def hasChildren(self) -> bool:
+        return self.children != None
+    
+    def hasParents(self) -> bool:
+        return self.parents != None
     
 class PagesDb:
     def __init__(self, db_file:str):
@@ -142,7 +157,7 @@ class PagesDb:
         self._eventLog.endEvent(event)
         return cursor.fetchall()
             
-    def getChilds(self,page_id:int):
+    def getChildren(self,page_id:int):
         cursor = self._conn.cursor()
         sql = """   
             SELECT 
@@ -312,10 +327,10 @@ class PageHandler:
         
         return nrOfPaths
 
-    def loadChilds(self,parent:Page):
+    def loadChildren(self,parent:Page):
         event = f'Load child relations for {parent.page_id}'
         self._eventLog.startEvent(event)
-        cursor      = self.pagesDb.getChilds(parent.page_id)
+        cursor      = self.pagesDb.getChildren(parent.page_id)
         chunk_size  = 10000
         chunk       = cursor.fetchmany(chunk_size)
         while len(chunk) > 0:
@@ -369,6 +384,7 @@ class PagePathFinder:
 
     def writeGraph(self,directory:str):
         graph = Pages2Graph(self.pageHandler)
+        graph.makePlainGraph()
         filename = str(self.startPage.page_id) + '-' + str(self.endPage.page_id)
         graph.render(filename=filename,directory=directory, format='svg')
         return filename
@@ -377,8 +393,8 @@ class PagePathFinder:
         self._printPath(self.startPage,[self.startPage.title])
     
     def _printPath(self,page:Page,path:list):
-        if page.hasChilds():
-           for child in page.page_links:
+        if page.hasChildren():
+           for child in page.children:
                if child.title not in set(path):
                 self._printPath(child,path + [child.title])
         else:
@@ -402,19 +418,70 @@ class PageTopFinder:
 class Pages2Graph:
 
     def __init__(self,pageHandler:PageHandler):
+        self._pageHandler = pageHandler
+        self.reset()        
+ 
+    def reset(self):
+        self._sub_graphs: dict[str, graphviz.Digraph] = dict()
         self.dot = graphviz.Digraph()
+        self.maincluster:set[Page] = set()
+
+    def makePlainGraph(self):
         self.dot.attr(rankdir='LR')
-        for page_id,page in pageHandler.pages.items():
-            self.dot.node(name=str(page_id),label=page.title,URL=pageHandler.pagesDb.getUrl(page_id))
-            if page.hasChilds():
-                for child in page.page_links:
+        for page_id,page in self._pageHandler.pages.items():
+            self.dot.node(name=str(page_id),label=page.title,URL=self._pageHandler.pagesDb.getUrl(page_id))
+        
+        self._addChildRelations()
+
+    def makeSimpleClusterGraph(self):
+        self.dot.attr(rankdir='LR')
+        self._addSimpleClusters()
+        self._addChildRelations()
+    
+    def _addNode(self,graph:graphviz.Digraph,page:Page):
+        graph.node(name=str(page.page_id),label=page.title,URL=self._pageHandler.pagesDb.getUrl(page.page_id))
+
+    def _makeSubGraph(self,name:str):
+        self._sub_graphs[name] = graphviz.Digraph(name=name)
+        self._sub_graphs[name].attr(rankdir='LR',color='lightgrey')
+
+    def _addSimpleClusters(self):
+        self._makeSubGraph(name='cluster_children_only')
+        self._makeSubGraph(name='cluster_parents_only')
+        self._makeSubGraph(name='cluster_both')
+        self._makeSubGraph(name='cluster_no_relations')
+        self._makeSubGraph(name='cluster_main')
+
+        for page_id,page in self._pageHandler.pages.items():
+            
+            if page in self.maincluster:
+                sub_graph = 'cluster_main'
+            elif page.hasChildren() and page.hasParents():
+                sub_graph = 'cluster_both'
+            elif page.hasChildren():
+                sub_graph = 'cluster_children_only'
+            elif page.hasParents():
+                sub_graph = 'cluster_parents_only'
+            else:
+                sub_graph = 'cluster_no_relations'
+            #self._sub_graphs[sub_graph].node(name=str(page_id),label=page.title,URL=self._pageHandler.pagesDb.getUrl(page_id))
+            self._addNode(self._sub_graphs[sub_graph],page)
+        
+        for name,graph in self._sub_graphs.items():
+            self.dot.subgraph(graph)
+        
+
+    def _addChildRelations(self):
+        for page_id,page in self._pageHandler.pages.items():
+            if page.hasChildren():
+                for child in page.children:
                     self.dot.edge(str(page_id),str(child.page_id))
 
     def render(self,filename:str,directory:str, format='svg'):
         self.dot.render(filename=filename,directory=directory, format=format)
 
 #
-# Facades
+# Main functions
 
 def findPaths(
         db_file:str,
@@ -447,8 +514,13 @@ def graph(db_file:str,title:str,directory:str):
     db  = PagesDb(db_file=db_file)
     ph = PageHandler(db)
     basePage = ph.getPage4Title(title)
-    ph.loadChilds(basePage)
+    if basePage is None:
+        msg = f'Can not find page: [{title}]'
+        raise ValueError(msg)
+    ph.loadChildren(basePage)
     ph.loadParents(basePage)
     graph = Pages2Graph(ph)
+    graph.maincluster.add(basePage)
+    graph.makeSimpleClusterGraph()
     filename = str(basePage.page_id)
     graph.render(filename=filename,directory=directory)

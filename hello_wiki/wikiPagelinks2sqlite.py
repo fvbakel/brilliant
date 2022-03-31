@@ -101,35 +101,38 @@ class Wiki2Sqlite:
         self._endEvent('Create import tables')
     
     def _postImport(self):
-        self._startEvent('Post process: create a temp index')
+        event = 'Post process: create a temp index'
+        self._startEvent(event)
         sql = """
             create index i_pagelinks_tmp 
                 on pagelinks(pl_title)
             ;
         """
         self.conn.execute(sql)
-        self._endEvent('Post process: create a temp index')
+        self._endEvent(event)
         
-        self._startEvent('Post process: create pages index')
+        event = 'Post process: create pages index'
+        self._startEvent(event)
         sql = """
             create index i_pages 
                 on pages (page_id)
             ;
         """
         self.conn.execute(sql)
-        self._endEvent('Post process: create pages index')
+        self._endEvent(event)
 
-        event_name = 'Post process: create pages title index'
-        self._startEvent(event_name)
+        event = 'Post process: create pages title index'
+        self._startEvent(event)
         sql = """
             create index i_pages_title
                 on pages (title)
             ;
         """
         self.conn.execute(sql)
-        self._endEvent(event_name)
+        self._endEvent(event)
 
-        self._startEvent('Post process: create new table')
+        event = 'Post process: create new table'
+        self._startEvent(event)
         sql = """
             create table pagelinks_clean as
                 SELECT 
@@ -141,37 +144,51 @@ class Wiki2Sqlite:
             ;
         """
         self.conn.execute(sql)
-        self._endEvent('Post process: create new table')
+        self._endEvent(event)
 
-        self._startEvent('Post process: dropping temp table')
+        event = 'Post process: dropping temp table'
+        self._startEvent(event)
         sql = """
             drop table pagelinks;
         """
         self.conn.execute(sql)
-        self._endEvent('Post process: dropping temp table')
+        self._endEvent(event)
 
-        self._startEvent('Post process: rename pagelinks table')
+        event = 'Post process: rename pagelinks table'
+        self._startEvent(event)
         sql = """
             alter table pagelinks_clean rename to pagelinks;
         """
         self.conn.execute(sql)
-        self._endEvent('Post process: rename pagelinks table')
+        self._endEvent(event)
 
-        self._startEvent('Post process: create pagelinks index')
+        event = 'Post process: create pagelinks index'
+        self._startEvent(event)
         sql = """
             create index i_pagelinks_from
                 on pagelinks(pl_from,pl_to)
             ;
         """
         self.conn.execute(sql)
-        self._endEvent('Post process: create pagelinks index')
+        self._endEvent(event)
 
-        self._startEvent('Post process: resize (vacuum) database file')
+        event = 'Post process: create pagelinks reverse index'
+        self._startEvent(event)
+        sql = """
+            create index i_pagelinks_to
+                on pagelinks(pl_to,pl_from)
+            ;
+        """
+        self.conn.execute(sql)
+        self._endEvent(event)
+
+        event = 'Post process: resize (vacuum) database file'
+        self._startEvent(event)
         sql = """
             vacuum;
         """
         self.conn.execute(sql)
-        self._endEvent('Post process: resize (vacuum) database file')
+        self._endEvent(event)
 
     def _openOutput(self):
         #self.out_file = open(self.parameters.output_file,'w')
