@@ -1,5 +1,9 @@
 
 from csv import reader
+import graphviz
+from isort import file
+from matplotlib import style
+import logging
 
 class GrampsObject:
     def __init__(self,id:str):
@@ -20,6 +24,7 @@ class Person(GrampsObject):
         super().__init__(id)
         self.given_name:str     = None
         self.last_name:str      = None
+        self.call_name:str      = None
         self.prefix:str         = None
         self.suffix:str         = None
         self.birth_date:str     = None
@@ -27,17 +32,31 @@ class Person(GrampsObject):
         self.death_date:str     = None
         self.death_place:Place  = None
         self.origin_family:'Family' = None
-        self.child_family:'Family'  = None
+        self.marriage_family:'Family'  = None
 
     def __repr__(self) -> str:
-        return f"{self.id} {self.given_name} {self.prefix} {self.last_name} {self.suffix}"
+        given_names = self.given_name.split(' ')
+        first_name = given_names[0]
+        if self.call_name is not None and self.call_name != '':
+            first_name = self.call_name
+        return f"{first_name} {self.prefix} {self.last_name} {self.suffix}"
+    
+    def get_origin_families(self): 
+        result:set['Family'] = set()
+        if self.origin_family is not None:
+            result.add(self.origin_family)
+            if self.origin_family.husband is not None:
+                result = result.union(self.origin_family.husband.get_origin_families())
+            if self.origin_family.wife is not None:
+                result = result.union(self.origin_family.wife.get_origin_families())
+        return result
 
 class Family(GrampsObject):
 
     def __init__(self,id:str):
         super().__init__(id)
-        self.husband:Person          = None
-        self.wife:Person          = None
+        self.husband:Person         = None
+        self.wife:Person            = None
         self.date:str               = None
         self.place:Place            = None
         self.children:list[Person]  = []
@@ -115,10 +134,10 @@ class GrampsCsvParser:
             family.place = self.get_place(HelperFunctions.strip_id(fields[4]))
         if fields[1] != '':
             family.husband = self.get_person(HelperFunctions.strip_id(fields[1]))
-            family.husband.child_family = family
+            family.husband.marriage_family = family
         if fields[2] != '':
             family.wife = self.get_person(HelperFunctions.strip_id(fields[2]))
-            family.wife.child_family = family
+            family.wife.marriage_family = family
         
         
         
@@ -158,6 +177,7 @@ class GrampsCsvParser:
         person = Person(id)
         person.last_name = fields[1]
         person.given_name = fields[2]
+        person.call_name = fields[3]
         person.prefix = fields[5]
         person.suffix = fields[4]
         person.birth_date = fields[8]
@@ -175,6 +195,104 @@ class GrampsCsvParser:
             self.nr_fields = len(line.split(self.separator))
             print(f'Loading {state}')
 
+class GrampsGraph:
+    left_newline = '&#92;l'
+    newline = '&#92;n'
+    def __init__(self):
+        self.dot = graphviz.Graph()       
+        self.dot.attr(rankdir='LR')
+        
+    
+    def makePlainGraph(self,persons:set[Person]):
+        families: set[Family] = set()
+        for person in persons:
+            families = families.union(person.get_origin_families())
+
+        persons_todo = persons.copy()
+        
+        for family in families:
+            if  family.husband is not None and \
+                family.husband in persons_todo:
+                    persons_todo.remove(family.husband)
+            if  family.wife is not None and \
+                family.wife in persons_todo:
+                    persons_todo.remove(family.wife)
+
+        for family in families:
+            self.add_family_node(family=family)
+        
+        for person in persons_todo:
+            self.add_person_node(person)
+
+        for person in persons_todo:
+            self.add_person_to_fam(person)
+        
+        for family in families:
+            self.add_parent_to_fam(False,family)
+            self.add_parent_to_fam(True,family)
+    
+    def add_parent_to_fam(self,use_wife:bool,family:Family):
+        parent = family.husband
+        role = 'husband'
+        if use_wife:
+            parent = family.wife
+            role = 'wife'
+
+        if  parent is not None and \
+            parent.origin_family is not None:
+            from_id = f"{family.id}:{role}"
+            to_id = f"{parent.origin_family.id}:mariage"
+            self.dot.edge(from_id,to_id)
+
+    def add_person_to_fam(self,person:Person):
+        if person.origin_family is not None:
+            self.dot.edge(person.id,person.origin_family.id)
+        
+    def add_family_node(self,family:Family):
+        fam_label = '<husband> '
+        fam_label += self.get_person_label(family.husband)
+        fam_label += ' | <mariage>'
+        fam_label += self.get_marriage_label(family)
+        fam_label += ' | <wife> '
+        fam_label += self.get_person_label(family.wife)
+        self.dot.node(name=family.id,label=fam_label,shape='record')
+
+    def add_person_node(self,person:Person):
+        label = self.get_person_label(person)
+        self.dot.node(name=person.id,label=label,shape='box')
+
+    def get_person_label(self,person:Person):
+        if  person is None:
+            return 'LEEG'
+        birth_place = '-'
+        if person.birth_place:
+            birth_place = person.birth_place
+        death_place = '-'
+        if person.death_place:
+            death_place = person.death_place
+        return f"{person}{GrampsGraph.left_newline}* {person.birth_date} {birth_place}{GrampsGraph.left_newline}† {person.death_date} {death_place}{GrampsGraph.left_newline}"
+    
+    def get_marriage_label(self,family:Family):
+        if  family is None:
+            return 'LEEG'
+        
+        date = '-'
+        if family.date:
+            date = family.date
+        place = '-'
+        if family.place: 
+            place = family.place
+
+        
+        label = f"⚭{GrampsGraph.newline}{date} {place}{GrampsGraph.newline}"
+        return label
+
+    
+
+    def render(self,filename:str,directory:str, format='svg'):
+        self.dot.render(filename=filename,directory=directory, format=format)
+
+
 from argparse import ArgumentParser
 
 def main():
@@ -184,15 +302,31 @@ def main():
     )
         
     parser.add_argument("-f","--file", help="Filename Gramps csv export", type=str, required=True, default='export-gramps.csv')
+    parser.add_argument("-o","--output", help="Filename to output", type=str, required=True, default='export-gramps.svg')
+    parser.add_argument("-p","--persons", help="Commaseparated list of persons to use, based on id", type=str, required=True)
     args = parser.parse_args()
 
     gramps = GrampsCsvParser(filename=args.file)
     gramps.read()
     gramps.print_stats()
-    if 'I0000' in gramps.persons:
-        print(gramps.persons)
-    #for id,place in parser.places.items():
-    #    print(place)
+
+    person_ids = args.persons.split(',')
+    persons:set[Person] = set()
+    
+    for person_id in person_ids:
+        if person_id in gramps.persons:
+            persons.add(gramps.persons[person_id])
+        else:
+            print(f'Person not found: {person_id}')
+
+    if len(persons) == 0:
+        return
+    graph = GrampsGraph()
+    graph.makePlainGraph(persons=persons)
+    graph.render(filename=args.output,directory='./',format='svg')
+    logging.basicConfig(level=logging.DEBUG)
+    logging.debug(graph.dot)
+
 
 if __name__ == '__main__':
     main()
