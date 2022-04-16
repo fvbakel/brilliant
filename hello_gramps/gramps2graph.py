@@ -348,24 +348,28 @@ class GrampsCommand:
         self._parser.add_argument("-f","--file", help="Filename Gramps csv export", type=str, required=True, default='export-gramps.csv')
 
         sub_parsers = self._parser.add_subparsers()
-        parser_1 = sub_parsers.add_parser('path',help='Find a path between two wiki persons')
-        parser_1.add_argument("start", help="Start the search from this most recent person",type=str,default=None)
-        parser_1.add_argument("end", help="The person to find the path to", type=str,default=None)
-        parser_1.set_defaults(func=self._path)
+        parser = sub_parsers.add_parser('path',help='Find a path between two wiki persons')
+        parser.add_argument("start", help="Start the search from this most recent person",type=str,default=None)
+        parser.add_argument("end", help="The person to find the path to", type=str,default=None)
+        parser.set_defaults(func=self._path)
 
-        parser_2 = sub_parsers.add_parser('graph',help="Make a family graph")
-        parser_2.add_argument("-o","--output", help="Filename to output", type=str, required=False, default='export-gramps.svg')
-        parser_2.add_argument("persons", help="Comma separated list of persons to use, based on id", type=str,default=None)
-        parser_2.set_defaults(func=self._graph)
+        parser = sub_parsers.add_parser('graph',help="Make a family graph")
+        parser.add_argument("-o","--output", help="Filename to output", type=str, required=False, default='export-gramps')
+        parser.add_argument("persons", help="Comma separated list of persons to use, based on id", type=str,default=None)
+        parser.set_defaults(func=self._graph)
 
-        parser_3 = sub_parsers.add_parser('stats',help="Print the statistics")
-        parser_3.set_defaults(func=self._stats)
+        parser = sub_parsers.add_parser('stats',help="Print the statistics")
+        parser.set_defaults(func=self._stats)
 
-        parser_4 = sub_parsers.add_parser('common',help='Find the common family between two persons')
-        parser_4.add_argument("personA", help="The first person",type=str,default=None)
-        parser_4.add_argument("personB", help="The second person", type=str,default=None)
-        parser_4.set_defaults(func=self._common)
-        
+        parser = sub_parsers.add_parser('common',help='Find the common family between two persons')
+        parser.add_argument("personA", help="The first person",type=str,default=None)
+        parser.add_argument("personB", help="The second person", type=str,default=None)
+        parser.set_defaults(func=self._common)
+
+        parser = sub_parsers.add_parser('find_person',help='Find a persons')
+        parser.add_argument("person_name", help="Part of the person",type=str,default=None)
+        parser.set_defaults(func=self._find_person)
+
         self._args = self._parser.parse_args()
         self.read_gramps()
         
@@ -400,7 +404,6 @@ class GrampsCommand:
             print("Path not found.")
     
     def _common(self):
-        
         if self._args.personA not in self.gramps.persons:
             print(f'PersonA not found: {person_id}')
             return
@@ -415,6 +418,13 @@ class GrampsCommand:
                 print(f"{family}: {family.husband} -- {family.date} {family.place}-- {family.wife}")
         else:
             print("No common family found.")
+
+    def _find_person(self):
+        name = self._args.person_name.upper()
+        for id,person in self.gramps.persons.items():
+            label = person.__repr__().upper()
+            if label.find(name) >= 0:
+                print(f"{id} {person}")
     
     def _graph(self):
         person_ids = self._args.persons.split(',')
