@@ -217,6 +217,32 @@ class PathFinder:
         return False
 
 
+class CommonFinder:
+
+    def __init__(self,personA:Person,personB:Person):
+        self.personA = personA
+        self.personB = personB
+        self.compute_common()
+        
+    def _discard_origin_family(self,person:Person):
+        if person is not None:
+            if person.origin_family is not None:
+                self.common.discard(person.origin_family)
+
+    def compute_common(self):
+        familiesA = self.personA.get_origin_families()
+        familiesB = self.personB.get_origin_families()
+        
+        commonAll = familiesA.intersection(familiesB)
+        self.common = commonAll.copy()
+        for family in commonAll:
+            self._discard_origin_family(family.husband)
+            self._discard_origin_family(family.wife)
+            
+
+
+
+
 class GrampsGraph:
     left_newline = '&#92;l'
     newline = '&#92;n'
@@ -334,6 +360,11 @@ class GrampsCommand:
 
         parser_3 = sub_parsers.add_parser('stats',help="Print the statistics")
         parser_3.set_defaults(func=self._stats)
+
+        parser_4 = sub_parsers.add_parser('common',help='Find the common family between two persons')
+        parser_4.add_argument("personA", help="The first person",type=str,default=None)
+        parser_4.add_argument("personB", help="The second person", type=str,default=None)
+        parser_4.set_defaults(func=self._common)
         
         self._args = self._parser.parse_args()
         self.read_gramps()
@@ -353,7 +384,6 @@ class GrampsCommand:
         self.gramps.print_stats()
     
     def _path(self):
-        
         if self._args.start not in self.gramps.persons:
             print(f'Start person not found: {person_id}')
             return
@@ -368,6 +398,23 @@ class GrampsCommand:
                 print(person)
         else:
             print("Path not found.")
+    
+    def _common(self):
+        
+        if self._args.personA not in self.gramps.persons:
+            print(f'PersonA not found: {person_id}')
+            return
+        if self._args.personB not in self.gramps.persons:
+            print(f'PersonB not found: {person_id}')
+            return
+
+        finder = CommonFinder(personA=self.gramps.persons[self._args.personA],personB=self.gramps.persons[self._args.personB])
+        if len(finder.common) > 0:
+            print(f"Common family found for [{self.gramps.persons[self._args.personA]}] and [{self.gramps.persons[self._args.personB]}]")
+            for family in finder.common:
+                print(f"{family}: {family.husband} -- {family.date} {family.place}-- {family.wife}")
+        else:
+            print("No common family found.")
     
     def _graph(self):
         person_ids = self._args.persons.split(',')
