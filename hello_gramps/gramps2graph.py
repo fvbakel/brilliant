@@ -1,8 +1,7 @@
 
 from csv import reader
 import graphviz
-from isort import file
-from matplotlib import style
+from argparse import ArgumentParser
 import logging
 
 class GrampsObject:
@@ -195,6 +194,29 @@ class GrampsCsvParser:
             self.nr_fields = len(line.split(self.separator))
             print(f'Loading {state}')
 
+class PathFinder:
+
+    def __init__(self,recent_person:Person,past_person:Person):
+        self.path:list[Person] = []
+        self.recent_person = recent_person
+        self.past_person = past_person
+        self.path_found = self.find_past_person(recent_person)
+
+    def find_past_person(self,current_person:Person):
+        if current_person is None:
+            return False
+        self.path.append(current_person)
+        if current_person == self.past_person:
+            return True
+        if current_person.origin_family is not None:
+            if self.find_past_person(current_person.origin_family.husband):
+                return True
+            if self.find_past_person(current_person.origin_family.wife):
+                return True
+        self.path.pop()
+        return False
+
+
 class GrampsGraph:
     left_newline = '&#92;l'
     newline = '&#92;n'
@@ -287,45 +309,90 @@ class GrampsGraph:
         label = f"⚭{GrampsGraph.newline}{date} {place}{GrampsGraph.newline}"
         return label
 
-    
-
     def render(self,filename:str,directory:str, format='svg'):
         self.dot.render(filename=filename,directory=directory, format=format)
 
+class GrampsCommand:
+    def __init__(self):
+        self._parser = ArgumentParser(description=
+            """Make different reports based on a Gramps CVS export
+            """
+        )
+        self._parser.set_defaults(func=self._no_args)
+        self._parser.add_argument("-f","--file", help="Filename Gramps csv export", type=str, required=True, default='export-gramps.csv')
 
-from argparse import ArgumentParser
+        sub_parsers = self._parser.add_subparsers()
+        parser_1 = sub_parsers.add_parser('path',help='Find a path between two wiki persons')
+        parser_1.add_argument("start", help="Start the search from this most recent person",type=str,default=None)
+        parser_1.add_argument("end", help="The person to find the path to", type=str,default=None)
+        parser_1.set_defaults(func=self._path)
+
+        parser_2 = sub_parsers.add_parser('graph',help="Make a family graph")
+        parser_2.add_argument("-o","--output", help="Filename to output", type=str, required=False, default='export-gramps.svg')
+        parser_2.add_argument("persons", help="Comma separated list of persons to use, based on id", type=str,default=None)
+        parser_2.set_defaults(func=self._graph)
+
+        parser_3 = sub_parsers.add_parser('stats',help="Print the statistics")
+        parser_3.set_defaults(func=self._stats)
+        
+        self._args = self._parser.parse_args()
+        self.read_gramps()
+        
+
+    def _no_args(self):
+        self._parser.print_help()
+
+    def run(self):
+        self._args.func()
+
+    def read_gramps(self):
+        self.gramps = GrampsCsvParser(filename=self._args.file)
+        self.gramps.read()
+    
+    def _stats(self):
+        self.gramps.print_stats()
+    
+    def _path(self):
+        
+        if self._args.start not in self.gramps.persons:
+            print(f'Start person not found: {person_id}')
+            return
+        if self._args.end not in self.gramps.persons:
+            print(f'End person not found: {person_id}')
+            return
+
+        finder = PathFinder(recent_person=self.gramps.persons[self._args.start],past_person=self.gramps.persons[self._args.end])
+        if finder.path_found:
+            print("Path found:")
+            for person in finder.path:
+                print(person)
+        else:
+            print("Path not found.")
+    
+    def _graph(self):
+        person_ids = self._args.persons.split(',')
+        persons:set[Person] = set()
+        
+        for person_id in person_ids:
+            if person_id in self.gramps.persons:
+                persons.add(self.gramps.persons[person_id])
+            else:
+                print(f'Person not found: {person_id}')
+
+        if len(persons) == 0:
+            return
+        graph = GrampsGraph()
+        graph.makePlainGraph(persons=persons)
+        graph.render(filename=self._args.output,directory='./',format='svg')
+        logging.basicConfig(level=logging.DEBUG)
+        logging.debug(graph.dot)
 
 def main():
-    parser = ArgumentParser(description=
-        """Convert a Gramps csv export to a graph
-        """
-    )
-        
-    parser.add_argument("-f","--file", help="Filename Gramps csv export", type=str, required=True, default='export-gramps.csv')
-    parser.add_argument("-o","--output", help="Filename to output", type=str, required=True, default='export-gramps.svg')
-    parser.add_argument("-p","--persons", help="Commaseparated list of persons to use, based on id", type=str, required=True)
-    args = parser.parse_args()
+    command = GrampsCommand()
+    command.run()
 
-    gramps = GrampsCsvParser(filename=args.file)
-    gramps.read()
-    gramps.print_stats()
 
-    person_ids = args.persons.split(',')
-    persons:set[Person] = set()
-    
-    for person_id in person_ids:
-        if person_id in gramps.persons:
-            persons.add(gramps.persons[person_id])
-        else:
-            print(f'Person not found: {person_id}')
 
-    if len(persons) == 0:
-        return
-    graph = GrampsGraph()
-    graph.makePlainGraph(persons=persons)
-    graph.render(filename=args.output,directory='./',format='svg')
-    logging.basicConfig(level=logging.DEBUG)
-    logging.debug(graph.dot)
 
 
 if __name__ == '__main__':
