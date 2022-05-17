@@ -1,0 +1,4 @@
+*.png
+*.svg
+trtc.html
+node_modules/
