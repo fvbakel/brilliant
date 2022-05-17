@@ -255,6 +255,8 @@ class GrampsGraph:
         families: set[Family] = set()
         for person in persons:
             families = families.union(person.get_origin_families())
+            if person.marriage_family is not None:
+                families.add(person.marriage_family)
 
         persons_todo = persons.copy()
         
