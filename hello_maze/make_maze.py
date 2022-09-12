@@ -6,7 +6,7 @@ class Edge:
         self.parent = parent
         self.child = child
     
-class Vertex:
+class Node:
 
     def __init__(self,x,y,weight):
         self.x = x
@@ -27,23 +27,23 @@ class Vertex:
         self.dist = -1 # is for infinit
         self.visited = False
 
-    def add_child_edge(self,vertex):
-        if self == vertex:
+    def add_child_edge(self,node):
+        if self == node:
             print("ERROR: connect to self is not allowed")
             return
 
-        if not self.has_child_vertex(vertex):
-            edge = Edge(self,vertex)
+        if not self.has_child_node(node):
+            edge = Edge(self,node)
             self.child_edges.add(edge)
-            vertex.add_parent_edge(edge)
+            node.add_parent_edge(edge)
             return edge
 
     def add_parent_edge(self,edge):
         self.parent_edges.add(edge)
 
-    def has_child_vertex(self,vertex):
+    def has_child_node(self,node):
         for edge in self.child_edges:
-            if edge.child == vertex:
+            if edge.child == node:
                 return True
 
         return False
@@ -51,7 +51,7 @@ class Vertex:
 class MatrixGraph:
 
     def __init__(self):
-        self.vertexes = dict()
+        self.nodes = dict()
         self.edges = set()
         self._first = None
         self.col_first = None
@@ -60,40 +60,40 @@ class MatrixGraph:
         self.nr_of_cols = 0
 
     def reset(self):
-        for vertex in self.vertexes.values():
-            vertex.reset()
+        for node in self.nodes.values():
+            node.reset()
     
     def get(self,x,y):
         label = MatrixGraph.make_label(x,y)
-        if label in self.vertexes:
-            return self.vertexes[label]
+        if label in self.nodes:
+            return self.nodes[label]
         else:
             return None
 
     def get_or_create(self,x,y,weight):
         label = MatrixGraph.make_label(x,y)
-        if label in self.vertexes:
-            return self.vertexes[label]
+        if label in self.nodes:
+            return self.nodes[label]
         else:
-            vertex = Vertex(x,y,weight)
-            self.vertexes[label] = vertex
+            node = Node(x,y,weight)
+            self.nodes[label] = node
             if self._first is None:
-                self._first = vertex
-            return vertex
+                self._first = node
+            return node
     
     def init_first_and_last(self):
         self.col_first = self.get_or_create("col",0,0)
         self.col_last = self.get_or_create("col",(self.nr_of_cols-1),0)
     
-    def get_min_vertex_not_visited(self):
+    def get_min_node_not_visited(self):
         current = None
-        for vertex in self.vertexes.values():
-            if vertex.visited == False:
-                if current is None and vertex.dist != -1:
-                    current = vertex
+        for node in self.nodes.values():
+            if node.visited == False:
+                if current is None and node.dist != -1:
+                    current = node
                 else:
-                    if vertex.dist != -1 and vertex.dist < current.dist:
-                        current = vertex
+                    if node.dist != -1 and node.dist < current.dist:
+                        current = node
         return current
 
     def sum_path_l_r(self):
@@ -102,8 +102,8 @@ class MatrixGraph:
         end = self.get((self.nr_of_rows -1),(self.nr_of_cols -1))
         path = self.find_short_path_dijkstra(start,end)
 
-        for vertex in path:
-            total = total + vertex.weight
+        for node in path:
+            total = total + node.weight
         print(path)
         print("Sum is:", total)
     
@@ -113,8 +113,8 @@ class MatrixGraph:
         end = self.col_last
         path = self.find_short_path_dijkstra(start,end)
 
-        for vertex in path:
-            total = total + vertex.weight
+        for node in path:
+            total = total + node.weight
         print(path)
         print("Sum is:", total)
 
@@ -135,7 +135,7 @@ class MatrixGraph:
                     if other.dist == -1 or alt < other.dist:
                         other.dist = alt
                         other.prev = current
-            current = self.get_min_vertex_not_visited()
+            current = self.get_min_node_not_visited()
             if current == end:
                 found = True
         
@@ -205,7 +205,7 @@ class MatrixGraph:
 
         for row in range(0,graph.nr_of_rows):
             for col in range(0,graph.nr_of_cols):
-                vertex = graph.get_or_create(row,col,1)
+                node = graph.get_or_create(row,col,1)
 
         graph.init_first_and_last()
         graph.init_edges(allowed_directions)
@@ -226,7 +226,7 @@ class MatrixGraph:
                     
                     for field in fields:
                         if field != "-":
-                            vertex = graph.get_or_create(line_nr,col,int(field))
+                            node = graph.get_or_create(line_nr,col,int(field))
                         col = col + 1
                     line_nr = line_nr + 1
         graph.nr_of_rows = line_nr
