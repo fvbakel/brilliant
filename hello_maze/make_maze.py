@@ -245,40 +245,57 @@ class MazeImage:
         self.squares:List[List[Square]] = []
         
         self.square_size = 100
-        self.line_width = 30
+        self.line_width = 5
 
         # TODO calculate based on graph size
         self.width = (graph.nr_of_cols * (self.square_size - self.line_width)) + self.line_width
-        self.height = graph.nr_of_rows * self.square_size
+        self.height = (graph.nr_of_rows * (self.square_size - self.line_width)) + self.line_width
 
-        self.bg_color = 0
-        self.fg_color = 1
+        self.bg_color = 1
+        self.fg_color = 0
         
         self._init_img()
         self._init_squares()
 
-        self.squares[0][0].enable_all()
-       # self.squares[0][0].right = False
-        self.squares[0][0].draw(self.draw,self.fg_color)
+    def test_grid(self):
+        for row in range(0,self.graph.nr_of_rows):
+            for col in range(0,self.graph.nr_of_cols):
+                self.squares[row][col].enable_all()
+ 
+        self.squares[0][0].set_up_value(False)
+        self.squares[0][1].set_left_value(False)
+        self.squares[0][1].set_down_value(False)
+        self.squares[1][1].set_right_value(False)
+        self.squares[1][2].set_down_value(False)
+        self.squares[3][2].set_up_value(False)
+        self.squares[3][3].set_left_value(False)
+        self.squares[3][3].set_down_value(False)
+  
+        self.draw_squares()
 
-    
-        self.squares[0][1].enable_all()
-        self.squares[0][1].draw(self.draw,self.fg_color)
-
-        self.squares[0][2].enable_all()
-        self.squares[0][2].draw(self.draw,self.fg_color)
-
-        self.squares[0][3].enable_all()
-        self.squares[0][3].draw(self.draw,self.fg_color)
-    
-
+    def draw_squares(self):
+        for row in range(0,self.graph.nr_of_rows):
+            for col in range(0,self.graph.nr_of_cols):
+                self.squares[row][col].draw(self.draw,self.fg_color)
 
     def _init_squares(self):
         for row in range(0,self.graph.nr_of_rows):
             self.squares.append([])
             for col in range(0,self.graph.nr_of_cols):
                 self.squares[row].append(Square(row,col,self.square_size,self.line_width))
-                self.graph.get(row,col)
+                #self.graph.get(row,col)
+        
+        for row in range(0,self.graph.nr_of_rows):
+            for col in range(0,self.graph.nr_of_cols):
+                if row != 0:
+                    self.squares[row][col].up_neighbor = self.squares[row -1][col]
+                if row != self.graph.nr_of_rows -1:
+                    self.squares[row][col].down_neighbor = self.squares[row +1][col]
+                if col != 0:
+                    self.squares[row][col].left_neighbor = self.squares[row][col -1]
+                    print(f"setting left neighbor for: {row},{col} to {self.squares[row][col].left_neighbor.row},{self.squares[row][col].left_neighbor.col}")
+                if col != self.graph.nr_of_cols -1:
+                    self.squares[row][col].right_neighbor = self.squares[row][col + 1]
 
     def _init_img(self):
         self.img  = Image.new( mode = "1", size = (self.width, self.height),color=self.bg_color )
@@ -305,10 +322,15 @@ class Square:
         self.outer_size = outer_size
         self.line_width = line_width
 
-        self.up     = False
-        self.down   = False
-        self.left   = False
-        self.right  = False
+        self._up     = False
+        self._down   = False
+        self._left   = False
+        self._right  = False
+
+        self.up_neighbor:Square      = None
+        self.down_neighbor:Square    = None
+        self.left_neighbor:Square    = None
+        self.right_neighbor:Square   = None
 
         self._calculate()
 
@@ -331,26 +353,48 @@ class Square:
 
 
     def draw(self,img_draw:ImageDraw, color):
-        if self.up:
+        if self._up:
             self._draw_up(img_draw,color)
-        if self.down:
+        if self._down:
             self._draw_down(img_draw,color)
-        if self.right:
+        if self._right:
             self._draw_right(img_draw,color)
-        if self.left:
+        if self._left:
             self._draw_left(img_draw,color)
 
+    def set_up_value(self,value:bool):
+        self._up = value
+        if self.up_neighbor != None:
+            self.up_neighbor._down = value
+
+    def set_down_value(self,value:bool):
+        self._down = value
+        if self.down_neighbor != None:
+            self.down_neighbor._up = value
+    
+    def set_left_value(self,value:bool):
+        self._left = value
+        if self.left_neighbor != None:
+            print("setting left neighbor right to false because left was set to false")
+            self.left_neighbor._right = value
+    
+    def set_right_value(self,value:bool):
+        self._right = value
+        if self.right_neighbor != None:
+            self.right_neighbor._left = value
+
+    def set_all_value(self,value:bool):
+        self.set_up_value(value)
+        self.set_down_value(value)
+        self.set_left_value(value)
+        self.set_right_value(value)
+
     def enable_all(self):
-        self.up     = True
-        self.down   = True
-        self.left   = True
-        self.right  = True
+        self.set_all_value(True)
+        
 
     def disable_all(self):
-        self.up     = False
-        self.down   = False
-        self.left   = False
-        self.right  = False
+        self.set_all_value(False)
 
 
     def _draw_up(self,img_draw:ImageDraw, color):
@@ -407,4 +451,5 @@ if __name__ == "__main__":
     graph.sum_path_l_r()
 
     mazeImg = MazeImage(graph,"test")
+    mazeImg.test_grid()
     mazeImg.img.show(f"Maze {mazeImg.name}")
