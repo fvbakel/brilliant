@@ -1,4 +1,5 @@
-
+from os import name
+from PIL import Image, ImageDraw
 
 class Edge:
 
@@ -63,7 +64,7 @@ class MatrixGraph:
         for node in self.nodes.values():
             node.reset()
     
-    def get(self,x,y):
+    def get(self,x,y) ->Node:
         label = MatrixGraph.make_label(x,y)
         if label in self.nodes:
             return self.nodes[label]
@@ -236,6 +237,164 @@ class MatrixGraph:
 
         return graph
 
+from typing import List
+class MazeImage:
+    def __init__(self,graph:MatrixGraph ,name:str ):
+        self.graph=graph
+        self.name = name
+        self.squares:List[List[Square]] = []
+        
+        self.square_size = 100
+        self.line_width = 30
+
+        # TODO calculate based on graph size
+        self.width = (graph.nr_of_cols * (self.square_size - self.line_width)) + self.line_width
+        self.height = graph.nr_of_rows * self.square_size
+
+        self.bg_color = 0
+        self.fg_color = 1
+        
+        self._init_img()
+        self._init_squares()
+
+        self.squares[0][0].enable_all()
+       # self.squares[0][0].right = False
+        self.squares[0][0].draw(self.draw,self.fg_color)
+
+    
+        self.squares[0][1].enable_all()
+        self.squares[0][1].draw(self.draw,self.fg_color)
+
+        self.squares[0][2].enable_all()
+        self.squares[0][2].draw(self.draw,self.fg_color)
+
+        self.squares[0][3].enable_all()
+        self.squares[0][3].draw(self.draw,self.fg_color)
+    
+
+
+    def _init_squares(self):
+        for row in range(0,self.graph.nr_of_rows):
+            self.squares.append([])
+            for col in range(0,self.graph.nr_of_cols):
+                self.squares[row].append(Square(row,col,self.square_size,self.line_width))
+                self.graph.get(row,col)
+
+    def _init_img(self):
+        self.img  = Image.new( mode = "1", size = (self.width, self.height),color=self.bg_color )
+        self.draw = ImageDraw.Draw(self.img)
+
+    def get_square(self,row:int,col:int):
+        return self.squares[row,col]
+
+    def generate(self):
+        for row  in range(0,self.graph.nr_of_rows):
+            for col  in range(0,self.graph.nr_of_cols):
+                current = self.graph.get(row,col)
+                if current is None:
+                    print("Error, can not find: ",MatrixGraph.make_label(row,col))
+                    return
+                else:
+                    return
+
+class Square:
+
+    def __init__(self,row:int,col:int,outer_size:int,line_width:int):
+        self.row= row
+        self.col= col
+        self.outer_size = outer_size
+        self.line_width = line_width
+
+        self.up     = False
+        self.down   = False
+        self.left   = False
+        self.right  = False
+
+        self._calculate()
+
+    def _calculate(self):
+        
+        self.x1 = self.col * (self.outer_size - self.line_width )
+        self.x2 = self.x1 + self.outer_size
+        self.y1 = self.row * (self.outer_size - self.line_width )
+        self.y2 = self.y1 + self.outer_size
+
+        self.x1_inner = self.x1 + self.line_width
+        self.x2_inner = self.x2 - self.line_width
+        self.y1_inner = self.y1 + self.line_width
+        self.y2_inner = self.y2 - self.line_width
+
+        self.up_left       = (self.x1,self.y1)
+        self.up_right      = (self.x2,self.y1)
+        self.down_left     = (self.x1,self.y2)
+        self.down_right    = (self.x2,self.y2)
+
+
+    def draw(self,img_draw:ImageDraw, color):
+        if self.up:
+            self._draw_up(img_draw,color)
+        if self.down:
+            self._draw_down(img_draw,color)
+        if self.right:
+            self._draw_right(img_draw,color)
+        if self.left:
+            self._draw_left(img_draw,color)
+
+    def enable_all(self):
+        self.up     = True
+        self.down   = True
+        self.left   = True
+        self.right  = True
+
+    def disable_all(self):
+        self.up     = False
+        self.down   = False
+        self.left   = False
+        self.right  = False
+
+
+    def _draw_up(self,img_draw:ImageDraw, color):
+        img_draw.rectangle(
+            ( 
+                self.up_left,
+                (self.x2,self.y1_inner)
+            ),
+            outline=color,
+            fill=color
+            )
+
+    def _draw_left(self,img_draw:ImageDraw, color):
+        img_draw.rectangle(
+            ( 
+                self.up_left,
+                (self.x1_inner,self.y2)
+            ),
+            outline=color,
+            fill=color
+            )
+
+    def _draw_down(self,img_draw:ImageDraw, color):
+        img_draw.rectangle(
+            ( 
+                (self.x1,self.y2_inner),
+                self.down_right
+            ),
+            outline=color,
+            fill=color
+            )
+
+    def _draw_right(self,img_draw:ImageDraw, color):
+        img_draw.rectangle(
+            ( 
+                (self.x2_inner,self.y1),
+                self.down_right
+            ),
+            outline=color,
+            fill=color
+            )
+
+
+
 
 
 if __name__ == "__main__":
@@ -246,3 +405,6 @@ if __name__ == "__main__":
     #graph.sum_path_l_r_col()
     graph = MatrixGraph.make_plain_graph(4,4,set(["r","d"]))
     graph.sum_path_l_r()
+
+    mazeImg = MazeImage(graph,"test")
+    mazeImg.img.show(f"Maze {mazeImg.name}")
