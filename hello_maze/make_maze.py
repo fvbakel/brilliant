@@ -1,12 +1,25 @@
 from os import name
 from PIL import Image, ImageDraw
+import logging
+
+class Node: pass
 
 class Edge:
 
-    def __init__(self,parent,child):
-        self.parent = parent
-        self.child = child
+    def __init__(self,parent:Node,child:Node):
+        self.parent:Node = parent
+        self.child:Node = child
+        self.active =True
+
+    def reset(self):
+        self.active = False
+
+    def enable(self):
+        self.active = True
     
+    def disable(self):
+        self.active = False
+
 class Node:
 
     def __init__(self,x,y,weight):
@@ -14,9 +27,9 @@ class Node:
         self.y = y
         self.label = MatrixGraph.make_label(x,y)
         self.weight = weight
-        self.child_edges = set()
-        self.parent_edges = set()
-        self.prev = None
+        self.child_edges:set[Edge] = set()
+        self.parent_edges:set[Edge] = set()
+        self.prev:Node = None
         self.dist = -1 # is for infinit
         self.visited = False
 
@@ -28,7 +41,7 @@ class Node:
         self.dist = -1 # is for infinit
         self.visited = False
 
-    def add_child_edge(self,node):
+    def add_child_edge(self,node:Node):
         if self == node:
             print("ERROR: connect to self is not allowed")
             return
@@ -46,23 +59,29 @@ class Node:
         for edge in self.child_edges:
             if edge.child == node:
                 return True
-
         return False
+
+    def visit_all(self):
+        self.visited = True
+        for edge in self.child_edges:
+            if edge.child.visited == False:
+                edge.child.visit_all()
 
 class MatrixGraph:
 
     def __init__(self):
-        self.nodes = dict()
-        self.edges = set()
+        self.nodes:dict[str,Node] = dict()
+        self.edges:set[Edge] = set()
         self._first = None
-        self.col_first = None
-        self.col_last = None
+        self._last = None
         self.nr_of_rows = 0
         self.nr_of_cols = 0
 
     def reset(self):
         for node in self.nodes.values():
             node.reset()
+        for edge in self.edges:
+            edge.reset()
     
     def get(self,x,y) ->Node:
         label = MatrixGraph.make_label(x,y)
@@ -83,9 +102,23 @@ class MatrixGraph:
             return node
     
     def init_first_and_last(self):
-        self.col_first = self.get_or_create("col",0,0)
-        self.col_last = self.get_or_create("col",(self.nr_of_cols-1),0)
+        self._first = self.get(0,0)
+        self._last = self.get((self.nr_of_cols-1),self.nr_of_rows-1)
+
     
+    def isFullyConnected(self):
+        self.reset()
+        current = self._first
+        current.visit_all()
+
+        for node in self.nodes.values():
+            if not node.visited:
+                logging.info(f"Node {node} is not connected")
+                return False
+        
+        return True
+
+
     def get_min_node_not_visited(self):
         current = None
         for node in self.nodes.values():
@@ -110,8 +143,8 @@ class MatrixGraph:
     
     def sum_path_l_r_col(self):
         total = 0
-        start = self.col_first
-        end = self.col_last
+        start = self.first
+        end = self.last
         path = self.find_short_path_dijkstra(start,end)
 
         for node in path:
@@ -189,12 +222,6 @@ class MatrixGraph:
                             self.edges.add(edge)
                         else:
                             print("Error, can not find child in previous row for: ",current.label)    
-                    if col == 0:
-                        edge = self.col_first.add_child_edge(current)
-                        self.edges.add(edge)
-                    if col == (self.nr_of_cols - 1):
-                        edge = current.add_child_edge(self.col_last)
-                        self.edges.add(edge)
 
                 col = col + 1
             row = row + 1
@@ -237,17 +264,16 @@ class MatrixGraph:
 
         return graph
 
-from typing import List
+
 class MazeImage:
     def __init__(self,graph:MatrixGraph ,name:str ):
         self.graph=graph
         self.name = name
-        self.squares:List[List[Square]] = []
-        
+        self.squares:list[list[Square]] = []
+        # TODO calculate based on graph size
         self.square_size = 100
         self.line_width = 5
-
-        # TODO calculate based on graph size
+        
         self.width = (graph.nr_of_cols * (self.square_size - self.line_width)) + self.line_width
         self.height = (graph.nr_of_rows * (self.square_size - self.line_width)) + self.line_width
 
@@ -293,7 +319,7 @@ class MazeImage:
                     self.squares[row][col].down_neighbor = self.squares[row +1][col]
                 if col != 0:
                     self.squares[row][col].left_neighbor = self.squares[row][col -1]
-                    print(f"setting left neighbor for: {row},{col} to {self.squares[row][col].left_neighbor.row},{self.squares[row][col].left_neighbor.col}")
+                    logging.debug(f"setting left neighbor for: {row},{col} to {self.squares[row][col].left_neighbor.row},{self.squares[row][col].left_neighbor.col}")
                 if col != self.graph.nr_of_cols -1:
                     self.squares[row][col].right_neighbor = self.squares[row][col + 1]
 
@@ -375,7 +401,7 @@ class Square:
     def set_left_value(self,value:bool):
         self._left = value
         if self.left_neighbor != None:
-            print("setting left neighbor right to false because left was set to false")
+            logging.info("setting left neighbor right to false because left was set to false")
             self.left_neighbor._right = value
     
     def set_right_value(self,value:bool):
@@ -438,18 +464,34 @@ class Square:
             )
 
 
+class TestFunctions:
+    def testMaze():
+        graph = MatrixGraph.make_plain_graph(4,4,set(["r","d"]))
+        graph.sum_path_l_r()
 
+        mazeImg = MazeImage(graph,"test")
+        mazeImg.test_grid()
+        mazeImg.img.show(f"Maze {mazeImg.name}")
+
+    def testFullyConnected():
+        logging.debug("Fully connected test 1")
+        graph = MatrixGraph.make_plain_graph(4,4,set(["r","d","u","d"]))
+        assert(graph.isFullyConnected())
+        logging.debug("Fully connected test 1 passed")
+
+        logging.debug("Fully connected test 2")
+        graph = MatrixGraph.make_plain_graph(4,4,set(["r","d"]))
+        assert(graph.isFullyConnected())
+        logging.debug("Fully connected test 2 passed")
+
+        logging.debug("Fully connected test 3")
+        graph = MatrixGraph.make_plain_graph(4,4,set(["r"]))
+        assert(not graph.isFullyConnected())
+        logging.debug("Fully connected test 3 passed")
 
 
 if __name__ == "__main__":
-    #graph = MatrixGraph.read_from_file("./data/p081_small_matrix.txt",set(["r","u","d","l"]))
-    #graph = MatrixGraph.read_from_file("./data/p083_matrix.txt",set(["r","u","d","l"]))
-    #graph = MatrixGraph.read_from_file("./data/p082_matrix.txt",set(["r","u","d"]))
-    #graph = MatrixGraph.read_from_file("./data/p081_matrix.txt")
-    #graph.sum_path_l_r_col()
-    graph = MatrixGraph.make_plain_graph(4,4,set(["r","d"]))
-    graph.sum_path_l_r()
-
-    mazeImg = MazeImage(graph,"test")
-    mazeImg.test_grid()
-    mazeImg.img.show(f"Maze {mazeImg.name}")
+    logging.basicConfig(level=logging.DEBUG)
+    #TestFunctions.testMaze()
+    TestFunctions.testFullyConnected()
+    
