@@ -22,10 +22,10 @@ class Edge:
 
 class Node:
 
-    def __init__(self,x,y,weight):
-        self.x = x
-        self.y = y
-        self.label = MatrixGraph.make_label(x,y)
+    def __init__(self,col,row,weight):
+        self.col = col
+        self.row = row
+        self.label = MatrixGraph.make_label(col,row)
         self.weight = weight
         self.child_edges:set[Edge] = set()
         self.parent_edges:set[Edge] = set()
@@ -83,19 +83,19 @@ class MatrixGraph:
         for edge in self.edges:
             edge.reset()
     
-    def get(self,x,y) ->Node:
-        label = MatrixGraph.make_label(x,y)
+    def get(self,col,row) ->Node:
+        label = MatrixGraph.make_label(col,row)
         if label in self.nodes:
             return self.nodes[label]
         else:
             return None
 
-    def get_or_create(self,x,y,weight):
-        label = MatrixGraph.make_label(x,y)
+    def get_or_create(self,col,row,weight):
+        label = MatrixGraph.make_label(col,row)
         if label in self.nodes:
             return self.nodes[label]
         else:
-            node = Node(x,y,weight)
+            node = Node(col,row,weight)
             self.nodes[label] = node
             if self._first is None:
                 self._first = node
@@ -204,41 +204,41 @@ class MatrixGraph:
                 current = current.prev
         return path
 
-    def make_label(x,y):
-        return str(x) + "-" + str(y)
+    def make_label(col,row):
+        return str(col) + "-" + str(row)
 
     def init_edges(self,allowed_directions = set(["r","d"])):
         row = 0
         while row  < self.nr_of_rows:
             col = 0
             while col < self.nr_of_cols:
-                current = self.get(row,col)
+                current = self.get(col,row)
                 if current is None:
-                    print("Error, can not find: ",MatrixGraph.make_label(row,col))
+                    print("Error, can not find: ",MatrixGraph.make_label(col,row))
                 else:
                     if "r" in allowed_directions and col != (self.nr_of_cols - 1):
-                        child = self.get(row,col+1)
+                        child = self.get(col+1,row)
                         if child is not None:
                             edge = current.add_child_edge(child)
                             self.edges.add(edge)
                         else:
                             print("Error, can not find child in next col for: ",current.label)
                     if "l" in allowed_directions and col != 0:
-                        child = self.get(row,col-1)
+                        child = self.get(col-1,row)
                         if child is not None:
                             edge = current.add_child_edge(child)
                             self.edges.add(edge)
                         else:
                             print("Error, can not find child in previous col for: ",current.label)
                     if "d" in allowed_directions and row != (self.nr_of_rows - 1):
-                        child = self.get(row +1,col)
+                        child = self.get(col,row +1)
                         if child is not None:
                             edge = current.add_child_edge(child)
                             self.edges.add(edge)
                         else:
                             print("Error, can not find child in next row for: ",current.label)    
                     if "u" in allowed_directions and row != 0:
-                        child = self.get(row -1,col)
+                        child = self.get(col,row -1)
                         if child is not None:
                             edge = current.add_child_edge(child)
                             self.edges.add(edge)
@@ -255,7 +255,7 @@ class MatrixGraph:
 
         for row in range(0,graph.nr_of_rows):
             for col in range(0,graph.nr_of_cols):
-                node = graph.get_or_create(row,col,1)
+                node = graph.get_or_create(col,row,1)
 
         graph.init_first_and_last()
         graph.init_edges(allowed_directions)
@@ -330,8 +330,8 @@ class MazeImage:
         for row in range(0,self.graph.nr_of_rows):
             self.squares.append([])
             for col in range(0,self.graph.nr_of_cols):
-                self.squares[row].append(Square(row,col,self.square_size,self.line_width))
-                #self.graph.get(row,col)
+                self.squares[row].append(Square(col,row,self.square_size,self.line_width))
+                #self.graph.get(col,row)
         
         for row in range(0,self.graph.nr_of_rows):
             for col in range(0,self.graph.nr_of_cols):
@@ -349,24 +349,24 @@ class MazeImage:
         self.img  = Image.new( mode = "1", size = (self.width, self.height),color=self.bg_color )
         self.draw = ImageDraw.Draw(self.img)
 
-    def get_square(self,row:int,col:int):
-        return self.squares[row,col]
+    def get_square(self,col:int,row:int):
+        return self.squares[col,row]
 
     def generate(self):
         for row  in range(0,self.graph.nr_of_rows):
             for col  in range(0,self.graph.nr_of_cols):
-                current = self.graph.get(row,col)
+                current = self.graph.get(col,row)
                 if current is None:
-                    print("Error, can not find: ",MatrixGraph.make_label(row,col))
+                    print("Error, can not find: ",MatrixGraph.make_label(col,row))
                     return
                 else:
                     return
 
 class Square:
 
-    def __init__(self,row:int,col:int,outer_size:int,line_width:int):
-        self.row= row
-        self.col= col
+    def __init__(self,col:int,row:int,outer_size:int,line_width:int):
+        self.col = col
+        self.row = row
         self.outer_size = outer_size
         self.line_width = line_width
 
