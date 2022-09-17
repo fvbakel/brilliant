@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from os import name
 from PIL import Image, ImageDraw
 import logging
@@ -74,8 +75,7 @@ class MatrixGraph:
         self.edges:set[Edge] = set()
         self._first = None
         self._last = None
-        self.nr_of_rows = 0
-        self.nr_of_cols = 0
+        self.size = GridSize(0,0)
 
     def reset(self):
         for node in self.nodes.values():
@@ -103,7 +103,7 @@ class MatrixGraph:
     
     def init_first_and_last(self):
         self._first = self.get(0,0)
-        self._last = self.get((self.nr_of_cols-1),self.nr_of_rows-1)
+        self._last = self.get((self.size.nr_of_cols-1),self.size.nr_of_rows-1)
 
     
     def is_fully_connected(self):
@@ -155,7 +155,7 @@ class MatrixGraph:
     def sum_path_l_r(self):
         total = 0
         start = self.get(0,0)
-        end = self.get((self.nr_of_rows -1),(self.nr_of_cols -1))
+        end = self.get((self.size.nr_of_cols -1),(self.size.nr_of_rows -1))
         path = self.find_short_path_dijkstra(start,end)
 
         for node in path:
@@ -209,14 +209,14 @@ class MatrixGraph:
 
     def init_edges(self,allowed_directions = set(["r","d"])):
         row = 0
-        while row  < self.nr_of_rows:
+        while row  < self.size.nr_of_rows:
             col = 0
-            while col < self.nr_of_cols:
+            while col < self.size.nr_of_cols:
                 current = self.get(col,row)
                 if current is None:
                     print("Error, can not find: ",MatrixGraph.make_label(col,row))
                 else:
-                    if "r" in allowed_directions and col != (self.nr_of_cols - 1):
+                    if "r" in allowed_directions and col != (self.size.nr_of_cols - 1):
                         child = self.get(col+1,row)
                         if child is not None:
                             edge = current.add_child_edge(child)
@@ -230,7 +230,7 @@ class MatrixGraph:
                             self.edges.add(edge)
                         else:
                             print("Error, can not find child in previous col for: ",current.label)
-                    if "d" in allowed_directions and row != (self.nr_of_rows - 1):
+                    if "d" in allowed_directions and row != (self.size.nr_of_rows - 1):
                         child = self.get(col,row +1)
                         if child is not None:
                             edge = current.add_child_edge(child)
@@ -250,11 +250,11 @@ class MatrixGraph:
 
     def make_plain_graph(nr_of_cols = 4,nr_of_rows = 4,allowed_directions = set(["r","d"])):
         graph = MatrixGraph()
-        graph.nr_of_cols = nr_of_cols
-        graph.nr_of_rows = nr_of_rows
+        graph.size.nr_of_cols = nr_of_cols
+        graph.size.nr_of_rows = nr_of_rows
 
-        for row in range(0,graph.nr_of_rows):
-            for col in range(0,graph.nr_of_cols):
+        for row in range(0,graph.size.nr_of_rows):
+            for col in range(0,graph.size.nr_of_cols):
                 node = graph.get_or_create(col,row,1)
 
         graph.init_first_and_last()
@@ -270,8 +270,8 @@ class MatrixGraph:
                 if line is not None:
                     line = line.strip()
                     fields = line.split(",")
-                    if graph.nr_of_cols == 0:
-                        graph.nr_of_cols = len(fields)
+                    if graph.size.nr_of_cols == 0:
+                        graph.size.nr_of_cols = len(fields)
                     col = 0
                     
                     for field in fields:
@@ -286,18 +286,22 @@ class MatrixGraph:
 
         return graph
 
+@dataclass
+class GridSize:
+    nr_of_cols:int
+    nr_of_rows:int
 
 class MazeImage:
-    def __init__(self,graph:MatrixGraph ,name:str ):
-        self.graph=graph
+    def __init__(self,size:GridSize ,name:str ):
+        self.size = size
         self.name = name
         self.squares:list[list[Square]] = []
-        # TODO calculate based on graph size
+        # TODO calculate based on size
         self.square_size = 100
         self.line_width = 5
         
-        self.width = (graph.nr_of_cols * (self.square_size - self.line_width)) + self.line_width
-        self.height = (graph.nr_of_rows * (self.square_size - self.line_width)) + self.line_width
+        self.width = (size.nr_of_cols * (self.square_size - self.line_width)) + self.line_width
+        self.height = (size.nr_of_rows * (self.square_size - self.line_width)) + self.line_width
 
         self.bg_color = 1
         self.fg_color = 0
@@ -305,44 +309,29 @@ class MazeImage:
         self._init_img()
         self._init_squares()
 
-    def test_grid(self):
-        for row in range(0,self.graph.nr_of_rows):
-            for col in range(0,self.graph.nr_of_cols):
-                self.squares[row][col].enable_all()
- 
-        self.squares[0][0].set_up_value(False)
-        self.squares[0][1].set_left_value(False)
-        self.squares[0][1].set_down_value(False)
-        self.squares[1][1].set_right_value(False)
-        self.squares[1][2].set_down_value(False)
-        self.squares[3][2].set_up_value(False)
-        self.squares[3][3].set_left_value(False)
-        self.squares[3][3].set_down_value(False)
-  
-        self.draw_squares()
+
 
     def draw_squares(self):
-        for row in range(0,self.graph.nr_of_rows):
-            for col in range(0,self.graph.nr_of_cols):
+        for row in range(0,self.size.nr_of_rows):
+            for col in range(0,self.size.nr_of_cols):
                 self.squares[row][col].draw(self.draw,self.fg_color)
 
     def _init_squares(self):
-        for row in range(0,self.graph.nr_of_rows):
+        for row in range(0,self.size.nr_of_rows):
             self.squares.append([])
-            for col in range(0,self.graph.nr_of_cols):
+            for col in range(0,self.size.nr_of_cols):
                 self.squares[row].append(Square(col,row,self.square_size,self.line_width))
-                #self.graph.get(col,row)
         
-        for row in range(0,self.graph.nr_of_rows):
-            for col in range(0,self.graph.nr_of_cols):
+        for row in range(0,self.size.nr_of_rows):
+            for col in range(0,self.size.nr_of_cols):
                 if row != 0:
                     self.squares[row][col].up_neighbor = self.squares[row -1][col]
-                if row != self.graph.nr_of_rows -1:
+                if row != self.size.nr_of_rows -1:
                     self.squares[row][col].down_neighbor = self.squares[row +1][col]
                 if col != 0:
                     self.squares[row][col].left_neighbor = self.squares[row][col -1]
                     logging.debug(f"setting left neighbor for: {row},{col} to {self.squares[row][col].left_neighbor.row},{self.squares[row][col].left_neighbor.col}")
-                if col != self.graph.nr_of_cols -1:
+                if col != self.size.nr_of_cols -1:
                     self.squares[row][col].right_neighbor = self.squares[row][col + 1]
 
     def _init_img(self):
@@ -352,11 +341,15 @@ class MazeImage:
     def get_square(self,col:int,row:int):
         return self.squares[col,row]
 
-    def generate(self):
-        for row  in range(0,self.graph.nr_of_rows):
-            for col  in range(0,self.graph.nr_of_cols):
-                current = self.graph.get(col,row)
-                if current is None:
+    def draw_graph(self,graph:MatrixGraph):
+        if self.size != graph.size:
+            print("Error, size of maze is different from graph!")
+            return
+
+        for row  in range(0,self.size.nr_of_rows):
+            for col  in range(0,self.size.nr_of_cols):
+                current_node = graph.get(col,row)
+                if current_node is None:
                     print("Error, can not find: ",MatrixGraph.make_label(col,row))
                     return
                 else:
@@ -488,12 +481,26 @@ class Square:
 
 class TestFunctions:
     def test_maze():
-        graph = MatrixGraph.make_plain_graph(4,4,set(["r","d"]))
-        graph.sum_path_l_r()
+        size = GridSize(4,4)
+        maze_img = MazeImage(size,"test")
+        
+        
+        for row in range(0,maze_img.size.nr_of_rows):
+            for col in range(0,maze_img.size.nr_of_cols):
+                maze_img.squares[row][col].enable_all()
+ 
+        maze_img.squares[0][0].set_up_value(False)
+        maze_img.squares[0][1].set_left_value(False)
+        maze_img.squares[0][1].set_down_value(False)
+        maze_img.squares[1][1].set_right_value(False)
+        maze_img.squares[1][2].set_down_value(False)
+        maze_img.squares[3][2].set_up_value(False)
+        maze_img.squares[3][3].set_left_value(False)
+        maze_img.squares[3][3].set_down_value(False)
+  
+        maze_img.draw_squares()
 
-        mazeImg = MazeImage(graph,"test")
-        mazeImg.test_grid()
-        mazeImg.img.show(f"Maze {mazeImg.name}")
+        maze_img.img.show(f"Maze {maze_img.name}")
 
     def test_fully_connected():
         logging.debug("Fully connected test 1")
@@ -524,7 +531,8 @@ class TestFunctions:
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
-    #TestFunctions.test_maze()
+    TestFunctions.test_maze()
     TestFunctions.test_fully_connected()
     TestFunctions.test_check_recursion_first()
-    
+
+
