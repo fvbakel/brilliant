@@ -106,7 +106,7 @@ class MatrixGraph:
         self._last = self.get((self.nr_of_cols-1),self.nr_of_rows-1)
 
     
-    def isFullyConnected(self):
+    def is_fully_connected(self):
         self.reset()
         current = self._first
         current.visit_all()
@@ -118,6 +118,28 @@ class MatrixGraph:
         
         return True
 
+    def check_recursion_first(self):
+        return self.check_recursion(self._first)
+
+    def check_recursion(self,node:Node):
+        path = [node]
+        is_recursive = self._check_recursion_internal(None,node,path)
+        if is_recursive:
+            logging.debug("Recursion found in path: {}".format(' -> '.join(map(str,path))))
+        return is_recursive
+
+    def _check_recursion_internal(self,previous_node:Node,current_node:Node,path:list[Node]):
+        for edge in current_node.child_edges:
+            if edge.child == previous_node:
+                continue
+            else:
+                path.append(edge.child)
+                if edge.child in set(path[:-1]):
+                    return True
+                if self._check_recursion_internal(current_node,edge.child,path):
+                    return True
+                path.pop()
+        return False
 
     def get_min_node_not_visited(self):
         current = None
@@ -465,7 +487,7 @@ class Square:
 
 
 class TestFunctions:
-    def testMaze():
+    def test_maze():
         graph = MatrixGraph.make_plain_graph(4,4,set(["r","d"]))
         graph.sum_path_l_r()
 
@@ -473,25 +495,36 @@ class TestFunctions:
         mazeImg.test_grid()
         mazeImg.img.show(f"Maze {mazeImg.name}")
 
-    def testFullyConnected():
+    def test_fully_connected():
         logging.debug("Fully connected test 1")
-        graph = MatrixGraph.make_plain_graph(4,4,set(["r","d","u","d"]))
-        assert(graph.isFullyConnected())
+        graph = MatrixGraph.make_plain_graph(4,4,set(["r","d","u","l"]))
+        assert(graph.is_fully_connected())
         logging.debug("Fully connected test 1 passed")
 
         logging.debug("Fully connected test 2")
         graph = MatrixGraph.make_plain_graph(4,4,set(["r","d"]))
-        assert(graph.isFullyConnected())
+        assert(graph.is_fully_connected())
         logging.debug("Fully connected test 2 passed")
 
         logging.debug("Fully connected test 3")
         graph = MatrixGraph.make_plain_graph(4,4,set(["r"]))
-        assert(not graph.isFullyConnected())
+        assert(not graph.is_fully_connected())
         logging.debug("Fully connected test 3 passed")
 
+    def test_check_recursion_first():
+        logging.debug("test_check_recursion_first test 1")
+        graph = MatrixGraph.make_plain_graph(4,4,set(["r","d","u","l"]))
+        assert(graph.check_recursion_first())
+        logging.debug("test_check_recursion_first test 1 passed")
+
+        logging.debug("test_check_recursion_first test 2")
+        graph = MatrixGraph.make_plain_graph(4,4,set(["r","d"]))
+        assert(not graph.check_recursion_first())
+        logging.debug("test_check_recursion_first test 2 passed")
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
-    #TestFunctions.testMaze()
-    TestFunctions.testFullyConnected()
+    #TestFunctions.test_maze()
+    TestFunctions.test_fully_connected()
+    TestFunctions.test_check_recursion_first()
     
