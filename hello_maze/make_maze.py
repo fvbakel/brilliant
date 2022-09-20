@@ -10,6 +10,10 @@ import random
 class Node: pass
 class Position: pass
 
+BLACK = 0
+WHITE = 255
+MIDDLE = 200
+
 @dataclass
 class GridSize:
     nr_of_cols:int
@@ -235,6 +239,8 @@ class MatrixGraph:
         while current and not found:
             current.visited = True
             for edge in current.child_edges:
+                if not edge.active:
+                    continue
                 other = edge.child
                 if other.visited == False:
                     alt = current.dist + other.weight
@@ -410,6 +416,8 @@ class MazeGenerator:
             if not self.graph.is_fully_connected():
                 pair.enable()
 
+
+
 class MazeImage:
     def __init__(self,size:GridSize ,name:str ):
         self.size = size
@@ -422,8 +430,9 @@ class MazeImage:
         self.width = (size.nr_of_cols * (self.square_size - self.line_width)) + self.line_width
         self.height = (size.nr_of_rows * (self.square_size - self.line_width)) + self.line_width
 
-        self.bg_color = 1
-        self.fg_color = 0
+        self.bg_color = WHITE
+        self.fg_color = BLACK
+        self.bg_path_color = MIDDLE
         
         self._init_img()
         self._init_squares()
@@ -454,7 +463,9 @@ class MazeImage:
                     self.squares[row][col].right_neighbor = self.squares[row][col + 1]
 
     def _init_img(self):
-        self.img  = Image.new( mode = "1", size = (self.width, self.height),color=self.bg_color )
+        # "1" is 1 bit
+        # "L" id 8 bit
+        self.img  = Image.new( mode = "L", size = (self.width, self.height),color=self.bg_color )
         self.draw = ImageDraw.Draw(self.img)
 
     def get_square(self,col:int,row:int):
@@ -490,6 +501,8 @@ class MazeImage:
             print("Error, size of maze is different from graph!")
             return
 
+        path = set(graph.find_short_path_dijkstra(graph._first,graph._last))
+
         for row  in range(0,self.size.nr_of_rows):
             for col  in range(0,self.size.nr_of_cols):
                 current_node = graph.get(col,row)
@@ -501,6 +514,9 @@ class MazeImage:
                 if current_square is None:
                     print(f"Error, can not find square in maze: {col}-{row} ")
                     return
+
+                if current_node in path:
+                    current_square.bg_color = self.bg_path_color
 
                 current_pos = Position(current_node.col,current_node.row)
                 for edge in current_node.child_edges:
@@ -523,6 +539,7 @@ class Square:
         self.row = row
         self.outer_size = outer_size
         self.line_width = line_width
+        self.bg_color = None
 
         self._up     = False
         self._down   = False
@@ -554,15 +571,24 @@ class Square:
         self.down_right    = (self.x2,self.y2)
 
 
-    def draw(self,img_draw:ImageDraw, color):
+    def draw(self,img_draw:ImageDraw, fg_color):
+        if self.bg_color != None:
+            img_draw.rectangle(
+            ( 
+                self.up_left,
+                self.down_right,
+            ),
+            outline=self.bg_color,
+            fill=self.bg_color
+            )
         if self._up:
-            self._draw_up(img_draw,color)
+            self._draw_up(img_draw,fg_color)
         if self._down:
-            self._draw_down(img_draw,color)
+            self._draw_down(img_draw,fg_color)
         if self._right:
-            self._draw_right(img_draw,color)
+            self._draw_right(img_draw,fg_color)
         if self._left:
-            self._draw_left(img_draw,color)
+            self._draw_left(img_draw,fg_color)
 
     def set_up_value(self,value:bool):
         self._up = value
@@ -598,7 +624,7 @@ class Square:
         self.set_all_value(False)
 
 
-    def _draw_up(self,img_draw:ImageDraw, color):
+    def _draw_up(self,img_draw:ImageDraw, color):       
         img_draw.rectangle(
             ( 
                 self.up_left,
@@ -727,7 +753,7 @@ class TestFunctions:
         assert(graph.is_fully_connected)
         logging.debug(f"{test_name} end")
 
-        size = GridSize(10,5)
+        size = GridSize(30,10)
         test_name = "maze_gen_test_2"
         logging.debug(f"{test_name} Start")
         maze_gen = MazeGenerator(size)
