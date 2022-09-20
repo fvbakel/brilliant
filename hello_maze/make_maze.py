@@ -180,7 +180,7 @@ class MatrixGraph:
 
     def _check_recursion_internal(self,previous_node:Node,current_node:Node,path:list[Node]):
         for edge in current_node.child_edges:
-            if edge.child == previous_node:
+            if not edge.active or edge.child == previous_node:
                 continue
             else:
                 path.append(edge.child)
@@ -393,7 +393,7 @@ class Graph2Dot:
 class MazeGenerator:
 
     def __init__(self,size:GridSize):
-        self.graph = MatrixGraph.make_plain_graph(size= size,allowed_directions = set(["r","d","l","d"]))
+        self.graph = MatrixGraph.make_plain_graph(size= size,allowed_directions = set(["r","d","l","u"]))
         self.edge_pairs = self.graph.edge_pairs.copy()
         self._enable_all_edges()
         self._generate()
@@ -721,6 +721,23 @@ class TestFunctions:
         maze_img.set_graph(graph)
         maze_img.draw_squares()
         maze_img.img.save(f"/home/fvbakel/tmp/{test_name}.png")
+        Graph2Dot(graph).render(f"{test_name}.dot","/home/fvbakel/tmp")
+
+        assert(not graph.check_recursion_first())
+        assert(graph.is_fully_connected)
+        logging.debug(f"{test_name} end")
+
+        size = GridSize(10,5)
+        test_name = "maze_gen_test_2"
+        logging.debug(f"{test_name} Start")
+        maze_gen = MazeGenerator(size)
+        graph = maze_gen.graph
+
+        maze_img = MazeImage(size,test_name)
+        maze_img.set_graph(graph)
+        maze_img.draw_squares()
+        maze_img.img.save(f"/home/fvbakel/tmp/{test_name}.png")
+        # Graph2Dot(graph).render(f"{test_name}.dot","/home/fvbakel/tmp")
 
         assert(not graph.check_recursion_first())
         assert(graph.is_fully_connected)
