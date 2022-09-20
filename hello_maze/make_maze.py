@@ -1,11 +1,40 @@
 from dataclasses import dataclass
+from inspect import isfunction
 from multiprocessing.util import ForkAwareThreadLock
 from os import name
 from PIL import Image, ImageDraw
 import logging
+import graphviz
+import random
 
 class Node: pass
 class Position: pass
+
+@dataclass
+class GridSize:
+    nr_of_cols:int
+    nr_of_rows:int
+
+@dataclass
+class Position:
+    col:int
+    row:int
+
+    def get_direction(self,pos:Position):
+        if self == pos:
+            return "equal"
+
+        if self.col == pos.col:
+            if self.row > pos.row:
+                return "u"
+            if self.row < pos.row:
+                return "d"
+        
+        if self.row == pos.row:
+            if self.col > pos.col:
+                return "l"
+            if self.col < pos.col:
+                return "r"
 
 class Edge:
 
@@ -15,7 +44,7 @@ class Edge:
         self.active =True
 
     def reset(self):
-        self.active = False
+        self.active = True
 
     def enable(self):
         self.active = True
@@ -73,7 +102,7 @@ class Node:
     def visit_all(self):
         self.visited = True
         for edge in self.child_edges:
-            if edge.child.visited == False:
+            if edge.active and not edge.child.visited:
                 edge.child.visit_all()
 
 @dataclass(frozen=True,eq=True)
@@ -103,8 +132,6 @@ class MatrixGraph:
     def reset(self):
         for node in self.nodes.values():
             node.reset()
-        for edge in self.edges:
-            edge.reset()
     
     def get(self,col,row) ->Node:
         label = MatrixGraph.make_label(col,row)
@@ -250,7 +277,6 @@ class MatrixGraph:
 
                 self.edge_pairs.add(pair)
 
-
     def init_edges(self,allowed_directions = set(["r","d"])):
         row = 0
         while row  < self.size.nr_of_rows:
@@ -275,10 +301,9 @@ class MatrixGraph:
                 col = col + 1
             row = row + 1
 
-    def make_plain_graph(nr_of_cols = 4,nr_of_rows = 4,allowed_directions = set(["r","d"])):
+    def make_plain_graph(size:GridSize,allowed_directions = set(["r","d"])):
         graph = MatrixGraph()
-        graph.size.nr_of_cols = nr_of_cols
-        graph.size.nr_of_rows = nr_of_rows
+        graph.size = size
 
         for row in range(0,graph.size.nr_of_rows):
             for col in range(0,graph.size.nr_of_cols):
@@ -313,34 +338,77 @@ class MatrixGraph:
 
         return graph
 
-@dataclass
-class GridSize:
-    nr_of_cols:int
-    nr_of_rows:int
+class Graph2Dot:
 
-@dataclass
-class Position:
-    col:int
-    row:int
+    def __init__(self,graph:MatrixGraph):
+        self.graph = graph
+        self._refresh()
 
-    def get_direction(self,pos:Position):
-        if self == pos:
-            return "equal"
+    def _refresh(self):
+        self.dot = graphviz.Digraph()
+        self.dot.attr(rankdir='LR')
+        for node in self.graph.nodes.values():
+            self._add_node(node)
+        for edge in self.graph.edges:
+            #self._add_edge(edge)
+            self._add_edge_as_node(edge)
+        for pair in self.graph.edge_pairs:
+            self._add_edge_pair(pair)
 
-        if self.col == pos.col:
-            if self.row > pos.row:
-                return "u"
-            if self.row < pos.row:
-                return "d"
-        
-        if self.row == pos.row:
-            if self.col > pos.col:
-                return "l"
-            if self.col < pos.col:
-                return "r"
+    def _add_node(self,node:Node):
+        node_details = '<label> '
+        node_details += node.label
+        node_details += ' | <visited>'
+        node_details += str(node.visited)
+        self.dot.node(name=node.label,label=node_details,shape='record')
+    
+    def get_edge_id(edge):
+        return f"{edge.parent.label} -> {edge.child.label}"
+
+    def _add_edge_as_node(self,edge:Edge):
+        id = Graph2Dot.get_edge_id(edge)
+        node_details = '<parent> '
+        node_details += edge.parent.label
+        node_details += ' | <child> '
+        node_details += edge.child.label
+        node_details += ' | <active>'
+        node_details += str(edge.active)
+        self.dot.node(name=id,label=node_details,shape='record')
+
+        self.dot.edge(edge.parent.label,id,headport='parent')
+        self.dot.edge(id,edge.child.label,headport='child')
+
+    def _add_edge_pair(self,pair:EdgePair):
+        forward = Graph2Dot.get_edge_id(pair.forward)
+        backward = Graph2Dot.get_edge_id(pair.backward)
+        self.dot.edge(forward,backward,label=pair.orientation,style="dotted")
+
+    def _add_edge(self,edge:Edge):
+        self.dot.edge(edge.parent.label,edge.child.label,label=str(edge.active))
+
+    def render(self,filename:str,directory:str, format='svg'):
+        self.dot.render(filename=filename,directory=directory, format=format)
 
 
-        
+class MazeGenerator:
+
+    def __init__(self,size:GridSize):
+        self.graph = MatrixGraph.make_plain_graph(size= size,allowed_directions = set(["r","d","l","d"]))
+        self.edge_pairs = self.graph.edge_pairs.copy()
+        self._enable_all_edges()
+        self._generate()
+
+    def _enable_all_edges(self):
+        for pair in self.edge_pairs:
+            pair.enable()
+
+    def _generate(self):
+        while len(self.edge_pairs) > 0:
+            pair = random.choice(tuple(self.edge_pairs))
+            self.edge_pairs.remove(pair)
+            pair.disable()
+            if not self.graph.is_fully_connected():
+                pair.enable()
 
 class MazeImage:
     def __init__(self,size:GridSize ,name:str ):
@@ -436,7 +504,7 @@ class MazeImage:
 
                 current_pos = Position(current_node.col,current_node.row)
                 for edge in current_node.child_edges:
-                    if edge.active == True:
+                    if not edge.active:
                         child_pos = Position(edge.child.col,edge.child.row)
                         direction = current_pos.get_direction(child_pos)
                         if direction == "u":
@@ -591,64 +659,91 @@ class TestFunctions:
         maze_img.draw_squares()
 
         #maze_img.img.show(f"Maze {maze_img.name}")
-        maze_img.img.save("/tmp/maze_draw_test1.png")
+        maze_img.img.save("/home/fvbakel/tmp/maze_draw_test1.png")
 
         logging.debug("Maze draw test 1 end")
 
         logging.debug("Maze draw test 2")
-        graph = MatrixGraph.make_plain_graph(4,4,set(["r","d","u","l"]))
+        size = GridSize(4,4)
+        graph = MatrixGraph.make_plain_graph(size,set(["r","d","u","l"]))
         maze_img.set_graph(graph)
         maze_img.draw_squares()
-        maze_img.img.save("/tmp/maze_draw_test2.png")
+        maze_img.img.save("/home/fvbakel/tmp/maze_draw_test2.png")
         logging.debug("Maze draw test 2 end")
 
         test_name = "maze_draw_test_3"
         logging.debug(f"{test_name} Start")
         size = GridSize(2,2)
         maze_img = MazeImage(size,"test")
-        graph = MatrixGraph.make_plain_graph(size.nr_of_cols,size.nr_of_rows,set(["r","d"]))
+        graph = MatrixGraph.make_plain_graph(size,set(["r","d"]))
         maze_img.set_graph(graph)
         maze_img.draw_squares()
-        maze_img.img.save(f"/tmp/{test_name}.png")
+        maze_img.img.save(f"/home/fvbakel/tmp/{test_name}.png")
         logging.debug(f"{test_name} end")
 
         test_name = "maze_draw_test_4"
         logging.debug(f"{test_name} Start")
         size = GridSize(4,4)
         maze_img = MazeImage(size,test_name)
-        graph = MatrixGraph.make_plain_graph(size.nr_of_cols,size.nr_of_rows,set(["r","d","u","l"]))
+        graph = MatrixGraph.make_plain_graph(size,set(["r","d","u","l"]))
         
         maze_img.set_graph(graph)
         maze_img.draw_squares()
-        maze_img.img.save(f"/tmp/{test_name}.png")
+        maze_img.img.save(f"/home/fvbakel/tmp/{test_name}.png")
         logging.debug(f"{test_name} end")
 
     def test_fully_connected():
+        size = GridSize(4,4)
+        
         logging.debug("Fully connected test 1")
-        graph = MatrixGraph.make_plain_graph(4,4,set(["r","d","u","l"]))
+        graph = MatrixGraph.make_plain_graph(size,set(["r","d","u","l"]))
         assert(graph.is_fully_connected())
         logging.debug("Fully connected test 1 passed")
 
         logging.debug("Fully connected test 2")
-        graph = MatrixGraph.make_plain_graph(4,4,set(["r","d"]))
+        graph = MatrixGraph.make_plain_graph(size,set(["r","d"]))
         assert(graph.is_fully_connected())
         logging.debug("Fully connected test 2 passed")
 
         logging.debug("Fully connected test 3")
-        graph = MatrixGraph.make_plain_graph(4,4,set(["r"]))
+        graph = MatrixGraph.make_plain_graph(size,set(["r"]))
         assert(not graph.is_fully_connected())
         logging.debug("Fully connected test 3 passed")
 
+    def test_MazeGenerator():
+        size = GridSize(2,2)
+        test_name = "maze_gen_test_1"
+        logging.debug(f"{test_name} Start")
+        maze_gen = MazeGenerator(size)
+        graph = maze_gen.graph
+
+        maze_img = MazeImage(size,test_name)
+        maze_img.set_graph(graph)
+        maze_img.draw_squares()
+        maze_img.img.save(f"/home/fvbakel/tmp/{test_name}.png")
+
+        assert(not graph.check_recursion_first())
+        assert(graph.is_fully_connected)
+        logging.debug(f"{test_name} end")
+
     def test_check_recursion_first():
+        size = GridSize(4,4)
         logging.debug("test_check_recursion_first test 1")
-        graph = MatrixGraph.make_plain_graph(4,4,set(["r","d","u","l"]))
+        graph = MatrixGraph.make_plain_graph(size,set(["r","d","u","l"]))
         assert(graph.check_recursion_first())
         logging.debug("test_check_recursion_first test 1 passed")
 
         logging.debug("test_check_recursion_first test 2")
-        graph = MatrixGraph.make_plain_graph(4,4,set(["r","d"]))
+        graph = MatrixGraph.make_plain_graph(size,set(["r","d"]))
         assert(not graph.check_recursion_first())
         logging.debug("test_check_recursion_first test 2 passed")
+
+        size = GridSize(2,2)
+        logging.debug("test_check_recursion_first test 3")
+        graph = MatrixGraph.make_plain_graph(size,set(["r","d","u","l"]))
+        assert(graph.check_recursion_first())
+        Graph2Dot(graph).render("test_check_recursion.dot","/home/fvbakel/tmp")
+        logging.debug("test_check_recursion_first test 3 passed")
 
     def test_position_get_direction():
         pos_base  = Position(1,1)
@@ -670,5 +765,6 @@ if __name__ == "__main__":
     TestFunctions.test_fully_connected()
     TestFunctions.test_check_recursion_first()
     TestFunctions.test_position_get_direction()
+    TestFunctions.test_MazeGenerator()
 
 
