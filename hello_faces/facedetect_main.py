@@ -9,7 +9,7 @@ class Configuration:
 
     def __init__(self):
         self.default_model_file = "/usr/share/opencv4/haarcascades/haarcascade_frontalface_default.xml"
-        self.data_dir = "/home/fvbakel/Documenten/faces"
+        self.data_dir = "/home/fvbakel/faces"
         self.raw_dir = self.data_dir + "/raw"
         self.train_dir = self.data_dir + "/train_data"
         self.model_dir = self.data_dir + "/models"
@@ -17,6 +17,7 @@ class Configuration:
         self.model_file = self.model_dir + os.sep + self.model_name + ".yml"
         self.label_file = self.model_dir + os.sep + self.model_name + ".txt"
 
+from pathlib import Path
 class FaceDetector:
     def __init__(self, configuration):
         self.configuration = configuration
@@ -24,8 +25,13 @@ class FaceDetector:
         self.id_vs_name = dict()
         self.name_vs_id = dict()
         self.recognizer = cv2.face.LBPHFaceRecognizer_create()
-        self.recognizer.read(self.configuration.model_file)
-        self.read_label_file(self.configuration.label_file)
+        model_file = Path(self.configuration.model_file)
+        if model_file.is_file():
+            self.recognizer.read(self.configuration.model_file)
+            self.read_label_file(self.configuration.label_file)
+            self.model_loaded = True
+        else:
+            self.model_loaded = False
         self.current_image = None
         self.current_gray_image = None
         self.scale_factor = 1.3
@@ -143,6 +149,8 @@ class FaceDetector:
         return self.faces
     
     def get_person_names(self):
+        if not self.model_loaded:
+            return []
         person_names = []
         for (x,y,w,h) in self.faces:
             id,conf=self.recognizer.predict(self.current_gray_image[y:y+h,x:x+w])
@@ -172,6 +180,7 @@ class FaceDetectDialog:
     def __init__(self,face_detector):
         self.face_detect = face_detector
         self.right_width = 200
+        self.web_cam_max_width = 600
         self.auto_capture_name= None
         left_frame = [
             [sg.Image(filename='', key='_IMAGE_')]
@@ -203,6 +212,11 @@ class FaceDetectDialog:
         self.cap = cv2.VideoCapture(0)
         ret, self.frame = self.cap.read()
         self.mirror = cv2.flip(self.frame, 1)
+        h, w = self.mirror.shape[:2]
+        r = self.web_cam_max_width / float(w)
+        self.web_cam_dim= (self.web_cam_max_width, int(h * r))
+        self.smaller = cv2.resize(self.mirror, self.web_cam_dim, interpolation = cv2.INTER_AREA)
+
         self.person_img = None
         self.colors = []
         self.update_colors()
@@ -239,9 +253,12 @@ class FaceDetectDialog:
                 cv2.putText(self.mirror, label, (int(x), int(y)),cv2.FONT_HERSHEY_SIMPLEX, .75, color, 2)
             index +=1
 
+        self.smaller= cv2.resize(self.mirror, self.web_cam_dim, interpolation = cv2.INTER_AREA)
+
     def update_dialog(self):
         self.update_current_images()
-        imgbytes=cv2.imencode('.png', self.mirror)[1].tobytes()
+        #imgbytes=cv2.imencode('.png', self.mirror)[1].tobytes()
+        imgbytes=cv2.imencode('.png', self.smaller)[1].tobytes()
         self.window.FindElement('_IMAGE_').Update(data=imgbytes)
         
         if self.person_img is not None:
