@@ -1,18 +1,8 @@
-from turtle import down, left
-from maze_model import *
+from gamegrid import *
 import logging
 import unittest
 
-"""
-grid:    --->  cols -->
-        |   0               |   1               |   2   |   3 
-    ↓ 0 |   Cell 0-0        |   Cell 1-0        |
-    ↓   |                   |                   |
-    ↓---|-------------------|-------------------|--
- rows 1 |   Cell 0-1        |   Cell 1-1        |
-    ↓   |                   |                   |
-    ↓---|-------------------|-------------------|--
-"""
+
 class TestModel(unittest.TestCase):
 
     def test_direction(self):
@@ -37,18 +27,18 @@ class TestModel(unittest.TestCase):
 
     def make_test_grid(self):
         grid_size = Size(10,10)
-        grid = MazeGrid(grid_size)
+        grid = GameGrid(grid_size)
 
-        cell_1 = grid.get_cell((0,0))
-        cell_1.content = Wall()
-        cell_2 = grid.get_cell((1,0))
-        cell_2.content = Floor()
-        cell_2.content.guest = Particle()
+        location_1 = grid.get_location((0,0))
+        location_1.content = Wall()
+        location_2 = grid.get_location((1,0))
+        location_2.content = Floor()
+        location_2.content.guest = Particle()
 
         return grid
         
 
-    def test_TextMazeGridRender(self):
+    def test_TextGameGridRender(self):
         grid = self.make_test_grid()
 
         renderer = TextMazeGridRender(grid)

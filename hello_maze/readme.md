@@ -46,10 +46,10 @@
     class Location {
         
     }
-    class LocationContent {
+    class Object {
         
     }
-    Location --> LocationContent : content
+    Location --> Object : content
     Location --> Position : position
     
     Grid "Position" -->  Location
@@ -73,9 +73,11 @@
         is_fully_connected()
         is_recursive()
         get_shortest_path()
+        get_node(id:str) Node
     }
     class Node {
         visited : bool
+        id : str
     }
     class Edge {
         active : bool
@@ -127,7 +129,6 @@
 
     GameGrid <|-- Grid
     GameLocation <|-- Location
-    GameContent <|-- LocationContent
 
 
     GameGrid "Position" -->  GameLocation
@@ -156,7 +157,7 @@
 ```mermaid
   classDiagram
     class Maze {
-        
+        wall_width:int
     }
 
     class Graph {
@@ -196,7 +197,6 @@
     MazeGrid "Position" -->  MazeLocation
    %% MazeGrid <|-- Grid
    %% MazeLocation <|-- Location 
-    MazeContent <|-- LocationContent
     
     MazeLocation --> MazeContent : content
 
