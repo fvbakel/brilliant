@@ -18,7 +18,9 @@ class B(A):
     def _init(self):
         print("In B _init")
 
-#a1 = B("1","2")
+print("------------------------")
+print("Try out 1")
+a1 = B("1","2")
 
 class ATypes(Enum):
     BLANK = A("Blank")
@@ -41,6 +43,9 @@ def test_tuple(a:tuple[int,int]):
 def test_str(a:str):
     print(a)
 
+
+print("------------------------")
+print("Try out 2")
 test_func("Test")
 test_func(A("1"))
 test_func(B("2","3"))
@@ -50,3 +55,46 @@ test_tuple((1,2,3))
 test_tuple((1))
 test_tuple(("1"))
 test_str(1)
+
+print("------------------------")
+print("Try out 3")
+class X:
+    def __init__(self):
+        self.children : list[A]
+        self._init()
+
+    def _init(self):
+        self.children = []
+        self.children.append(self._init_child())
+
+    def _init_child(self):
+        return A("Test")
+
+    def get_child(self,index:int):
+        return self.children[index]
+
+class Y(X):
+    def __init__(self):
+        self.children : list[B]
+        super().__init__()
+    
+    def _init_child(self):
+        return B("Test","Test2")
+
+    def get_child(self,index:int) -> B:
+        super().get_child(index)
+
+
+def test_X_Y_class():
+    x_1 = X()
+    child_x_1 = x_1.get_child(0)
+    print("child_x_1", child_x_1)
+
+    y_1 = Y()
+    child_y_1 = y_1.get_child(0)
+    print("child_y_1", child_y_1)
+
+
+
+
+test_X_Y_class()
