@@ -1,7 +1,4 @@
 from dataclasses import dataclass
-from inspect import isfunction
-from multiprocessing.util import ForkAwareThreadLock
-from os import name
 from PIL import Image, ImageDraw
 import logging
 import graphviz
@@ -204,29 +201,7 @@ class MatrixGraph:
                 else:
                     if node.dist != -1 and node.dist < current.dist:
                         current = node
-        return current
-
-    def sum_path_l_r(self):
-        total = 0
-        start = self.get(0,0)
-        end = self.get((self.size.nr_of_cols -1),(self.size.nr_of_rows -1))
-        path = self.find_short_path_dijkstra(start,end)
-
-        for node in path:
-            total = total + node.weight
-        print(path)
-        print("Sum is:", total)
-    
-    def sum_path_l_r_col(self):
-        total = 0
-        start = self.first
-        end = self.last
-        path = self.find_short_path_dijkstra(start,end)
-
-        for node in path:
-            total = total + node.weight
-        print(path)
-        print("Sum is:", total)
+        return current 
 
     def find_short_path_dijkstra(self,start,end):
         path = []
@@ -395,7 +370,6 @@ class Graph2Dot:
     def render(self,filename:str,directory:str, format='svg'):
         self.dot.render(filename=filename,directory=directory, format=format)
 
-
 class MazeGenerator:
 
     def __init__(self,size:GridSize):
@@ -415,8 +389,6 @@ class MazeGenerator:
             pair.disable()
             if not self.graph.is_fully_connected():
                 pair.enable()
-
-
 
 class MazeImage:
     def __init__(self,size:GridSize ,name:str ):
