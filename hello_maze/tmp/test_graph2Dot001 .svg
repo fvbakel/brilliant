@@ -1,0 +1,21 @@
+digraph {
+	rankdir=LR
+	A [label="<label> A | <visited>False" shape=record]
+	B [label="<label> B | <visited>False" shape=record]
+	C [label="<label> C | <visited>False" shape=record]
+	D [label="<label> D | <visited>False" shape=record]
+	"D -> C" [label="<parent> D | <child> C | <active>True" shape=record]
+	D -> "D -> C" [headport=parent]
+	"D -> C" -> C [headport=child]
+	"B -> A" [label="<parent> B | <child> A | <active>True" shape=record]
+	B -> "B -> A" [headport=parent]
+	"B -> A" -> A [headport=child]
+	"C -> D" [label="<parent> C | <child> D | <active>True" shape=record]
+	C -> "C -> D" [headport=parent]
+	"C -> D" -> D [headport=child]
+	"A -> B" [label="<parent> A | <child> B | <active>True" shape=record]
+	A -> "A -> B" [headport=parent]
+	"A -> B" -> B [headport=child]
+	"B -> A" -> "A -> B" [style=dotted]
+	"D -> C" -> "C -> D" [style=dotted]
+}

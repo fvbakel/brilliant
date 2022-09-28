@@ -2,8 +2,11 @@ from graph import *
 import logging
 import unittest
 
-class TestGraph(unittest.TestCase):
+import os
 
+TEST_TMP_DIR = "./tmp"
+
+class TestGraph(unittest.TestCase):
 
     def test_fully_connected(self):
         graph = Graph()
@@ -53,7 +56,20 @@ class TestGraph(unittest.TestCase):
         pairs[0].disable()
         self.assertFalse(graph.check_recursion_first(),"recursion broken with inactive edge")
 
+    def test_graph2Dot(self):
+        graph = Graph()
+        A = graph.get_or_create("A")
+        B = graph.get_or_create("B")
+        C = graph.get_or_create("C")
+        D = graph.get_or_create("D")
 
+        graph.first = A
+        graph.last = D
+        graph.create_edge(A,B)
+        graph.create_edge(C,D)
+
+        r = Graph2Dot(graph)
+        r.render(self._testMethodName + "001" + ".dot",TEST_TMP_DIR)
 
 
 def main():
