@@ -95,6 +95,27 @@ def test_X_Y_class():
     print("child_y_1", child_y_1)
 
 
-
-
 test_X_Y_class()
+
+print("------------------------")
+print("Try out 4")
+from dataclasses import dataclass
+
+@dataclass(frozen=True,eq=True)
+class DataClass_1:
+    one:A
+    two:A
+
+set_DataClass_1:set[DataClass_1] = set()
+
+a = A("1")
+b = A("2")
+
+c = DataClass_1(a,b)
+d = DataClass_1(a,b)
+
+set_DataClass_1.add(c)
+set_DataClass_1.add(d)
+
+if len(set_DataClass_1) == 1:
+    print("Same dataclass is added only once!")

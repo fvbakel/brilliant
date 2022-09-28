@@ -18,6 +18,18 @@ class Direction(ExtendedEnum):
     DOWN    = 'd'
     HERE    = 'h'
 
+    @classmethod
+    def reverse(cls,direction):
+        if direction == Direction.LEFT:
+            return Direction.RIGHT
+        if direction == Direction.RIGHT:
+            return Direction.LEFT
+        if direction == Direction.UP:
+            return Direction.DOWN
+        if direction == Direction.DOWN:
+            return Direction.UP
+        return direction
+
 class Orientation(ExtendedEnum):
     HORIZONTAL  = 'horizontal'
     VERTICAL    = 'vertical'

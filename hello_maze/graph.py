@@ -86,6 +86,9 @@ class EdgePair:
         self.forward.disable()
         self.backward.disable()
 
+    def is_active(self):
+        return self.forward.active and self.backward.active
+
 class Graph:
 
     def __init__(self):

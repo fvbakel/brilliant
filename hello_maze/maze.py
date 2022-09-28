@@ -9,6 +9,7 @@ class Square():
     def __init__(self,position:Position,node,Node):
         self.position = position
         self.node = node
+        self.edge_pairs:dict[Direction,EdgePair] = dict()
 
 class NodeGrid(Grid):
     
@@ -33,6 +34,8 @@ class MazeGraph:
         self.size = size
         self.graph = Graph()
         self.square_grid = SquareGrid(size)
+        self._init_nodes()
+        self._init_edges()
 
 
     def _init_nodes(self):
@@ -46,33 +49,24 @@ class MazeGraph:
                 self.square_grid.set_location(position,square)
 
     def _init_edges(self):
-        row = 0
-        while row  < self.size.nr_of_rows:
-            col = 0
-            while col < self.size.nr_of_cols:
+        for row in range(0,self.size.nr_of_rows):
+            for col in range(0,self.size.nr_of_cols):
                 position = Position(col,row)
-                current = self.square_grid.get_location(position).node
-                if current is None:
-                    raise("Error, can not find node for position: ",position)
-                else:
-                    if col < self.size.nr_of_cols -1:
-                        child_pos = position.get_position_in_direction(Direction.RIGHT)
-                        child = self.square_grid.get_location(child_pos).node
-                        self.graph.create_edge(parent=current,child=child)
-                    if col != 0:
-                        child_pos = position.get_position_in_direction(Direction.LEFT)
-                        child = self.square_grid.get_location(child_pos).node
-                        self.graph.create_edge(parent=current,child=child)
-                    if row < self.size.nr_of_rows -1:
-                        child_pos = position.get_position_in_direction(Direction.DOWN)
-                        child = self.square_grid.get_location(child_pos).node
-                        self.graph.create_edge(parent=current,child=child)
-                    if row != 0:
-                        child_pos = position.get_position_in_direction(Direction.UP)
-                        child = self.square_grid.get_location(child_pos).node
-                        self.graph.create_edge(parent=current,child=child)
-                col = col + 1
-            row = row + 1
+                current_square = self.square_grid.get_location(position)
+                if col < self.size.nr_of_cols -1:
+                    self._add_edge_pair(current_square,Direction.RIGHT)
+
+                if row < self.size.nr_of_rows -1:
+                    self._add_edge_pair(current_square,Direction.DOWN)
+
+    
+    def _add_edge_pair(self,current_square:Square,direction:Direction):
+        child_pos = current_square.position.get_position_in_direction(direction)
+        child_square = self.square_grid.get_location(child_pos)
+        pair = self.graph.create_edge_pair(parent=current_square.node,child=child_square.node)
+        current_square.edge_pairs[direction] = pair
+        
+        child_square.edge_pairs[Direction.reverse(direction)] = pair
 
 class MazeGraphGenerator:
 
