@@ -29,11 +29,11 @@ class TestModel(unittest.TestCase):
         grid_size = Size(10,10)
         grid = GameGrid(grid_size)
 
-        location_1 = grid.get_location((0,0))
-        location_1.content = Wall()
-        location_2 = grid.get_location((1,0))
-        location_2.content = Floor()
-        location_2.content.guest = Particle()
+        grid.set_location((0,0),Wall())
+        grid.set_location((1,0),Floor())
+        floor = grid.get_location((1,0))
+
+        floor.guest = Particle()
 
         return grid
         

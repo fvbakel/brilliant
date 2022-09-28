@@ -43,21 +43,13 @@
         VERTICAL
     }
 
-    class Location {
-        
-    }
-    class Object {
-        
-    }
-    Location --> Object : content
-    Location --> Position : position
-    
-    Grid "Position" -->  Location
+    Grid "Position" -->  Any
     Grid --> Size
 
     class Grid {
         size : Size
         get_location(Position | (col,row))
+        set_location(Position | (col,row),content)
     }
 
 
@@ -115,9 +107,6 @@
         ...
     }
 
-    class GameLocation {
-        
-    }
     class GameContent {
         solid : bool
         mobile : bool
@@ -128,12 +117,9 @@
     }
 
     GameGrid <|-- Grid
-    GameLocation <|-- Location
 
-
-    GameGrid "Position" -->  GameLocation
-    GameLocation --> GameContent : content
-    
+    GameGrid "Position" -->  GameContent
+    GameContent --> Position
     GameContent --> GameContent : guest
     GameContent --> Material
 
@@ -183,9 +169,6 @@
     Maze --> MazeGrid
     MazeGenerator --> Maze
 
-    class MazeLocation {
-        
-    }
     class MazeContent {
         
         

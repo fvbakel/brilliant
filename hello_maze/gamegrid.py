@@ -13,6 +13,7 @@ class Material(Enum):
 
 class GameContent:
     def __init__(self):
+        self.position:Position  = None
         self.solid:bool         = False
         self.mobile:bool        = False
         self.guest:GameContent  = None
@@ -43,8 +44,11 @@ class Particle(GameContent):
 
 class GameGrid(Grid):
     
-    def __init__(self,grid_size:Size):
-        super().__init__(grid_size)
+    def get_location(self,position:(Position | tuple[int,int])) -> GameContent:
+        return super().get_location(position)
+
+    def set_location(self,position:(Position | tuple[int,int]),content:GameContent):
+        super().set_location(position,content)
 
 class GameGridRender:
 
@@ -66,19 +70,20 @@ class GameGridRender:
 
     def _render_row(self,row:int):
         for col in range(0,self.maze_grid.size.nr_of_cols):
-            self._render_location(self.maze_grid.get_location((col,row)))
+            self._render_location(position=(col,row))
     
-    def _render_location(self,location:Location):
-        material = self._get_material(location.content)
-        self._render_material(location.position,material)
+    def _render_location(self,position:(Position | tuple[int,int])):
+        content =self.maze_grid.get_location(position)
+        material = self._get_material(content)
+        self._render_material(position,material)
         
     def _get_material(self,content:GameContent) -> Material:
         if content == None:
             return Material.NONE
-
+        
         if content.guest != None:
             return self._get_material(content.guest)
-
+        
         return content.material
 
     def _render_material(self,position:(Position | tuple[int,int]),material:Material):

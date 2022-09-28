@@ -1,5 +1,6 @@
 from enum import Enum
 from dataclasses import dataclass
+from typing import Any
 
 class Position: pass
 
@@ -49,27 +50,20 @@ class Position:
     def get_id(self):
         return f"{self.col}-{self.row}"
 
-class Location:
-
-    def __init__(self,position:Position):
-        self.content = None
-        self.position = position
-
 class Grid:
 
     def __init__(self,size:Size):
         self.size = size
-        self.locations:list[list[Location]] = []
+        self.locations:list[list[Any]] = []
         self._init_locations()
 
     def _init_locations(self):
         for col in range(0,self.size.nr_of_cols):
             self.locations.append([])
             for row in range(0,self.size.nr_of_rows):
-                self.locations[col].append(Location(Position(col,row)))
-                self.locations[col][row].content = self._get_default_content()
+                self.locations[col].append(self._get_default(row,col))
 
-    def _get_default_content(self):
+    def _get_default(self,col:int,row:int):
         return None
 
     def get_location(self,position:(Position | tuple[int,int])):
@@ -77,4 +71,9 @@ class Grid:
             return self.locations[position.col][position.row]
         if isinstance(position,tuple):
             return self.locations[position[0]][position[1]]
-    
+
+    def set_location(self,position:(Position | tuple[int,int]),content:Any):
+        if isinstance(position,Position):
+            self.locations[position.col][position.row] = content
+        if isinstance(position,tuple):
+            self.locations[position[0]][position[1]] = content
