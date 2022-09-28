@@ -1,5 +1,6 @@
 from enum import Enum
 from dataclasses import dataclass
+import logging
 from typing import Any
 
 class Position: pass
@@ -47,8 +48,25 @@ class Position:
             if self.col < pos.col:
                 return Direction.RIGHT
 
+    def get_position_in_direction(self,direction:Direction):
+        if direction == Direction.RIGHT:
+            return Position(self.col+1,self.row)
+        if direction == Direction.LEFT:
+            return Position(self.col-1,self.row)
+        if direction == Direction.UP:
+            return Position(self.col,self.row-1)
+        if direction == Direction.DOWN:
+            return Position(self.col,self.row+1)
+        if direction == Direction.HERE:
+            return self
+        logging.FATAL(f"Unexpected direction {direction}")
+        
+
     def get_id(self):
         return f"{self.col}-{self.row}"
+
+    def __repr__(self) -> str:
+        return self.get_id()
 
 class Grid:
 

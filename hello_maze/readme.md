@@ -146,43 +146,29 @@
         wall_width:int
     }
 
-    class Graph {
-
-    }
-    class Node {
-
-    }
 
     Graph  --> Node : nodes
 
 
-    class MazeGenerator {
-        generate(Size)
+    class MazeGraphGenerator {
+        generate(Size) MazeGraph
     }
 
-    class GameGrid {
 
-    }
 
-    Maze --> Graph
+    MazeGraph --> Graph
+    Maze --> MazeGraph
     Maze --> GameGrid
-    Maze --> MazeGrid
-    MazeGenerator --> Maze
+    MazeGraph --> SquareGrid
 
-    class MazeContent {
-        
-        
-    }
-    class MazeGrid {
-        
-    }
+    SquareGrid "Position" -->  Square
+    Square --> Node
+    Square --> EdgePair : Direction
+    Node --> Edge
+    EdgePair --> Edge 
+    Graph --> EdgePair
 
-    MazeGrid "Position" -->  MazeLocation
-   %% MazeGrid <|-- Grid
-   %% MazeLocation <|-- Location 
-    
-    MazeLocation --> MazeContent : content
 
-    MazeContent --> Node
+
 
 ```
