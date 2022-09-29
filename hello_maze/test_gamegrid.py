@@ -9,21 +9,7 @@ class TestModel(unittest.TestCase):
         l = Direction.LEFT
         self.assertTrue(l==Direction.LEFT)
 
-    def test_position(self):
-        base = Position(5,5)
-        
-        base    = Position(5,5)
-        up      = Position(5,4)
-        right   = Position(6,5)
-        down    = Position(5,6)
-        left    = Position(4,5)
-        here    = Position(5,5)
 
-        self.assertEqual(base.get_direction(up),Direction.UP)
-        self.assertEqual(base.get_direction(right),Direction.RIGHT)
-        self.assertEqual(base.get_direction(down),Direction.DOWN)
-        self.assertEqual(base.get_direction(left),Direction.LEFT)
-        self.assertEqual(base.get_direction(here),Direction.HERE)
 
     def make_test_grid(self):
         grid_size = Size(10,10)

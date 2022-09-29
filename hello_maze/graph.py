@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 import logging
+from os import PathLike
 import graphviz
 
 class Node: pass
-class Position: pass
 
 class Edge:
 
@@ -266,5 +266,5 @@ class Graph2Dot:
     def _add_edge(self,edge:Edge):
         self.dot.edge(edge.parent.id,edge.child.id,label=str(edge.active))
 
-    def render(self,filename:str,directory:str, format='svg'):
+    def render(self,filename:PathLike | str,directory:PathLike | str, format='svg'):
         self.dot.render(filename=filename,directory=directory, format=format)
