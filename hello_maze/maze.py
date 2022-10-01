@@ -21,12 +21,11 @@ class SquareGrid(Grid):
     def set_location(self,position:(Position | tuple[int,int]),content:Square):
         super().set_location(position,content)
 
-    def get_square_neighbor(self,current_square:Square,direction:Direction,active_only = True):
+    def get_square_neighbor(self,current_square:Square,direction:Direction) ->tuple[Square,bool] | None:
         if direction in current_square.edge_pairs:
             pair = current_square.edge_pairs[direction]
-            if (active_only and pair.is_active() or not active_only):
-                child_pos = current_square.position.get_position_in_direction(direction)
-                return  self.get_location(child_pos)
+            child_pos = current_square.position.get_position_in_direction(direction)
+            return  (self.get_location(child_pos),pair.is_active())
         return None
 
 
@@ -103,25 +102,33 @@ class Squares2Dot:
         self.dot.attr(rankdir='LR')
         self._current_graph:graphviz.Digraph = self.dot
         
-        self._add_row_structure()
+        self._create_subgraphs()
         self._add_squares()
-        self._add_sub_graphs()
+        self._post_process_sub_graphs()
     
-    def _makeSubGraph(self,name:str):
+    def _add_subgraph(self,name:str):
         self._sub_graphs[name] = graphviz.Digraph(name=name)
         self._sub_graphs[name].attr(rankdir='LR')
+
+    def _create_subgraphs(self):
+        for row in range(0,self.square_grid.size.nr_of_rows):
+            self._add_subgraph(f"row_{row}")
+        for col in range(0,self.square_grid.size.nr_of_cols):
+            self._add_subgraph(f"col_{col}")
+            self._set_active_graph(f"col_{col}")
+            self._current_graph.attr(rank="same")
     
-    def _add_sub_graphs(self):
+    def _post_process_sub_graphs(self):
         for name,graph in self._sub_graphs.items():
             self.dot.subgraph(graph)
 
-    def _add_row_structure(self):
-        self._makeSubGraph("Rows")
+    def _add_row_structure_remove_this(self):
+        self._add_subgraph("Rows")
         self._set_active_graph("Rows")
         self._current_graph.attr(rank="same")
         for row in range(0,self.square_grid.size.nr_of_rows):
             self._current_graph.node(name=f"row_{row}",style='invis')
-            self._makeSubGraph(f"cluster_row_{row}")
+            self._add_subgraph(f"cluster_row_{row}")
 
         for row in range(0,self.square_grid.size.nr_of_rows-1):
             self._current_graph.edge(f"row_{row}",f"row_{row+1}",style='invis')
@@ -141,25 +148,31 @@ class Squares2Dot:
 
     def _add_squares(self):
         for row in range(0,self.square_grid.size.nr_of_rows):
-            self._set_active_graph(f"cluster_row_{row}")
+            
             for col in range(0,self.square_grid.size.nr_of_cols):
                 position = Position(col,row)
                 current_square = self.square_grid.get_location(position)
+                self._set_active_graph(f"row_{row}")
                 self._add_square_as_node(current_square)
 
                 if col < self.square_grid.size.nr_of_cols -1:
                     self._add_square_edges(current_square,Direction.RIGHT)
 
+                self._set_active_graph(f"col_{col}")
                 if row < self.square_grid.size.nr_of_rows -1:
                     self._add_square_edges(current_square,Direction.DOWN)
 
-
-
     
     def _add_square_edges(self,current_square:Square,direction:Direction,active_only=True):
-        child_square = self.square_grid.get_square_neighbor(current_square,direction,active_only)
-        if child_square != None:
-            self.dot.edge(self.get_square_id(current_square),self.get_square_id(child_square))
+        child_square_details = self.square_grid.get_square_neighbor(current_square,direction)
+        if child_square_details != None:
+            child_square:Square = child_square_details[0]
+            if child_square_details[1]:
+                style='filled'
+            else:
+                style='invis'
+
+            self._current_graph.edge(self.get_square_id(current_square),self.get_square_id(child_square),style=style)
 
 
     def _add_square_as_node(self,square:Square):
