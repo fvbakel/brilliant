@@ -12,6 +12,7 @@ class Square():
         self.position = position
         self.node = node
         self.edge_pairs:dict[Direction,EdgePair] = dict()
+        self.is_short_part = False
 
 class SquareGrid(Grid):
     
@@ -46,6 +47,9 @@ class MazeGraph:
                 node = self.graph.get_or_create(position.get_id())
                 square = Square(position,node)
                 self.square_grid.set_location(position,square)
+        
+        self.graph.first = self.square_grid.get_location((0,0)).node
+        self.graph.last = self.square_grid.get_location((self.size.nr_of_cols-1,self.size.nr_of_rows-1)).node
 
     def _init_edges(self):
         for row in range(0,self.size.nr_of_rows):
@@ -67,12 +71,24 @@ class MazeGraph:
         
         child_square.edge_pairs[Direction.reverse(direction)] = pair
 
+    def solve_shortest_path(self):
+        self.short_path_nodes = self.graph.find_short_path_dijkstra(self.graph.first,self.graph.last)
+        short_path_set = set(self.short_path_nodes)
+        for row in range(0,self.square_grid.size.nr_of_rows):   
+            for col in range(0,self.square_grid.size.nr_of_cols):
+                position = Position(col,row)
+                current_square = self.square_grid.get_location(position)
+                if current_square.node in short_path_set:
+                    current_square.is_short_part = True
+
+
+
 class MazeGraphGenerator:
 
     def __init__(self,size:Size):
         self.maze_graph = MazeGraph(size=size)
         self.regenerate()
-    
+
     def regenerate(self):
         self.edge_pairs = self.maze_graph.graph.edge_pairs.copy()
         self._enable_all_edges()
@@ -94,20 +110,20 @@ class Squares2Dot:
 
     def __init__(self,square_grid:SquareGrid):
         self.square_grid = square_grid
-        self._refresh()
+        self.refresh()
 
-    def _refresh(self):
-        self._sub_graphs: dict[str, graphviz.Digraph] = dict()
-        self.dot = graphviz.Digraph()
+    def refresh(self):
+        self._sub_graphs: dict[str, graphviz.Graph] = dict()
+        self.dot = graphviz.Graph()
         self.dot.attr(rankdir='LR')
-        self._current_graph:graphviz.Digraph = self.dot
+        self._current_graph:graphviz.Graph = self.dot
         
         self._create_subgraphs()
         self._add_squares()
         self._post_process_sub_graphs()
     
     def _add_subgraph(self,name:str):
-        self._sub_graphs[name] = graphviz.Digraph(name=name)
+        self._sub_graphs[name] = graphviz.Graph(name=name)
         self._sub_graphs[name].attr(rankdir='LR')
 
     def _create_subgraphs(self):
@@ -156,31 +172,38 @@ class Squares2Dot:
                 self._add_square_as_node(current_square)
 
                 if col < self.square_grid.size.nr_of_cols -1:
-                    self._add_square_edges(current_square,Direction.RIGHT)
+                    self._add_square_edge(current_square,Direction.RIGHT)
 
                 self._set_active_graph(f"col_{col}")
                 if row < self.square_grid.size.nr_of_rows -1:
-                    self._add_square_edges(current_square,Direction.DOWN)
+                    self._add_square_edge(current_square,Direction.DOWN)
 
     
-    def _add_square_edges(self,current_square:Square,direction:Direction,active_only=True):
+    def _add_square_edge(self,current_square:Square,direction:Direction,active_only=True):
         child_square_details = self.square_grid.get_square_neighbor(current_square,direction)
         if child_square_details != None:
-            child_square:Square = child_square_details[0]
-            if child_square_details[1]:
-                style='filled'
-            else:
-                style='invis'
-
-            self._current_graph.edge(self.get_square_id(current_square),self.get_square_id(child_square),style=style)
-
+            self._add_edge(current_square,child_square_details[0],child_square_details[1])
 
     def _add_square_as_node(self,square:Square):
         id = self.get_square_id(square)
-        self._current_graph.node(name=id,shape='rect')
+        color='black'
+        if square.is_short_part:
+            color='red'
+        self._current_graph.node(name=id,shape='rect',color=color)
     
     def get_square_id(self,square:Square):
         return square.position.get_id()
+
+    def _add_edge(self,square:Square,child_square:Square,active:bool):
+        style = 'invis'
+        if active:
+            style='filled'
+
+        color = 'black'
+        if active and square.is_short_part and child_square.is_short_part:
+            color = 'red'
+        
+        self._current_graph.edge(self.get_square_id(square),self.get_square_id(child_square),style=style,color=color)
 
     def render(self,filename:PathLike | str,directory:PathLike | str, format='svg'):
         self.dot.render(filename=filename,directory=directory, format=format)

@@ -19,6 +19,11 @@ class TestGraph(unittest.TestCase):
         r = Squares2Dot(maze_gen.maze_graph.square_grid)
         r.render(self._testMethodName + "002" + ".dot",TEST_TMP_DIR)
 
+        maze_gen.maze_graph.solve_shortest_path()
+        r.refresh()
+        #r = Squares2Dot(maze_gen.maze_graph.square_grid)
+        r.render(self._testMethodName + "003" + ".dot",TEST_TMP_DIR)
+
 
 
 def main():
