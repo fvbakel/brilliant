@@ -136,7 +136,7 @@
     Particle <|-- GameContent
 
 
-``` 
+```
 
 ## Maze
 
