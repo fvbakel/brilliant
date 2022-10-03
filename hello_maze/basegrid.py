@@ -34,12 +34,15 @@ class Orientation(ExtendedEnum):
     HORIZONTAL  = 'horizontal'
     VERTICAL    = 'vertical'
 
-@dataclass
+@dataclass(frozen=True,eq=True)
 class Size:
     nr_of_cols:int
     nr_of_rows:int
 
-@dataclass
+    def inverse(self):
+        return Size(self.nr_of_rows,self.nr_of_cols)
+
+@dataclass(frozen=True,eq=True)
 class Position:
     col:int
     row:int
@@ -107,3 +110,14 @@ class Grid:
             self.locations[position.col][position.row] = content
         if isinstance(position,tuple):
             self.locations[position[0]][position[1]] = content
+
+
+@dataclass
+class Rectangle:
+    up_left:Position
+    down_right:Position
+
+    def positions(self) -> list[Position]:
+        for col in range(self.up_left.col,self.down_right.col+1):
+            for row in range(self.up_left.row,self.down_right.row+1):
+                yield Position(col,row)

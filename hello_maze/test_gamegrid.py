@@ -9,8 +9,6 @@ class TestModel(unittest.TestCase):
         l = Direction.LEFT
         self.assertTrue(l==Direction.LEFT)
 
-
-
     def make_test_grid(self):
         grid_size = Size(10,10)
         grid = GameGrid(grid_size)

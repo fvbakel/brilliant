@@ -1,6 +1,6 @@
 # Maze datamodels
 
-## Overview of packages
+## Overview of Modules
 
 ```mermaid
   graph TD;
@@ -142,32 +142,43 @@
 
 ```mermaid
   classDiagram
-    class Maze {
+    class MazeGame {
+        square_size:Size
+        game_size:Size
         wall_width:int
     }
 
 
     Graph  --> Node : nodes
-
-
-    class MazeGraphGenerator {
-        generate(Size) MazeGraph
-    }
-
-
-
-    MazeGraph --> Graph
-    Maze --> MazeGraph
-    Maze --> GameGrid
-    MazeGraph --> SquareGrid
-
-    SquareGrid "Position" -->  Square
-    Square --> Node
-    Square --> EdgePair : Direction
     Node --> Edge
     EdgePair --> Edge 
     Graph --> EdgePair
 
+    class Square {
+        
+    }
+
+    class MazeGenerator {
+        generate(Size) Maze
+    }
+
+
+    Maze --> Graph
+    MazeGame --> Maze
+    MazeGame --> SquareGeometryGrid
+    MazeGame --> GameGrid
+    SquareGeometryGrid --> SquareGeometry : position
+    Maze --> SquareGrid
+    
+
+    SquareGrid "Position" -->  Square
+    Square --> Node
+    Square --> EdgePair : Direction
+    
+    
+    
+    
+    GameGrid --> GameContent : position
 
 
 

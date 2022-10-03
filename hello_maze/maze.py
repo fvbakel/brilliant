@@ -14,6 +14,40 @@ class Square():
         self.edge_pairs:dict[Direction,EdgePair] = dict()
         self.is_short_part = False
 
+@dataclass
+class SquareRelation:
+    parent:Square
+    child:Square    = None
+    active:bool     = True
+
+class SquareGeometry:
+
+    def __init__(self,game_pos:Position,square_width:int,wall_width:int):
+
+        self.square_width = square_width
+        self.wall_width = wall_width
+        x = self._wall_start_end_positions(game_pos.col)
+        y = self._wall_start_end_positions(game_pos.row)
+
+        self.walls:dict[Direction,Rectangle] = dict()
+        
+        self.walls[Direction.LEFT] = Rectangle( Position(x[0],y[0]),Position(x[1],y[3]))
+        self.walls[Direction.UP] = Rectangle( Position(x[0],y[0]),Position(x[3],y[1]))
+        self.walls[Direction.RIGHT] = Rectangle( Position(x[2],y[0]),Position(x[3],y[3]))
+        self.walls[Direction.DOWN] = Rectangle( Position(x[0],y[2]),Position(x[3],y[3]))
+
+        self.outer_rectangle = Rectangle( Position(x[0],y[0]),Position(x[3],y[3]))
+        self.inner_rectangle = Rectangle( Position(x[1],y[1]),Position(x[2],y[2]))
+
+    def _wall_start_end_positions(self,square_index:int):
+        x:list[int] = []
+        start = (square_index * self.square_width) + (square_index * self.wall_width)
+        x.append(start)
+        x.append(x[0] + self.wall_width -1)
+        x.append(x[1] + self.square_width + 1)
+        x.append(x[2] + self.wall_width -1)
+        return x
+
 class SquareGrid(Grid):
     
     def get_location(self,position:(Position | tuple[int,int])) -> Square:
@@ -22,44 +56,62 @@ class SquareGrid(Grid):
     def set_location(self,position:(Position | tuple[int,int]),content:Square):
         super().set_location(position,content)
 
-    def get_square_neighbor(self,current_square:Square,direction:Direction) ->tuple[Square,bool] | None:
+    def get_square_neighbor(self,current_square:Square,direction:Direction) ->SquareRelation:
+        
         if direction in current_square.edge_pairs:
             pair = current_square.edge_pairs[direction]
             child_pos = current_square.position.get_position_in_direction(direction)
-            return  (self.get_location(child_pos),pair.is_active())
+            relation = SquareRelation(current_square)
+            relation.active = pair.is_active()
+            relation.child = self.get_location(child_pos)
+            #return  (self.get_location(child_pos),pair.is_active())
+            return relation
         return None
 
+    def has_wall(self,square:Square,direction:Direction):
+        square_rel = self.get_square_neighbor(square,direction)
+        if square_rel == None:
+            return True
+        return not square_rel.active
 
-class MazeGraph:
+class SquareGeometryGrid(Grid):
 
-    def __init__(self,size:Size):
-        self.size = size
+    def get_location(self,position:(Position | tuple[int,int])) -> SquareGeometry:
+        return super().get_location(position)
+
+    def set_location(self,position:(Position | tuple[int,int]),content:SquareGeometry):
+        super().set_location(position,content)
+
+class Maze:
+
+    def __init__(self,square_size:Size):
+        self.square_size = square_size
         self.graph = Graph()
-        self.square_grid = SquareGrid(size)
+        self.square_grid = SquareGrid(square_size)
         self._init_nodes()
         self._init_edges()
 
 
     def _init_nodes(self):
-        for row in range(0,self.size.nr_of_rows):
-            for col in range(0,self.size.nr_of_cols):
+        for row in range(0,self.square_size.nr_of_rows):
+            for col in range(0,self.square_size.nr_of_cols):
                 position = Position(col,row)
                 node = self.graph.get_or_create(position.get_id())
                 square = Square(position,node)
                 self.square_grid.set_location(position,square)
         
         self.graph.first = self.square_grid.get_location((0,0)).node
-        self.graph.last = self.square_grid.get_location((self.size.nr_of_cols-1,self.size.nr_of_rows-1)).node
+        self.graph.last = self.square_grid.get_location((self.square_size.nr_of_cols-1,self.square_size.nr_of_rows-1)).node
 
     def _init_edges(self):
-        for row in range(0,self.size.nr_of_rows):
-            for col in range(0,self.size.nr_of_cols):
+        for row in range(0,self.square_size.nr_of_rows):
+            for col in range(0,self.square_size.nr_of_cols):
                 position = Position(col,row)
                 current_square = self.square_grid.get_location(position)
-                if col < self.size.nr_of_cols -1:
+                if col < self.square_size.nr_of_cols -1:
                     self._add_edge_pair(current_square,Direction.RIGHT)
 
-                if row < self.size.nr_of_rows -1:
+                if row < self.square_size.nr_of_rows -1:
                     self._add_edge_pair(current_square,Direction.DOWN)
 
     
@@ -81,16 +133,79 @@ class MazeGraph:
                 if current_square.node in short_path_set:
                     current_square.is_short_part = True
 
+class MazeGame:
+
+    def __init__(self,maze:Maze,square_width:int,wall_width:int):
+        self.maze=maze
+        self.square_width = square_width
+        self.wall_width = wall_width
+
+        width = self._calculate_game_length(self.maze.square_size.nr_of_cols)
+        height = self._calculate_game_length(self.maze.square_size.nr_of_rows)
+        self.game_size = Size(width,height)
+
+        self.geometry = SquareGeometryGrid(self.maze.square_size)
+        self.game_grid = GameGrid(self.game_size)
+
+        self.maze.solve_shortest_path()
+        self._init_geometry()
+
+    def _calculate_game_length(self,nr_of_squares:int):
+        # wall | wall   | wall | wall   | wall
+        # wall | square | wall | square | wall
+        # wall | square | wall | square | wall
+        # wall | wall   | wall | wall   | wall
+
+        #     0123456789...
+        #  00 ********************
+        #  01 ********************
+        #  02 **    **    **    **
+        #  03 **    **    **    **
+        #  04 **    **    **    **
+        #  05 **    **    **    **
+        #  06 ********************
+        #  07 ********************
+        nr_of_walls = nr_of_squares +1
+        return nr_of_squares * self.square_width + nr_of_walls * self.wall_width
+
+    def _init_geometry(self):
+        for row in range(0,self.maze.square_size.nr_of_rows):
+            for col in range(0,self.maze.square_size.nr_of_cols):
+                position = Position(col,row)
+                square_geom = SquareGeometry(position,self.square_width,self.wall_width)
+                self.geometry.set_location(position,square_geom)
+                square = self.maze.square_grid.get_location(position)
+                self._init_square_on_game_grid(square)
+
+    def _init_square_on_game_grid(self,square:Square):
+        square_geometry = self.geometry.get_location(square.position)
+
+        for direction in Direction:
+            if direction == Direction.HERE:
+                continue
+            if self.maze.square_grid.has_wall(square,direction):
+                rect = square_geometry.walls[direction]
+                for game_pos in rect.positions():
+                    self.game_grid.set_location(game_pos,Wall())
+        
+        # remaining is floor
+        for pos in square_geometry.outer_rectangle.positions():
+            content = self.game_grid.get_location(pos)
+            if content == None:
+                floor = Floor()
+                if square.is_short_part:
+                    floor.material = Material.FLOOR_MARKED
+                self.game_grid.set_location(pos,floor)
 
 
-class MazeGraphGenerator:
+class MazeGenerator:
 
     def __init__(self,size:Size):
-        self.maze_graph = MazeGraph(size=size)
+        self.maze = Maze(square_size=size)
         self.regenerate()
 
     def regenerate(self):
-        self.edge_pairs = self.maze_graph.graph.edge_pairs.copy()
+        self.edge_pairs = self.maze.graph.edge_pairs.copy()
         self._enable_all_edges()
         self._generate()
 
@@ -103,7 +218,7 @@ class MazeGraphGenerator:
             pair = random.choice(tuple(self.edge_pairs))
             self.edge_pairs.remove(pair)
             pair.disable()
-            if not self.maze_graph.graph.is_fully_connected():
+            if not self.maze.graph.is_fully_connected():
                 pair.enable()
 
 class Squares2Dot:
@@ -180,9 +295,9 @@ class Squares2Dot:
 
     
     def _add_square_edge(self,current_square:Square,direction:Direction,active_only=True):
-        child_square_details = self.square_grid.get_square_neighbor(current_square,direction)
-        if child_square_details != None:
-            self._add_edge(current_square,child_square_details[0],child_square_details[1])
+        square_relation = self.square_grid.get_square_neighbor(current_square,direction)
+        if square_relation != None:
+            self._add_edge(square_relation)
 
     def _add_square_as_node(self,square:Square):
         id = self.get_square_id(square)
@@ -194,16 +309,22 @@ class Squares2Dot:
     def get_square_id(self,square:Square):
         return square.position.get_id()
 
-    def _add_edge(self,square:Square,child_square:Square,active:bool):
+    #def _add_edge(self,square:Square,child_square:Square,active:bool):
+    def _add_edge(self,square_relation:SquareRelation):
         style = 'invis'
-        if active:
+        if square_relation.active:
             style='filled'
 
         color = 'black'
-        if active and square.is_short_part and child_square.is_short_part:
-            color = 'red'
+        if  square_relation.active and \
+            square_relation.parent.is_short_part and \
+            square_relation.child.is_short_part:
+                color = 'red'
         
-        self._current_graph.edge(self.get_square_id(square),self.get_square_id(child_square),style=style,color=color)
+        self._current_graph.edge(   self.get_square_id(square_relation.parent),
+                                    self.get_square_id(square_relation.child),
+                                    style=style,color=color
+                                )
 
     def render(self,filename:PathLike | str,directory:PathLike | str, format='svg'):
         self.dot.render(filename=filename,directory=directory, format=format)

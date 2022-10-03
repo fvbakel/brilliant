@@ -3,10 +3,10 @@ from basegrid import *
 
 class Material(Enum):
     NONE                  = '_'
-    FLOOR                 = 'F'
-    FLOOR_MARKED          = 'f'
-    FLOOR_HIGHLIGHTED     = 'H'
-    STONE                 = 'S'
+    FLOOR                 = 'f'
+    FLOOR_MARKED          = ' '
+    FLOOR_HIGHLIGHTED     = 'F'
+    STONE                 = '*'
     PLASTIC               = 'P'
     PLASTIC_MARKED        = 'p'
     PLASTIC_HIGHLIGHTED   = '0'
@@ -40,7 +40,6 @@ class Particle(GameContent):
         self.solid:bool     = True
         self.mobile:bool    = True
         self.material       = Material.PLASTIC
-   
 
 class GameGrid(Grid):
     
@@ -52,8 +51,8 @@ class GameGrid(Grid):
 
 class GameGridRender:
 
-    def __init__(self,maze_grid:GameGrid):
-        self.maze_grid = maze_grid
+    def __init__(self,game_grid:GameGrid):
+        self.game_grid = game_grid
         self.output=None
 
     def _pre_render(self):
@@ -64,16 +63,16 @@ class GameGridRender:
 
     def render(self):
         self._pre_render()
-        for row in range(0,self.maze_grid.size.nr_of_rows):
+        for row in range(0,self.game_grid.size.nr_of_rows):
             self._render_row(row)
         self._post_render()
 
     def _render_row(self,row:int):
-        for col in range(0,self.maze_grid.size.nr_of_cols):
+        for col in range(0,self.game_grid.size.nr_of_cols):
             self._render_location(position=(col,row))
     
     def _render_location(self,position:(Position | tuple[int,int])):
-        content =self.maze_grid.get_location(position)
+        content =self.game_grid.get_location(position)
         material = self._get_material(content)
         self._render_material(position,material)
         
