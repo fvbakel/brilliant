@@ -27,7 +27,6 @@ class TestGraph(unittest.TestCase):
     def test_maze_game(self):
         size = Size(4,4)
         maze_gen =  MazeGenerator(size)
-        maze_gen.maze
         game = MazeGame(maze_gen.maze,square_width=4,wall_width=2)
 
         renderer = TextGameGridRender(game.game_grid)
