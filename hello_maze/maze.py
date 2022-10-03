@@ -6,13 +6,15 @@ import logging
 import random
 import graphviz
 
-class Square():
+class Square:
 
     def __init__(self,position:Position,node:Node):
         self.position = position
         self.node = node
         self.edge_pairs:dict[Direction,EdgePair] = dict()
         self.is_short_part = False
+        self.is_first=False
+        self.is_last=False
 
 @dataclass
 class SquareRelation:
@@ -37,7 +39,7 @@ class SquareGeometry:
         self.walls[Direction.DOWN] = Rectangle( Position(x[0],y[2]),Position(x[3],y[3]))
 
         self.outer_rectangle = Rectangle( Position(x[0],y[0]),Position(x[3],y[3]))
-        self.inner_rectangle = Rectangle( Position(x[1],y[1]),Position(x[2],y[2]))
+        self.inner_rectangle = Rectangle( Position(x[1]+1,y[1]+1),Position(x[2]-1,y[2]-1))
 
     def _wall_start_end_positions(self,square_index:int):
         x:list[int] = []
@@ -69,6 +71,10 @@ class SquareGrid(Grid):
         return None
 
     def has_wall(self,square:Square,direction:Direction):
+        if square.is_first and direction == Direction.UP:
+            return False
+        if square.is_last and direction == Direction.DOWN:
+            return False
         square_rel = self.get_square_neighbor(square,direction)
         if square_rel == None:
             return True
@@ -89,8 +95,8 @@ class Maze:
         self.graph = Graph()
         self.square_grid = SquareGrid(square_size)
         self._init_nodes()
+        self._init_first_last()
         self._init_edges()
-
 
     def _init_nodes(self):
         for row in range(0,self.square_size.nr_of_rows):
@@ -99,9 +105,16 @@ class Maze:
                 node = self.graph.get_or_create(position.get_id())
                 square = Square(position,node)
                 self.square_grid.set_location(position,square)
-        
-        self.graph.first = self.square_grid.get_location((0,0)).node
-        self.graph.last = self.square_grid.get_location((self.square_size.nr_of_cols-1,self.square_size.nr_of_rows-1)).node
+    
+    def _init_first_last(self):
+        self.first_square = self.square_grid.get_location((0,0))
+        self.last_square = self.square_grid.get_location((self.square_size.nr_of_cols-1,self.square_size.nr_of_rows-1)) 
+
+        self.first_square.is_first=True
+        self.last_square.is_last=True
+
+        self.graph.first = self.first_square.node
+        self.graph.last = self.last_square.node
 
     def _init_edges(self):
         for row in range(0,self.square_size.nr_of_rows):
@@ -192,10 +205,15 @@ class MazeGame:
         for pos in square_geometry.outer_rectangle.positions():
             content = self.game_grid.get_location(pos)
             if content == None:
-                floor = Floor()
+                content = Floor()
                 if square.is_short_part:
-                    floor.material = Material.FLOOR_MARKED
-                self.game_grid.set_location(pos,floor)
+                    content.material = Material.FLOOR_MARKED
+                self.game_grid.set_location(pos,content)
+            if isinstance(content,Floor):
+                # if up or left square is short path but this is not 
+                # then set the floor back to normal
+                if not square.is_short_part:
+                    content.material = Material.FLOOR
 
 
 class MazeGenerator:

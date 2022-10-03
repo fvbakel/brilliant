@@ -32,12 +32,24 @@ class TestGraph(unittest.TestCase):
 
         renderer = TextMazeGridRender(game.game_grid)
         renderer.render()
-        
         tmp_file_name = TEST_TMP_DIR + '/' + self._testMethodName + "001" + ".txt"
         logging.debug(f"Dumping test maze {tmp_file_name}")
         with open(tmp_file_name, 'w') as f:
             f.write(renderer.output)
         self.assertTrue(renderer.output[1] == Material.STONE.value,f"Left corner of maze is a wall and thus stone. '{renderer.output[1]}' != '{Material.STONE.value}'" )
+
+        material_map:dict[str,str] = dict()
+        material_map[Material.STONE.value] = '*'
+        material_map[Material.FLOOR_MARKED.value] = ' '
+        material_map[Material.FLOOR_HIGHLIGHTED.value] = ' '
+        material_map[Material.FLOOR.value] = ' '
+        renderer = TextMazeGridRender(game.game_grid,material_map=material_map)
+        renderer.render()
+        tmp_file_name = TEST_TMP_DIR + '/' + self._testMethodName + "002" + ".txt"
+        logging.debug(f"Dumping test maze {tmp_file_name}")
+        with open(tmp_file_name, 'w') as f:
+            f.write(renderer.output)
+        self.assertTrue(renderer.output[1] == '*',f"Left corner of maze is a wall and thus stone wit custom rendering. '{renderer.output[1]}' != '*'" )
 
        
 

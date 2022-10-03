@@ -90,9 +90,10 @@ class GameGridRender:
 
 class TextMazeGridRender(GameGridRender):
 
-    def __init__(self,maze_grid:GameGrid):
+    def __init__(self,maze_grid:GameGrid, material_map:dict[Material,str] = dict()):
         super().__init__(maze_grid)
         self.output = ""
+        self.material_map = material_map
 
     def _pre_render(self):
         self.output = ""
@@ -101,6 +102,11 @@ class TextMazeGridRender(GameGridRender):
         self.output += "\n"
         super()._render_row(row)
 
+
+
     def _render_material(self,position:(Position | tuple[int,int]),material:Material):
-        self.output += str(material.value)
+        material_str = material.value
+        if material_str in self.material_map:
+            material_str = self.material_map[material_str]
+        self.output += material_str
 
