@@ -2,6 +2,7 @@ from gamegrid import *
 import logging
 import unittest
 
+TEST_TMP_DIR = "./tmp"
 
 class TestModel(unittest.TestCase):
 
@@ -25,9 +26,19 @@ class TestModel(unittest.TestCase):
     def test_TextGameGridRender(self):
         grid = self.make_test_grid()
 
-        renderer = TextMazeGridRender(grid)
+        renderer = TextGameGridRender(grid)
         renderer.render()
         print(renderer.output)
+
+    def test_ImageGameGridRender(self):
+        grid = self.make_test_grid()
+
+        renderer = ImageGameGridRender(grid)
+        renderer.render()
+        
+        tmp_file_name = TEST_TMP_DIR + '/' + self._testMethodName + "001" + ".png"
+        logging.debug(f"Writing image {tmp_file_name}")
+        cv2.imwrite(tmp_file_name,renderer.output)
 
 def main():
     logging.basicConfig(level=logging.DEBUG)

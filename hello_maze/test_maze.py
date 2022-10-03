@@ -30,7 +30,7 @@ class TestGraph(unittest.TestCase):
         maze_gen.maze
         game = MazeGame(maze_gen.maze,square_width=4,wall_width=2)
 
-        renderer = TextMazeGridRender(game.game_grid)
+        renderer = TextGameGridRender(game.game_grid)
         renderer.render()
         tmp_file_name = TEST_TMP_DIR + '/' + self._testMethodName + "001" + ".txt"
         logging.debug(f"Dumping test maze {tmp_file_name}")
@@ -43,13 +43,21 @@ class TestGraph(unittest.TestCase):
         material_map[Material.FLOOR_MARKED.value] = ' '
         material_map[Material.FLOOR_HIGHLIGHTED.value] = ' '
         material_map[Material.FLOOR.value] = ' '
-        renderer = TextMazeGridRender(game.game_grid,material_map=material_map)
+        renderer = TextGameGridRender(game.game_grid,material_map=material_map)
         renderer.render()
         tmp_file_name = TEST_TMP_DIR + '/' + self._testMethodName + "002" + ".txt"
         logging.debug(f"Dumping test maze {tmp_file_name}")
         with open(tmp_file_name, 'w') as f:
             f.write(renderer.output)
         self.assertTrue(renderer.output[1] == '*',f"Left corner of maze is a wall and thus stone wit custom rendering. '{renderer.output[1]}' != '*'" )
+
+        renderer = ImageGameGridRender(game.game_grid)
+        renderer.render()
+        tmp_file_name = TEST_TMP_DIR + '/' + self._testMethodName + "003" + ".png"
+        logging.debug(f"Dumping test maze as png {tmp_file_name}")
+        cv2.imwrite(tmp_file_name,renderer.output)
+        logging.debug(renderer.output[0,0])
+        self.assertFalse(renderer.output[0,0].any(),f"Left corner of maze is a wall and thus black" )
 
        
 
