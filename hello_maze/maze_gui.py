@@ -18,9 +18,11 @@ class MazeController:
 
         self.nr_of_cols:int = 4
         self.nr_of_rows:int = 4
+        self.manual_control:ManualMoveControl = None
         self.generate_new()
     
     def reset_game(self):
+        self.manual_control = None
         self.game = MazeGame(self.maze_gen.maze,square_width=self.square_width,wall_width=self.wall_width)
 
         self.short_path_renderer = ImageGameGridRender(self.game.game_grid)
@@ -54,6 +56,20 @@ class MazeController:
         self.game.game_grid.add_particle(Particle())
         self.render()
 
+    def add_manual_particle(self):
+        if self.manual_control == None:
+            self.manual_control = ManualMoveControl(self.game.game_grid)
+            particle = Particle()
+            particle.material = Material.PLASTIC_HIGHLIGHTED
+            self.game.game_grid.add_particle((particle))
+            self.manual_control.set_current_particle(particle)
+            self.render()
+
+    def move_manual_particle(self,direction:Direction):
+        if self.manual_control != None:
+            self.manual_control.set_move(direction)
+            self.manual_control.do_one_cycle()
+            self.render()
 
 class MazeDialog:
 
@@ -89,6 +105,7 @@ class MazeDialog:
             [sg.Slider(range=(1,20),key='__SQUARE_WIDTH__',default_value=self.controller.square_width,orientation='h',size=(self.right_width,sg.DEFAULT_ELEMENT_SIZE[1]))],
             [sg.Text('Wall width')],
             [sg.Slider(range=(1,20),key='__WALL_WIDTH__',default_value=self.controller.wall_width,orientation='h',size=(self.right_width,sg.DEFAULT_ELEMENT_SIZE[1]))],
+            [sg.Button('Manual particle',key='__MANUAL_PARTICLE__',size=(self.right_width + 5,sg.DEFAULT_ELEMENT_SIZE[1]))],
             [sg.Button('Add particle',key='__ADD_PARTICLE__',size=(self.right_width + 5,sg.DEFAULT_ELEMENT_SIZE[1]))],
             [sg.Button('Reset maze',key='__RESET_MAZE__',size=(self.right_width + 5,sg.DEFAULT_ELEMENT_SIZE[1]))],
             [sg.Button('Generate new',key='__GENERATE__',size=(self.right_width + 5,sg.DEFAULT_ELEMENT_SIZE[1]))],
@@ -97,7 +114,7 @@ class MazeDialog:
         layout = [  
             [sg.Frame("", left_frame),sg.Frame("", right_frame)]
         ]
-        self.window = sg.Window('Maze simulator', layout)
+        self.window = sg.Window('Maze simulator', layout=layout,return_keyboard_events=True)
 
     def update_current_images(self):
         if not self.controller.maze_img is None:
@@ -113,8 +130,21 @@ class MazeDialog:
     def run(self):
         while True:
             event, values = self.window.Read(timeout=20, timeout_key='timeout')
+            #logging.debug(f"event='{event}'")
             if event is None or event == '__QUIT__':
                 break
+            if event == 'a':
+                self.controller.move_manual_particle(Direction.LEFT)
+            if event == 'w':
+                self.controller.move_manual_particle(Direction.UP)
+            if event == 's':
+                self.controller.move_manual_particle(Direction.DOWN)
+            if event == 'd':
+                self.controller.move_manual_particle(Direction.RIGHT)
+
+            if event == '__MANUAL_PARTICLE__':
+                logging.debug("Manual particle")
+                self.controller.add_manual_particle()
             if event == '__ADD_PARTICLE__':
                 logging.debug("Add particle")
                 self.controller.add_particle()
