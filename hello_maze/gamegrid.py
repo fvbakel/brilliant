@@ -1,4 +1,5 @@
 
+from abc import abstractclassmethod
 from basegrid import *
 
 import cv2
@@ -19,13 +20,25 @@ class Color(Enum):
     BLACK = (0,0,0)
 
 class GameContent:
+    pass
+
+class GameContent:
     def __init__(self):
         self.position:Position  = None
         self.solid:bool         = False
         self.mobile:bool        = False
-        self.guest:GameContent  = None
+        self._guest:GameContent  = None
         self.material           = Material.FLOOR
 
+    def can_host_guest(self):
+        if self.solid == False and self._guest == None:
+            return True
+        return False
+
+    def set_guest(self,guest:GameContent):
+        self._guest = guest
+        if guest != None:
+            guest.position =self.position
 
 class Floor(GameContent):
     def __init__(self):
@@ -54,7 +67,18 @@ class GameGrid(Grid):
         return super().get_location(position)
 
     def set_location(self,position:(Position | tuple[int,int]),content:GameContent):
+        if isinstance(position,tuple):
+            content.position = Position(position[0],position[1])
+        else:
+            content.position = position
         super().set_location(position,content)
+
+    def add_particle(self,particle:Particle):
+        for col in range(0,self.size.nr_of_cols):
+            content = self.get_location((col,0))
+            if content.can_host_guest():
+                content.set_guest(particle)
+                break
 
 class GameGridRender:
 
@@ -87,8 +111,8 @@ class GameGridRender:
         if content == None:
             return Material.NONE
         
-        if content.guest != None:
-            return self._get_material(content.guest)
+        if content._guest != None:
+            return self._get_material(content._guest)
         
         return content.material
 
@@ -161,3 +185,40 @@ class ImageGameGridRender(GameGridRender):
     def _render_material(self,position:Position,material:Material):
         material_str = material.value
         self.output[position.row,position.col] = self.material_map[material_str]
+
+
+
+class ActionControl:
+
+    def __init__(self,game_grid:GameGrid):
+        self.game_grid = game_grid
+
+    @abstractclassmethod
+    def do_one_cycle(self):
+        pass
+
+class ManualMoveControl(ActionControl):
+
+    def __init__(self,game_grid:GameGrid):
+        super().__init__(game_grid)
+        self.current_particle:Particle = None
+        self.next_move:Direction = Direction.HERE
+
+    def set_current_particle(self,particle:Particle):
+        self.current_particle = particle
+
+    def set_move(self,direction:Direction):
+        self.next_move = direction
+
+    def do_one_cycle(self):
+        if self.next_move != Direction.HERE and self.current_particle != None:
+            request_pos = self.current_particle.position.get_position_in_direction(self.next_move)
+            # TODO move code below to separate method in GameGrid
+            request_content = self.game_grid.get_location(request_pos)
+            if request_content.can_host_guest():
+                source_content = self.game_grid.get_location(self.current_particle.position)
+
+                request_content.set_guest(self.current_particle)
+                source_content.set_guest(None)
+
+        self.next_move = Direction.HERE

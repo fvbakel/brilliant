@@ -16,9 +16,20 @@ class TestModel(unittest.TestCase):
 
         grid.set_location((0,0),Wall())
         grid.set_location((1,0),Floor())
+        grid.set_location((2,0),Floor())
+        floor = Floor()
+        floor.material = Material.FLOOR_MARKED
+        grid.set_location((3,0),floor)
         floor = grid.get_location((1,0))
+        floor.set_guest(Particle())
+        grid.set_location((4,1),Floor())
 
-        floor.guest = Particle()
+        # row 2
+        grid.set_location((0,1),Wall())
+        grid.set_location((1,1),Floor())
+        grid.set_location((2,1),Floor())
+        grid.set_location((3,1),Floor())
+        grid.set_location((4,1),Floor())
 
         return grid
         
@@ -39,6 +50,31 @@ class TestModel(unittest.TestCase):
         tmp_file_name = TEST_TMP_DIR + '/' + self._testMethodName + "001" + ".png"
         logging.debug(f"Writing image {tmp_file_name}")
         cv2.imwrite(tmp_file_name,renderer.output)
+
+    def test_ManualMoveControl(self):
+        grid = self.make_test_grid()
+        renderer = ImageGameGridRender(grid)
+        
+        
+        particle = Particle()
+        
+        grid.add_particle(particle=particle)
+        control = ManualMoveControl(grid)
+        control.set_current_particle(particle)
+        
+        renderer.render()
+        tmp_file_name = TEST_TMP_DIR + '/' + self._testMethodName + "before" + ".png"
+        logging.debug(f"Writing image {tmp_file_name}")
+        cv2.imwrite(tmp_file_name,renderer.output)
+
+        control.set_move(Direction.DOWN)
+        control.do_one_cycle()
+
+        renderer.render()
+        tmp_file_name = TEST_TMP_DIR + '/' + self._testMethodName + "after down" + ".png"
+        logging.debug(f"Writing image {tmp_file_name}")
+        cv2.imwrite(tmp_file_name,renderer.output)
+
 
 def main():
     logging.basicConfig(level=logging.DEBUG)

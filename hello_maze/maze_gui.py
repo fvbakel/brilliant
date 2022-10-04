@@ -51,11 +51,7 @@ class MazeController:
 
     # just for testing
     def add_particle(self):
-        for col in range(0,self.game.game_grid.size.nr_of_cols):
-            content = self.game.game_grid.get_location((col,0))
-            if not content.solid and content.guest == None:
-                content.guest = Particle()
-                break
+        self.game.game_grid.add_particle(Particle())
         self.render()
 
 
