@@ -160,7 +160,4 @@ class ImageGameGridRender(GameGridRender):
 
     def _render_material(self,position:Position,material:Material):
         material_str = material.value
-        position_int = position
-        if isinstance(position,tuple):
-            position_int = Position(position[0],position[1])
-        self.output[position_int.row,position_int.col] = self.material_map[material_str]
+        self.output[position.row,position.col] = self.material_map[material_str]
