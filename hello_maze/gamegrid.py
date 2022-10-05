@@ -135,7 +135,10 @@ class GameGridRender:
 
     def render(self):
         self._pre_render()
-        for row in range(0,self.game_grid.size.nr_of_rows):
+        #for row in range(0,self.game_grid.size.nr_of_rows):
+        #    self._render_row(row)
+        row:list[GameContent]
+        for row in self.game_grid.locations:
             self._render_row(row)
         self._post_render()
 
@@ -146,19 +149,18 @@ class GameGridRender:
             content:GameContent
             for content in row:
                 if not content is None and content.changed:
-                    material = self._get_material(content)
-                    self._render_material(content.position,material)
+                    self._render_content(content)
                     content.changed = False
 
-    def _render_row(self,row:int):
-        for col in range(0,self.game_grid.size.nr_of_cols):
-            self._render_location(position=Position(col,row))
-    
-    def _render_location(self,position:Position):
-        content =self.game_grid.get_location(position)
-        material = self._get_material(content)
-        self._render_material(position,material)
-        
+    def _render_row(self,row:list[GameContent]):
+        for content in row:
+            self._render_content(content)
+
+    def _render_content(self,content:GameContent):
+        if not content is None:
+            material = self._get_material(content)
+            self._render_material(content.position,material)
+            
     def _get_material(self,content:GameContent) -> Material:
         if content == None:
             return Material.NONE
@@ -181,7 +183,7 @@ class TextGameGridRender(GameGridRender):
     def _pre_render(self):
         self.output = ""
 
-    def _render_row(self,row:int):
+    def _render_row(self,row:list[GameContent]):
         self.output += "\n"
         super()._render_row(row)
 
@@ -217,20 +219,13 @@ class ImageGameGridRender(GameGridRender):
         if not Material.NONE.value in self.material_map:
             self.material_map[Material.NONE.value] = (125,125,125)
 
-
-
     def _init_image(self):
         self.output = np.full   (  (self.game_grid.size.nr_of_rows,self.game_grid.size.nr_of_cols,3),
                                     fill_value = Color.WHITE.value,
                                     dtype=np.uint8
                                 )
-
     def _pre_render(self):
         self._init_image()
-
-  #  def _render_row(self,row:int):
-  #      self.output += "\n"
-  #      super()._render_row(row)
 
     def _render_material(self,position:Position,material:Material):
         material_str = material.value
