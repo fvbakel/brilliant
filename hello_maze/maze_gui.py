@@ -57,24 +57,21 @@ class MazeController:
 
     # just for testing
     def add_particle(self):
-        self.game.game_grid.add_particle(Particle())
-        self.render_changed()
+            particle = Particle()
+            control = self.game.game_grid.add_manual_content(particle,SimpleMoveControl(self.game.game_grid))
+            if not control is None:
+                self.render_changed()
 
     def add_manual_particle(self):
         if self.manual_control == None:
-            self.manual_control = ManualMoveControl(self.game.game_grid)
             particle = Particle()
             particle.material = Material.PLASTIC_HIGHLIGHTED
-            self.game.game_grid.add_particle((particle))
-            self.manual_control.set_subject(particle)
-            self.game.game_grid.register_action_control(self.manual_control)
+            self.manual_control = self.game.game_grid.add_manual_content(particle,ManualMoveControl(self.game.game_grid))
             self.render_changed()
 
     def move_manual_particle(self,direction:Direction):
         if self.manual_control != None:
             self.manual_control.set_move(direction)
-            #self.manual_control.do_one_cycle()
-            #self.render_changed()
 
     def do_one_cycle(self):
         self.game.game_grid.do_one_cycle()

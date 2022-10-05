@@ -1,7 +1,9 @@
 
 from abc import abstractclassmethod
+from turtle import pos, position
 from basegrid import *
 
+import random
 import cv2
 import numpy as np
 
@@ -82,12 +84,23 @@ class GameGrid(Grid):
             content.position = position
         super().set_location(position,content)
 
-    def add_particle(self,particle:Particle):
+    def add_to_first_free_spot(self,particle:Particle):
         for col in range(0,self.size.nr_of_cols):
             content = self.get_location((col,0))
             if content.can_host_guest():
                 content.set_guest(particle)
-                break
+                return True
+        return False
+
+    def add_manual_content(self,content:GameContent,control:ActionControl):
+        if content is None or not content.mobile:
+            return None
+        if not self.add_to_first_free_spot(content):
+            return None
+
+        control.set_subject(content)
+        self.register_action_control(control)
+        return control
 
     def move_content_direction(self,content_to_move:GameContent,direction:Direction):
         if direction == Direction.HERE or content_to_move == None:
@@ -109,6 +122,19 @@ class GameGrid(Grid):
 
         request_content.set_guest(content_to_move)
         source_content.set_guest(None)
+
+    def get_available_directions(self,position:Position):
+        result:dict[Direction,Position] = dict()
+        for direction in Direction:
+            if direction == Direction.HERE:
+                continue
+            candidate_pos = position.get_position_in_direction(direction)
+            if self.has_location(candidate_pos):
+                candidate_content = self.get_location(candidate_pos)
+                if candidate_content.can_host_guest():
+                    result[direction]= candidate_pos
+        return result
+        
 
     def register_action_control(self,action:ActionControl):
         self.actions.add(action)
@@ -256,5 +282,36 @@ class ManualMoveControl(ActionControl):
     def do_one_cycle(self):
         if self.next_move != Direction.HERE and self.subject != None:
             self.game_grid.move_content_direction(self.subject,self.next_move)
+
+        self.next_move = Direction.HERE
+
+class SimpleMoveControl(ActionControl):
+
+    def __init__(self,game_grid:GameGrid):
+        super().__init__(game_grid)
+        self.history_path:list[position] = []
+        self.history_path_set:set[position] = set()
+
+    def set_subject(self,subject:GameContent):
+        super().set_subject(subject)
+        self.record_new_position()
+
+    def record_new_position(self):
+        self.history_path.append(self.subject.position)
+        self.history_path_set.add(self.subject.position)
+
+
+    def determine_new_pos(self,start_position:Position):
+        possible_directions = self.game_grid.get_available_directions(start_position)
+        if len(possible_directions) == 0:
+            return None
+        return random.choice(tuple(possible_directions.values()))
+
+    def do_one_cycle(self):
+        if self.subject != None:
+            new_pos = self.determine_new_pos(self.subject.position)
+            if not new_pos is None:
+                self.game_grid.move_content(self.subject,new_pos)
+                self.record_new_position()
 
         self.next_move = Direction.HERE

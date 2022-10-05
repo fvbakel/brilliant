@@ -58,7 +58,7 @@ class TestModel(unittest.TestCase):
         
         particle = Particle()
         
-        grid.add_particle(particle=particle)
+        grid.add_to_first_free_spot(particle=particle)
         control = ManualMoveControl(grid)
         control.set_subject(particle)
         
