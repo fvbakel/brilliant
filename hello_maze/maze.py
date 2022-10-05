@@ -117,14 +117,15 @@ class Maze:
         self.graph.last = self.last_square.node
 
     def _init_edges(self):
-        for row in range(0,self.square_size.nr_of_rows):
-            for col in range(0,self.square_size.nr_of_cols):
-                position = Position(col,row)
-                current_square = self.square_grid.get_location(position)
-                if col < self.square_size.nr_of_cols -1:
+        #for row in range(0,self.square_size.nr_of_rows):
+         #   for col in range(0,self.square_size.nr_of_cols):
+         for row in self.square_grid.locations:
+            current_square:Square
+            for current_square in row:
+                if current_square.position.col < self.square_size.nr_of_cols -1:
                     self._add_edge_pair(current_square,Direction.RIGHT)
 
-                if row < self.square_size.nr_of_rows -1:
+                if current_square.position.row < self.square_size.nr_of_rows -1:
                     self._add_edge_pair(current_square,Direction.DOWN)
 
     
@@ -139,10 +140,9 @@ class Maze:
     def solve_shortest_path(self):
         self.short_path_nodes = self.graph.find_short_path_dijkstra(self.graph.first,self.graph.last)
         short_path_set = set(self.short_path_nodes)
-        for row in range(0,self.square_grid.size.nr_of_rows):   
-            for col in range(0,self.square_grid.size.nr_of_cols):
-                position = Position(col,row)
-                current_square = self.square_grid.get_location(position)
+        for row in self.square_grid.locations:
+            current_square:Square
+            for current_square in row:
                 if current_square.node in short_path_set:
                     current_square.is_short_part = True
 
@@ -182,17 +182,14 @@ class MazeGame:
         return nr_of_squares * self.square_width + nr_of_walls * self.wall_width
 
     def _init_geometry(self):
-        for row in range(0,self.maze.square_size.nr_of_rows):
-            for col in range(0,self.maze.square_size.nr_of_cols):
-                position = Position(col,row)
-                square_geom = SquareGeometry(position,self.square_width,self.wall_width)
-                self.geometry.set_location(position,square_geom)
-                square = self.maze.square_grid.get_location(position)
-                self._init_square_on_game_grid(square)
+        for row in self.maze.square_grid.locations:
+            square:Square
+            for square in row:
+                square_geom = SquareGeometry(square.position,self.square_width,self.wall_width)
+                self.geometry.set_location(square.position,square_geom)
+                self._init_square_on_game_grid(square,square_geom)
 
-    def _init_square_on_game_grid(self,square:Square):
-        square_geometry = self.geometry.get_location(square.position)
-
+    def _init_square_on_game_grid(self,square:Square,square_geometry:SquareGeometry):
         for direction in Direction:
             if direction == Direction.HERE:
                 continue
@@ -271,24 +268,6 @@ class Squares2Dot:
         for name,graph in self._sub_graphs.items():
             self.dot.subgraph(graph)
 
-    def _add_row_structure_remove_this(self):
-        self._add_subgraph("Rows")
-        self._set_active_graph("Rows")
-        self._current_graph.attr(rank="same")
-        for row in range(0,self.square_grid.size.nr_of_rows):
-            self._current_graph.node(name=f"row_{row}",style='invis')
-            self._add_subgraph(f"cluster_row_{row}")
-
-        for row in range(0,self.square_grid.size.nr_of_rows-1):
-            self._current_graph.edge(f"row_{row}",f"row_{row+1}",style='invis')
-
-        self._set_active_graph(None)
-        for row in range(0,self.square_grid.size.nr_of_rows):
-            position = Position(0,row)
-            current_square = self.square_grid.get_location(position)
-            id = self.get_square_id(current_square)
-            self._current_graph.edge(f"row_{row}",id,style='invis')
-
     def _set_active_graph(self,name:str=None):
         if name is None:
             self._current_graph = self.dot
@@ -296,19 +275,19 @@ class Squares2Dot:
             self._current_graph = self._sub_graphs[name]
 
     def _add_squares(self):
-        for row in range(0,self.square_grid.size.nr_of_rows):
-            
-            for col in range(0,self.square_grid.size.nr_of_cols):
-                position = Position(col,row)
-                current_square = self.square_grid.get_location(position)
-                self._set_active_graph(f"row_{row}")
+        for row in self.square_grid.locations:
+            current_square:Square
+            for current_square in row:
+                col_index = current_square.position.col
+                row_index = current_square.position.row
+                self._set_active_graph(f"row_{row_index}")
                 self._add_square_as_node(current_square)
 
-                if col < self.square_grid.size.nr_of_cols -1:
+                if col_index < self.square_grid.size.nr_of_cols -1:
                     self._add_square_edge(current_square,Direction.RIGHT)
 
-                self._set_active_graph(f"col_{col}")
-                if row < self.square_grid.size.nr_of_rows -1:
+                self._set_active_graph(f"col_{col_index}")
+                if current_square.position.row < self.square_grid.size.nr_of_rows -1:
                     self._add_square_edge(current_square,Direction.DOWN)
 
     

@@ -135,8 +135,6 @@ class GameGridRender:
 
     def render(self):
         self._pre_render()
-        #for row in range(0,self.game_grid.size.nr_of_rows):
-        #    self._render_row(row)
         row:list[GameContent]
         for row in self.game_grid.locations:
             self._render_row(row)
