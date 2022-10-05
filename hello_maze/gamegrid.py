@@ -22,13 +22,17 @@ class Color(Enum):
 class GameContent:
     pass
 
+class ActionControl:
+    pass
+
 class GameContent:
     def __init__(self):
         self.position:Position  = None
         self.solid:bool         = False
         self.mobile:bool        = False
-        self._guest:GameContent  = None
+        self._guest:GameContent = None
         self.material           = Material.FLOOR
+        self.changed            = False
 
     def can_host_guest(self):
         if self.solid == False and self._guest == None:
@@ -36,6 +40,7 @@ class GameContent:
         return False
 
     def set_guest(self,guest:GameContent):
+        self.changed = True
         self._guest = guest
         if guest != None:
             guest.position =self.position
@@ -63,6 +68,10 @@ class Particle(GameContent):
 
 class GameGrid(Grid):
     
+    def __init__(self,size:Size):
+        super().__init__(size)
+        self.actions:set[ActionControl] = set()
+
     def get_location(self,position:(Position | tuple[int,int])) -> GameContent:
         return super().get_location(position)
 
@@ -101,6 +110,17 @@ class GameGrid(Grid):
         request_content.set_guest(content_to_move)
         source_content.set_guest(None)
 
+    def register_action_control(self,action:ActionControl):
+        self.actions.add(action)
+
+    def unregister_action_control(self,action:ActionControl):
+        self.actions.discard(action)
+
+    def do_one_cycle(self):
+        for action in self.actions:
+            action.do_one_cycle()
+
+
 class GameGridRender:
 
     def __init__(self,game_grid:GameGrid):
@@ -118,6 +138,17 @@ class GameGridRender:
         for row in range(0,self.game_grid.size.nr_of_rows):
             self._render_row(row)
         self._post_render()
+
+    def render_changed(self):
+        if self.output is None:
+            return
+        for row in self.game_grid.locations:
+            content:GameContent
+            for content in row:
+                if not content is None and content.changed:
+                    material = self._get_material(content)
+                    self._render_material(content.position,material)
+                    content.changed = False
 
     def _render_row(self,row:int):
         for col in range(0,self.game_grid.size.nr_of_cols):
@@ -154,8 +185,6 @@ class TextGameGridRender(GameGridRender):
         self.output += "\n"
         super()._render_row(row)
 
-
-
     def _render_material(self,position:Position,material:Material):
         material_str = material.value
         if material_str in self.material_map:
@@ -184,7 +213,7 @@ class ImageGameGridRender(GameGridRender):
         if not Material.PLASTIC_MARKED.value in self.material_map:
             self.material_map[Material.PLASTIC_MARKED.value] = (255,0,155)
         if not Material.PLASTIC_HIGHLIGHTED.value in self.material_map:
-            self.material_map[Material.PLASTIC_HIGHLIGHTED.value] = (0,255,255)
+            self.material_map[Material.PLASTIC_HIGHLIGHTED.value] = (0,139,0)
         if not Material.NONE.value in self.material_map:
             self.material_map[Material.NONE.value] = (125,125,125)
 
@@ -213,7 +242,10 @@ class ActionControl:
 
     def __init__(self,game_grid:GameGrid):
         self.game_grid = game_grid
-        self.current_particle:Particle = None
+        self.subject:GameContent = None
+
+    def set_subject(self,subject:GameContent):
+        self.subject = subject
 
     @abstractclassmethod
     def do_one_cycle(self):
@@ -225,14 +257,11 @@ class ManualMoveControl(ActionControl):
         super().__init__(game_grid)
         self.next_move:Direction = Direction.HERE
 
-    def set_current_particle(self,particle:Particle):
-        self.current_particle = particle
-
     def set_move(self,direction:Direction):
         self.next_move = direction
 
     def do_one_cycle(self):
-        if self.next_move != Direction.HERE and self.current_particle != None:
-            self.game_grid.move_content_direction(self.current_particle,self.next_move)
+        if self.next_move != Direction.HERE and self.subject != None:
+            self.game_grid.move_content_direction(self.subject,self.next_move)
 
         self.next_move = Direction.HERE

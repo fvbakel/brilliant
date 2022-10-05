@@ -60,7 +60,7 @@ class TestModel(unittest.TestCase):
         
         grid.add_particle(particle=particle)
         control = ManualMoveControl(grid)
-        control.set_current_particle(particle)
+        control.set_subject(particle)
         
         renderer.render()
         tmp_file_name = TEST_TMP_DIR + '/' + self._testMethodName + "before" + ".png"

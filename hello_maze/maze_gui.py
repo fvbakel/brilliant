@@ -44,6 +44,10 @@ class MazeController:
     def render(self):
         self.renderer.render()
         self.maze_img = self.renderer.output
+    
+    def render_changed(self):
+        self.renderer.render_changed()
+        self.maze_img = self.renderer.output
 
     def set_show_short_path(self,value:bool):
         if self.show_short_path != value:
@@ -54,7 +58,7 @@ class MazeController:
     # just for testing
     def add_particle(self):
         self.game.game_grid.add_particle(Particle())
-        self.render()
+        self.render_changed()
 
     def add_manual_particle(self):
         if self.manual_control == None:
@@ -62,14 +66,19 @@ class MazeController:
             particle = Particle()
             particle.material = Material.PLASTIC_HIGHLIGHTED
             self.game.game_grid.add_particle((particle))
-            self.manual_control.set_current_particle(particle)
-            self.render()
+            self.manual_control.set_subject(particle)
+            self.game.game_grid.register_action_control(self.manual_control)
+            self.render_changed()
 
     def move_manual_particle(self,direction:Direction):
         if self.manual_control != None:
             self.manual_control.set_move(direction)
-            self.manual_control.do_one_cycle()
-            self.render()
+            #self.manual_control.do_one_cycle()
+            #self.render_changed()
+
+    def do_one_cycle(self):
+        self.game.game_grid.do_one_cycle()
+        self.render_changed()
 
 class MazeDialog:
 
@@ -121,7 +130,7 @@ class MazeDialog:
             self.maze_display_img= cv2.resize(self.controller.maze_img, self.maze_img_dim, interpolation = cv2.INTER_AREA)
 
     def update_dialog(self):
-        #self.controller.render()
+        self.controller.do_one_cycle()
         self.update_current_images()
         if not self.maze_display_img is None:
             imgbytes=cv2.imencode('.png', self.maze_display_img)[1].tobytes()

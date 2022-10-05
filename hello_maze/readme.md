@@ -141,10 +141,12 @@
     TextGameGridRender <|-- GameGridRender
     
     class ActionControl {
+        game_grid: GameGrid
         do_one_cycle()
     }
-    ActionControl --> GameGrid
-    ActionControl --> Particle
+ 
+    ActionControl <-- GameGrid : actions
+    ActionControl --> GameContent: subject
     ManualMoveControl <|-- ActionControl
     
 
