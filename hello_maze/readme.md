@@ -8,7 +8,7 @@
     BaseGrid --> GameGrid
     GameGrid --> Maze
     Graph  --> Maze
-    Maze --> MazeQTUI
+    Maze --> Maze_GUI
     Maze --> MazeTextUI
 
 ```
@@ -116,7 +116,7 @@
         
     }
 
-    GameGrid <|-- Grid
+    GameGrid <|-- BaseGrid
 
     GameGrid "Position" -->  GameContent
     GameContent --> Position
@@ -130,11 +130,23 @@
     }
     class Particle {
     }
+    
 
     Floor <|-- GameContent
     Wall <|-- GameContent
     Particle <|-- GameContent
 
+    GameGridRender --> GameGrid
+    ImageGameGridRender <|-- GameGridRender
+    TextGameGridRender <|-- GameGridRender
+    
+    class ActionControl {
+        do_one_cycle()
+    }
+    ActionControl --> GameGrid
+    ActionControl --> Particle
+    ManualMoveControl <|-- ActionControl
+    
 
 ```
 

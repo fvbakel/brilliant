@@ -80,6 +80,27 @@ class GameGrid(Grid):
                 content.set_guest(particle)
                 break
 
+    def move_content_direction(self,content_to_move:GameContent,direction:Direction):
+        if direction == Direction.HERE or content_to_move == None:
+            return
+        request_pos = content_to_move.position.get_position_in_direction(direction)
+        self.move_content(content_to_move,request_pos)
+
+    def move_content(self,content_to_move:GameContent,request_position:Position):
+        if      content_to_move == None or \
+                not content_to_move.mobile or \
+                not self.has_location(request_position):
+            return
+
+        request_content = self.get_location(request_position)
+        if not request_content.can_host_guest():
+            return
+
+        source_content = self.get_location(content_to_move.position)
+
+        request_content.set_guest(content_to_move)
+        source_content.set_guest(None)
+
 class GameGridRender:
 
     def __init__(self,game_grid:GameGrid):
@@ -192,6 +213,7 @@ class ActionControl:
 
     def __init__(self,game_grid:GameGrid):
         self.game_grid = game_grid
+        self.current_particle:Particle = None
 
     @abstractclassmethod
     def do_one_cycle(self):
@@ -201,7 +223,6 @@ class ManualMoveControl(ActionControl):
 
     def __init__(self,game_grid:GameGrid):
         super().__init__(game_grid)
-        self.current_particle:Particle = None
         self.next_move:Direction = Direction.HERE
 
     def set_current_particle(self,particle:Particle):
@@ -212,13 +233,6 @@ class ManualMoveControl(ActionControl):
 
     def do_one_cycle(self):
         if self.next_move != Direction.HERE and self.current_particle != None:
-            request_pos = self.current_particle.position.get_position_in_direction(self.next_move)
-            # TODO move code below to separate method in GameGrid
-            request_content = self.game_grid.get_location(request_pos)
-            if request_content.can_host_guest():
-                source_content = self.game_grid.get_location(self.current_particle.position)
-
-                request_content.set_guest(self.current_particle)
-                source_content.set_guest(None)
+            self.game_grid.move_content_direction(self.current_particle,self.next_move)
 
         self.next_move = Direction.HERE

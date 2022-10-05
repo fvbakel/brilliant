@@ -99,6 +99,12 @@ class Grid:
     def _get_default(self,col:int,row:int):
         return None
 
+    def has_location(self,position:(Position | tuple[int,int])):
+        if  self.size.nr_of_cols > position.col and \
+            self.size.nr_of_rows > position.row:
+                return True
+        return False
+
     def get_location(self,position:(Position | tuple[int,int])):
         if isinstance(position,Position):
             return self.locations[position.col][position.row]
