@@ -1,5 +1,5 @@
 
-from abc import abstractclassmethod
+from abc import abstractclassmethod, abstractmethod
 from turtle import pos, position
 from basegrid import *
 
@@ -24,7 +24,7 @@ class Color(Enum):
 class GameContent:
     pass
 
-class ActionControl:
+class Behavior:
     pass
 
 class GameContent:
@@ -72,7 +72,7 @@ class GameGrid(Grid):
     
     def __init__(self,size:Size):
         super().__init__(size)
-        self.actions:set[ActionControl] = set()
+        self.behaviors:set[Behavior] = set()
 
     def get_location(self,position:(Position | tuple[int,int])) -> GameContent:
         return super().get_location(position)
@@ -92,15 +92,15 @@ class GameGrid(Grid):
                 return True
         return False
 
-    def add_manual_content(self,content:GameContent,control:ActionControl):
+    def add_manual_content(self,content:GameContent,behavior:Behavior):
         if content is None or not content.mobile:
             return None
         if not self.add_to_first_free_spot(content):
             return None
 
-        control.set_subject(content)
-        self.register_action_control(control)
-        return control
+        behavior.set_subject(content)
+        self.register_behavior(behavior)
+        return behavior
 
     def move_content_direction(self,content_to_move:GameContent,direction:Direction):
         if direction == Direction.HERE or content_to_move == None:
@@ -136,15 +136,15 @@ class GameGrid(Grid):
         return result
         
 
-    def register_action_control(self,action:ActionControl):
-        self.actions.add(action)
+    def register_behavior(self,behavior:Behavior):
+        self.behaviors.add(behavior)
 
-    def unregister_action_control(self,action:ActionControl):
-        self.actions.discard(action)
+    def unregister_behavior(self,behavior:Behavior):
+        self.behaviors.discard(behavior)
 
     def do_one_cycle(self):
-        for action in self.actions:
-            action.do_one_cycle()
+        for behavior in self.behaviors:
+            behavior.do_one_cycle()
 
 
 class GameGridRender:
@@ -257,7 +257,7 @@ class ImageGameGridRender(GameGridRender):
 
 
 
-class ActionControl:
+class Behavior:
 
     def __init__(self,game_grid:GameGrid):
         self.game_grid = game_grid
@@ -270,7 +270,7 @@ class ActionControl:
     def do_one_cycle(self):
         pass
 
-class ManualMoveControl(ActionControl):
+class ManualMove(Behavior):
 
     def __init__(self,game_grid:GameGrid):
         super().__init__(game_grid)
@@ -285,7 +285,7 @@ class ManualMoveControl(ActionControl):
 
         self.next_move = Direction.HERE
 
-class SimpleMoveControl(ActionControl):
+class AutomaticMove(Behavior):
 
     def __init__(self,game_grid:GameGrid):
         super().__init__(game_grid)
@@ -300,12 +300,9 @@ class SimpleMoveControl(ActionControl):
         self.history_path.append(self.subject.position)
         self.history_path_set.add(self.subject.position)
 
-
+    @abstractmethod
     def determine_new_pos(self,start_position:Position):
-        possible_directions = self.game_grid.get_available_directions(start_position)
-        if len(possible_directions) == 0:
-            return None
-        return random.choice(tuple(possible_directions.values()))
+        return None
 
     def do_one_cycle(self):
         if self.subject != None:
@@ -315,3 +312,11 @@ class SimpleMoveControl(ActionControl):
                 self.record_new_position()
 
         self.next_move = Direction.HERE
+
+class RandomMove(AutomaticMove):
+
+    def determine_new_pos(self,start_position:Position):
+        possible_directions = self.game_grid.get_available_directions(start_position)
+        if len(possible_directions) == 0:
+            return None
+        return random.choice(tuple(possible_directions.values()))

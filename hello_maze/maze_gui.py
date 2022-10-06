@@ -18,11 +18,11 @@ class MazeController:
 
         self.nr_of_cols:int = 4
         self.nr_of_rows:int = 4
-        self.manual_control:ManualMoveControl = None
+        self.manual_move:ManualMove = None
         self.generate_new()
     
     def reset_game(self):
-        self.manual_control = None
+        self.manual_move = None
         self.game = MazeGame(self.maze_gen.maze,square_width=self.square_width,wall_width=self.wall_width)
 
         self.short_path_renderer = ImageGameGridRender(self.game.game_grid)
@@ -58,20 +58,20 @@ class MazeController:
     # just for testing
     def add_particle(self):
             particle = Particle()
-            control = self.game.game_grid.add_manual_content(particle,SimpleMoveControl(self.game.game_grid))
-            if not control is None:
+            behavior = self.game.game_grid.add_manual_content(particle,RandomMove(self.game.game_grid))
+            if not behavior is None:
                 self.render_changed()
 
     def add_manual_particle(self):
-        if self.manual_control == None:
+        if self.manual_move == None:
             particle = Particle()
             particle.material = Material.PLASTIC_HIGHLIGHTED
-            self.manual_control = self.game.game_grid.add_manual_content(particle,ManualMoveControl(self.game.game_grid))
+            self.manual_move = self.game.game_grid.add_manual_content(particle,ManualMove(self.game.game_grid))
             self.render_changed()
 
     def move_manual_particle(self,direction:Direction):
-        if self.manual_control != None:
-            self.manual_control.set_move(direction)
+        if self.manual_move != None:
+            self.manual_move.set_move(direction)
 
     def do_one_cycle(self):
         self.game.game_grid.do_one_cycle()
@@ -118,7 +118,7 @@ class MazeDialog:
             [sg.Button('Quit',key='__QUIT__',size=(self.right_width + 5,sg.DEFAULT_ELEMENT_SIZE[1]))]
         ]
         layout = [  
-            [sg.Frame("", left_frame),sg.Frame("", right_frame)]
+            [sg.Frame("", right_frame),sg.Frame("", left_frame)]
         ]
         self.window = sg.Window('Maze simulator', layout=layout,return_keyboard_events=True)
 
