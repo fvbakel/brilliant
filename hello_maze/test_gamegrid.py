@@ -21,7 +21,7 @@ class TestModel(unittest.TestCase):
         floor.material = Material.FLOOR_MARKED
         grid.set_location((3,0),floor)
         floor = grid.get_location((1,0))
-        floor.set_guest(Particle())
+        floor.guest = Particle()
         grid.set_location((4,1),Floor())
 
         # row 2
@@ -60,7 +60,7 @@ class TestModel(unittest.TestCase):
         
         grid.add_to_first_free_spot(particle=particle)
         control = ManualMove(grid)
-        control.set_subject(particle)
+        control.subject = particle
         
         renderer.render()
         tmp_file_name = TEST_TMP_DIR + '/' + self._testMethodName + "before" + ".png"

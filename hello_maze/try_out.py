@@ -119,3 +119,34 @@ set_DataClass_1.add(d)
 
 if len(set_DataClass_1) == 1:
     print("Same dataclass is added only once!")
+
+print("------------------------")
+print("Try out propery")
+
+class C:
+
+    def __init__(self,name:str):
+        self._name = name
+
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self,new_name):
+        self._name = new_name
+
+c = C("abc123")
+c.name = "xyz"
+print(c.name)
+c.name = None
+print(c.name)
+
+print("------------------------")
+print("Try out class poperty")
+
+def needs_class(class_to_use:type[C]):
+    c = class_to_use("A")
+    print(c.name)
+
+needs_class(C)

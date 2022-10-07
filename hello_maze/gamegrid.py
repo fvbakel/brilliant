@@ -35,16 +35,22 @@ class GameContent:
         self._guest:GameContent = None
         self.material           = Material.FLOOR
         self.changed            = False
+        self.behavior:Behavior  = None
 
     def can_host_guest(self):
-        if self.solid == False and self._guest == None:
+        if self.solid == False and self._guest is None:
             return True
         return False
 
-    def set_guest(self,guest:GameContent):
+    @property
+    def guest(self):
+        return self._guest
+
+    @guest.setter
+    def guest(self,guest:GameContent):
         self.changed = True
         self._guest = guest
-        if guest != None:
+        if not guest is None:
             guest.position =self.position
 
 class Floor(GameContent):
@@ -84,32 +90,48 @@ class GameGrid(Grid):
             content.position = position
         super().set_location(position,content)
 
+    # TODO improve below to make more generic
     def add_to_first_free_spot(self,particle:Particle):
         for col in range(0,self.size.nr_of_cols):
             content = self.get_location((col,0))
             if content.can_host_guest():
-                content.set_guest(particle)
+                content.guest = particle
                 return True
         return False
 
+    def set_behavior_last_spots(self,behavior_type:type[Behavior]):
+        col:list[GameContent]
+        behaviors:list[Behavior] = []
+        for col in self.locations:
+            content = col[-1]
+            if  not content is None and \
+                    not content.solid:
+                behavior = behavior_type(self)
+                behavior.subject = content
+                self.register_behavior(behavior)
+                behaviors.append(behavior)
+        return behaviors
+
+
+    # TODO Improve method below to be more generic
     def add_manual_content(self,content:GameContent,behavior:Behavior):
         if content is None or not content.mobile:
             return None
         if not self.add_to_first_free_spot(content):
             return None
 
-        behavior.set_subject(content)
+        behavior.subject = content
         self.register_behavior(behavior)
         return behavior
 
     def move_content_direction(self,content_to_move:GameContent,direction:Direction):
-        if direction == Direction.HERE or content_to_move == None:
+        if direction == Direction.HERE or content_to_move is None:
             return
         request_pos = content_to_move.position.get_position_in_direction(direction)
         self.move_content(content_to_move,request_pos)
 
     def move_content(self,content_to_move:GameContent,request_position:Position):
-        if      content_to_move == None or \
+        if      content_to_move is None or \
                 not content_to_move.mobile or \
                 not self.has_location(request_position):
             return
@@ -120,8 +142,8 @@ class GameGrid(Grid):
 
         source_content = self.get_location(content_to_move.position)
 
-        request_content.set_guest(content_to_move)
-        source_content.set_guest(None)
+        request_content.guest = content_to_move
+        source_content.guest = None
 
     def get_available_directions(self,position:Position):
         result:dict[Direction,Position] = dict()
@@ -143,8 +165,9 @@ class GameGrid(Grid):
         self.behaviors.discard(behavior)
 
     def do_one_cycle(self):
-        for behavior in self.behaviors:
-            behavior.do_one_cycle()
+        for behavior in list(self.behaviors):
+            if behavior in self.behaviors:
+                behavior.do_one_cycle()
 
 
 class GameGridRender:
@@ -186,11 +209,11 @@ class GameGridRender:
             self._render_material(content.position,material)
             
     def _get_material(self,content:GameContent) -> Material:
-        if content == None:
+        if content is None:
             return Material.NONE
         
-        if content._guest != None:
-            return self._get_material(content._guest)
+        if not content.guest is None:
+            return self._get_material(content.guest)
         
         return content.material
 
@@ -261,10 +284,17 @@ class Behavior:
 
     def __init__(self,game_grid:GameGrid):
         self.game_grid = game_grid
-        self.subject:GameContent = None
+        self._subject:GameContent = None
 
-    def set_subject(self,subject:GameContent):
-        self.subject = subject
+    @property
+    def subject(self):
+        return self._subject
+
+    @subject.setter
+    def subject(self,subject:GameContent):
+        self._subject = subject
+        if not self._subject is None:
+            self._subject.behavior = self
 
     @abstractclassmethod
     def do_one_cycle(self):
@@ -280,8 +310,8 @@ class ManualMove(Behavior):
         self.next_move = direction
 
     def do_one_cycle(self):
-        if self.next_move != Direction.HERE and self.subject != None:
-            self.game_grid.move_content_direction(self.subject,self.next_move)
+        if self.next_move != Direction.HERE and not self._subject is None:
+            self.game_grid.move_content_direction(self._subject,self.next_move)
 
         self.next_move = Direction.HERE
 
@@ -292,23 +322,24 @@ class AutomaticMove(Behavior):
         self.history_path:list[position] = []
         self.history_path_set:set[position] = set()
 
-    def set_subject(self,subject:GameContent):
-        super().set_subject(subject)
+    @Behavior.subject.setter
+    def subject(self,subject:GameContent):
+        Behavior.subject.fset(self,subject)
         self.record_new_position()
 
     def record_new_position(self):
-        self.history_path.append(self.subject.position)
-        self.history_path_set.add(self.subject.position)
+        self.history_path.append(self._subject.position)
+        self.history_path_set.add(self._subject.position)
 
     @abstractmethod
     def determine_new_pos(self,start_position:Position):
         return None
 
     def do_one_cycle(self):
-        if self.subject != None:
-            new_pos = self.determine_new_pos(self.subject.position)
+        if not self._subject is None:
+            new_pos = self.determine_new_pos(self._subject.position)
             if not new_pos is None:
-                self.game_grid.move_content(self.subject,new_pos)
+                self.game_grid.move_content(self._subject,new_pos)
                 self.record_new_position()
 
         self.next_move = Direction.HERE
@@ -320,3 +351,19 @@ class RandomMove(AutomaticMove):
         if len(possible_directions) == 0:
             return None
         return random.choice(tuple(possible_directions.values()))
+
+class FinishDetector(Behavior):
+
+    def __init__(self,game_grid:GameGrid):
+        super().__init__(game_grid)
+        self.finished:list[GameContent] = []
+
+    def do_one_cycle(self):
+        if not self._subject is None and not self._subject.guest is None:
+            self.finished.append(self._subject.guest)
+            if not self._subject.guest.behavior is None:
+                self.game_grid.unregister_behavior(self._subject.guest.behavior)
+            self._subject.guest = None
+            
+
+
