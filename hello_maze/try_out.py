@@ -150,3 +150,26 @@ def needs_class(class_to_use:type[C]):
     print(c.name)
 
 needs_class(C)
+
+
+print("------------------------")
+print("List Subclasses")
+
+class Base:
+    def __init__(self):
+        self.name = 'Base class'
+
+
+class ABase(Base):
+    def __init__(self):
+        self.name = 'A Base'
+
+
+class BBase(Base):
+    def __init__(self):
+        self.name = 'A Base'
+
+for cls in Base.__subclasses__():
+    print(cls.__name__)
+    t = cls()
+    print(t)

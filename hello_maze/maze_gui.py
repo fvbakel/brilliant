@@ -19,7 +19,14 @@ class MazeController:
         self.nr_of_cols:int = 4
         self.nr_of_rows:int = 4
         self.manual_move:ManualMove = None
+        self.move_behavior:str = None
+        self._init_move_behaviors()
         self.generate_new()
+
+    def _init_move_behaviors(self):
+        self.move_behaviors:dict[str,AutomaticMove] = dict()
+        for cls in AutomaticMove.__subclasses__():
+            self.move_behaviors[cls.__name__] = cls
     
     def reset_game(self):
         self.manual_move = None
@@ -56,9 +63,12 @@ class MazeController:
             self._set_renderer()
             self.render()
 
+    def get_move_behavior_cls(self):
+        return self.move_behaviors.get(self.move_behavior,RandomMove)
+
     def add_particle(self):
             particle = Particle()
-            behavior = self.game.game_grid.add_manual_content(particle,RandomDistinctMove)
+            behavior = self.game.game_grid.add_manual_content(particle,self.get_move_behavior_cls())
             if not behavior is None:
                 self.render_changed()
 
@@ -112,7 +122,8 @@ class MazeDialog:
                 sg.Radio('On', 1,enable_events=True,key='__SHORT_ON__'),
                 sg.Radio('Off', 1, default=True,key='__SHORT_OFF__')
             ],
-            
+            [sg.Text('Move behavior')],
+            [sg.DropDown(list(self.controller.move_behaviors.keys()),default_value=self.controller.move_behavior ,key='__MOVE BEHAVIOR__',size=(self.right_width + 5,sg.DEFAULT_ELEMENT_SIZE[1]))],
             [sg.Button('Manual particle',key='__MANUAL_PARTICLE__',size=(self.right_width + 5,sg.DEFAULT_ELEMENT_SIZE[1]))],
             [sg.Button('Add particle',key='__ADD_PARTICLE__',size=(self.right_width + 5,sg.DEFAULT_ELEMENT_SIZE[1]))],
 
@@ -179,7 +190,6 @@ class MazeDialog:
                 self.controller.move_manual_particle(Direction.DOWN)
             if event == 'd':
                 self.controller.move_manual_particle(Direction.RIGHT)
-
             if event == '__MANUAL_PARTICLE__':
                 logging.debug("Manual particle")
                 self.controller.add_manual_particle()
@@ -208,6 +218,8 @@ class MazeDialog:
             self.update_nr_of_rows(values['__NR_OF_ROWS__'])
             self.update_square_width(values['__SQUARE_WIDTH__'])
             self.update_wall_width(values['__WALL_WIDTH__'])
+            self.update_move_behavior(values['__MOVE BEHAVIOR__'])
+            
 
             self.update_dialog()
         self.window.close()
@@ -227,6 +239,9 @@ class MazeDialog:
 
     def update_wall_width(self,value:int):
         self.controller.wall_width = value
+
+    def update_move_behavior(self,value:str):
+        self.controller.move_behavior = value
 
 def main():
     conf = MazeConfiguration()
