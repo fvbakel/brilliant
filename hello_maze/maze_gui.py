@@ -58,7 +58,7 @@ class MazeController:
 
     def add_particle(self):
             particle = Particle()
-            behavior = self.game.game_grid.add_manual_content(particle,RandomMove)
+            behavior = self.game.game_grid.add_manual_content(particle,RandomDistinctMove)
             if not behavior is None:
                 self.render_changed()
 

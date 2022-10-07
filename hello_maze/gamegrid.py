@@ -346,7 +346,7 @@ class AutomaticMove(Behavior):
                 self.game_grid.move_content(self._subject,new_pos)
                 self.record_new_position()
 
-        self.next_move = Direction.HERE
+        #self.next_move = Direction.HERE
 
 class RandomMove(AutomaticMove):
 
@@ -355,6 +355,18 @@ class RandomMove(AutomaticMove):
         if len(possible_directions) == 0:
             return None
         return random.choice(tuple(possible_directions.values()))
+
+class RandomDistinctMove(AutomaticMove):
+
+    def determine_new_pos(self,start_position:Position):
+        possible_directions = self.game_grid.get_available_directions(start_position)
+        if len(possible_directions) == 0:
+            return None
+        possible_set = set(possible_directions.values())
+        possible_filtered = possible_set - self.history_path_set
+        if len(possible_filtered) == 0:
+            possible_filtered = possible_directions.values()
+        return random.choice(tuple(possible_filtered))
 
 class FinishDetector(Behavior):
 
