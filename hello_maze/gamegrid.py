@@ -114,14 +114,15 @@ class GameGrid(Grid):
 
 
     # TODO Improve method below to be more generic
-    def add_manual_content(self,content:GameContent,behavior:Behavior):
+    def add_manual_content(self,content:GameContent,behavior_type:type[Behavior]):
         if content is None or not content.mobile:
+            return None
+        if not content.behavior is None:
             return None
         if not self.add_to_first_free_spot(content):
             return None
-
+        behavior = behavior_type(self)
         behavior.subject = content
-        #self.register_behavior(behavior)
         return behavior
 
     def move_content_direction(self,content_to_move:GameContent,direction:Direction):
@@ -316,7 +317,6 @@ class ManualMove(Behavior):
     def do_one_cycle(self):
         if self.next_move != Direction.HERE and not self._subject is None:
             self.game_grid.move_content_direction(self._subject,self.next_move)
-
         self.next_move = Direction.HERE
 
 class AutomaticMove(Behavior):
