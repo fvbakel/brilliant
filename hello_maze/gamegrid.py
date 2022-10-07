@@ -108,7 +108,7 @@ class GameGrid(Grid):
                     not content.solid:
                 behavior = behavior_type(self)
                 behavior.subject = content
-                self.register_behavior(behavior)
+                #self.register_behavior(behavior)
                 behaviors.append(behavior)
         return behaviors
 
@@ -121,7 +121,7 @@ class GameGrid(Grid):
             return None
 
         behavior.subject = content
-        self.register_behavior(behavior)
+        #self.register_behavior(behavior)
         return behavior
 
     def move_content_direction(self,content_to_move:GameContent,direction:Direction):
@@ -284,6 +284,7 @@ class Behavior:
 
     def __init__(self,game_grid:GameGrid):
         self.game_grid = game_grid
+        self.game_grid.register_behavior(self)
         self._subject:GameContent = None
 
     @property
@@ -299,6 +300,9 @@ class Behavior:
     @abstractclassmethod
     def do_one_cycle(self):
         pass
+
+    def unregister(self):
+        self.game_grid.unregister_behavior(self)
 
 class ManualMove(Behavior):
 
@@ -362,7 +366,7 @@ class FinishDetector(Behavior):
         if not self._subject is None and not self._subject.guest is None:
             self.finished.append(self._subject.guest)
             if not self._subject.guest.behavior is None:
-                self.game_grid.unregister_behavior(self._subject.guest.behavior)
+                self._subject.guest.behavior.unregister()
             self._subject.guest = None
             
 
