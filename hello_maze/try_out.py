@@ -173,3 +173,72 @@ for cls in Base.__subclasses__():
     print(cls.__name__)
     t = cls()
     print(t)
+
+print("------------------------")
+print("reverse search")
+
+a = ['a','b','c']
+for i, e in reversed(list(enumerate(a))):
+    print(i, e)
+print(a)
+a.reverse()
+print(a)
+
+print("------------------------")
+print("path back")
+
+
+def find_path_back(path:list[str],start:str,target:str):
+    start_index:int = None
+    end_index:int = None
+    for index, pos in reversed(list(enumerate(path))):
+        if pos == target:
+            start_index = index
+            break
+    for index, pos in list(enumerate(path))[start_index:]:
+        if pos == start:
+            end_index = index
+            break
+
+    return path[start_index:end_index]
+        
+
+path = ['1','target','2','3','target','a','b','c','start_position','x','y','z','start_position','','start_position']
+
+
+result = find_path_back(path,start='start_position',target='target')
+print(result)
+            # we need
+            #self.move_back = [target,a,b,c]
+
+print("------------------------")
+print("Reduce path")
+path = [2,3,4,5,6,7,6,5,8]
+# expected [2,3,4,5,8]
+
+
+def reduce_path(path:list):
+    pos_map = dict()
+    for index,pos in enumerate(path):
+        if pos in pos_map:
+            pos_map[pos].append(index)
+        else:
+            pos_map[pos] = [index]
+    
+    if len(pos_map) > 0 :
+        cut_start = None
+        cut_end = None
+        cut_diff = 0
+        for pos, index_list in pos_map.items():
+            diff = index_list[-1] - index_list[0]
+            if diff > cut_diff:
+                cut_diff = diff
+                cut_start = index_list[0]
+                cut_end =  index_list[-1]
+
+        if not cut_start is None and not cut_end is None:
+            return path[:cut_start] + path[cut_end:]
+
+reduced = reduce_path(path)
+print(reduced)
+

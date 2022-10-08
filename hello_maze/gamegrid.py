@@ -346,8 +346,6 @@ class AutomaticMove(Behavior):
                 self.game_grid.move_content(self._subject,new_pos)
                 self.record_new_position()
 
-        #self.next_move = Direction.HERE
-
 class RandomMove(AutomaticMove):
 
     def determine_new_pos(self,start_position:Position):
@@ -367,6 +365,101 @@ class RandomDistinctMove(AutomaticMove):
         if len(possible_filtered) == 0:
             possible_filtered = possible_directions.values()
         return random.choice(tuple(possible_filtered))
+
+class Smart001Move(AutomaticMove):
+    def __init__(self,game_grid:GameGrid):
+        super().__init__(game_grid)
+        self.todo:list[(Position,Position)] = list()
+        self.path_back:list[Position] = list()
+
+    def determine_new_pos(self,start_position:Position):
+        possible_directions = self.game_grid.get_available_directions(start_position)
+        if len(possible_directions) == 0:
+            return None
+    
+        possible_set = set(possible_directions.values())
+
+        if len(self.path_back) > 0:
+            return self.select_move_back(possible_set)
+        else:
+            return self.select_move(start_position,possible_set)
+
+    def determine_move_back_path(self,start_position:Position):
+        if len(self.todo) > 0:
+            target = self.todo.pop()
+            self.set_path_back(start_position,target)
+            self.reduce_path()
+
+    def set_path_back(self,start:Position,target:Position):
+        """
+            history path could be like this
+            [1,target,2,3,target,a,b,c,start_position,x,y,z,start_position]
+            expected result from this method
+            [target,a,b,c]
+            Some mechanism is:
+            1. search from the back the first occurrence of target, 
+            2. from that point search the start_position
+            3 return the in between
+        """
+        start_index:int = None
+        end_index:int = None
+        for index, pos in reversed(list(enumerate(self.history_path))):
+            if pos == target:
+                start_index = index
+                break
+        for index, pos in list(enumerate(self.history_path))[start_index:]:
+            if pos == start:
+                end_index = index
+                break
+
+        if not start_index is None and not end_index is None:
+            self.path_back = self.history_path[start_index:end_index]
+
+    def reduce_path(self):
+        path = self.path_back
+        pos_map = dict()
+        for index,pos in enumerate(path):
+            if pos in pos_map:
+                pos_map[pos].append(index)
+            else:
+                pos_map[pos] = [index]
+        
+        if len(pos_map) > 0 :
+            cut_start = None
+            cut_end = None
+            cut_diff = 0
+            for pos, index_list in pos_map.items():
+                diff = index_list[-1] - index_list[0]
+                if diff > cut_diff:
+                    cut_diff = diff
+                    cut_start = index_list[0]
+                    cut_end =  index_list[-1]
+
+            if not cut_start is None and not cut_end is None:
+                self.path_back =  path[:cut_start] + path[cut_end:]
+                self.reduce_path()
+
+    def select_move_back(self,possible_set:set[Position]):
+        if len(self.path_back) > 0:
+            next = self.path_back[-1]
+            if next in possible_set:
+                return self.path_back.pop()
+        
+
+    def select_move(self,start_position:Position,possible_set:set[Position]):
+        possible_filtered = possible_set - self.history_path_set
+        if len(possible_filtered) == 0:
+            #TODO: switch state here, because we checked every thing here
+            #possible_filtered = possible_set
+            self.determine_move_back_path(start_position)
+            return self.select_move_back(possible_set)
+        if len(possible_filtered) == 1:
+            selected = possible_filtered.pop()
+        else:
+            selected = random.choice(tuple(possible_filtered))
+            possible_filtered.discard(selected)
+            self.todo.append(start_position)
+        return selected
 
 class FinishDetector(Behavior):
 
