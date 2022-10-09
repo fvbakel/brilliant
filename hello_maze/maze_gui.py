@@ -11,6 +11,7 @@ class MazeController:
 
     def __init__(self):
         self.show_short_path = False
+        self.show_trace = False
         
         self.square_width = 4
         self.wall_width = 4
@@ -31,23 +32,29 @@ class MazeController:
     def reset_game(self):
         self.manual_move = None
         self.game = MazeGame(self.maze_gen.maze,square_width=self.square_width,wall_width=self.wall_width)
-
-        self.short_path_renderer = ImageGameGridRender(self.game.game_grid)
         blank_map:dict(str,tuple[int,int,int]) = dict()
         blank_map[Material.FLOOR_MARKED.value] = Color.WHITE.value
-        self.blank_renderer = ImageGameGridRender(self.game.game_grid,material_map=blank_map)
+        blank_map[Material.FLOOR_HIGHLIGHTED.value] = Color.WHITE.value
+        self.renderer= ImageGameGridRender(self.game.game_grid,material_map=blank_map)
         self._add_finish_behavior()
-        self._set_renderer()
+        self._update_material_map()
         self.render()
 
     def generate_new(self):
         self.maze_gen =  MazeGenerator(Size(self.nr_of_cols,self.nr_of_rows))
         self.reset_game()
 
-    def _set_renderer(self):
-        self.renderer = self.blank_renderer
+    def _update_material_map(self):
         if self.show_short_path:
-            self.renderer = self.short_path_renderer 
+            self.renderer.material_map[Material.FLOOR_MARKED.value] = (255,0,0)
+        else:
+            self.renderer.material_map[Material.FLOOR_MARKED.value] = Color.WHITE.value
+        
+        if self.show_trace:
+            self.renderer.material_map[Material.FLOOR_HIGHLIGHTED.value] = (0,0,126)
+        else:
+            self.renderer.material_map[Material.FLOOR_HIGHLIGHTED.value] = Color.WHITE.value
+        
 
     def render(self):
         self.renderer.render()
@@ -60,7 +67,13 @@ class MazeController:
     def set_show_short_path(self,value:bool):
         if self.show_short_path != value:
             self.show_short_path = value
-            self._set_renderer()
+            self._update_material_map()
+            self.render()
+    
+    def set_show_trace(self,value:bool):
+        if self.show_trace != value:
+            self.show_trace = value
+            self._update_material_map()
             self.render()
 
     def get_move_behavior_cls(self):
@@ -68,6 +81,7 @@ class MazeController:
 
     def add_particle(self):
             particle = Particle()
+            particle.trace_material = Material.FLOOR_HIGHLIGHTED
             behavior = self.game.game_grid.add_manual_content(particle,self.get_move_behavior_cls())
             if not behavior is None:
                 self.render_changed()
@@ -119,8 +133,12 @@ class MazeDialog:
                 sg.Radio('Off', 1, default=True,key='__LOG_OFF__')
             ],
             [   sg.Text('Show shortest path'),
-                sg.Radio('On', 1,enable_events=True,key='__SHORT_ON__'),
-                sg.Radio('Off', 1, default=True,key='__SHORT_OFF__')
+                sg.Radio('On', 2,enable_events=True,key='__SHORT_ON__'),
+                sg.Radio('Off', 2, default=True,key='__SHORT_OFF__')
+            ],
+            [   sg.Text('Show trace'),
+                sg.Radio('On', 3,enable_events=True,key='__TRACE_ON__'),
+                sg.Radio('Off', 3, default=True,key='__TRACE_OFF__')
             ],
             [sg.Text('Move behavior')],
             [sg.DropDown(list(self.controller.move_behaviors.keys()),default_value=self.controller.move_behavior ,key='__MOVE BEHAVIOR__',size=(self.right_width + 5,sg.DEFAULT_ELEMENT_SIZE[1]))],
@@ -207,6 +225,8 @@ class MazeDialog:
                 self.set_status_message('')
             if event == '__SHORT_ON__':
                 self.controller.set_show_short_path(values['__SHORT_ON__'])
+            if event == '__TRACE_ON__':
+                self.controller.set_show_trace(values['__TRACE_ON__'])
             if event == '__LOG_ON__':
                 debug = values['__LOG_ON__']
                 if debug:

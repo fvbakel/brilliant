@@ -34,6 +34,7 @@ class GameContent:
         self.mobile:bool        = False
         self._guest:GameContent = None
         self.material           = Material.FLOOR
+        self.trace_material     = Material.NONE
         self.changed            = False
         self.behavior:Behavior  = None
 
@@ -112,8 +113,6 @@ class GameGrid(Grid):
                 behaviors.append(behavior)
         return behaviors
 
-
-    # TODO Improve method below to be more generic
     def add_manual_content(self,content:GameContent,behavior_type:type[Behavior]):
         if content is None or not content.mobile:
             return None
@@ -145,6 +144,9 @@ class GameGrid(Grid):
 
         request_content.guest = content_to_move
         source_content.guest = None
+
+        if content_to_move.trace_material != Material.NONE:
+            source_content.material = content_to_move.trace_material
 
     def get_available_directions(self,position:Position):
         result:dict[Direction,Position] = dict()
@@ -444,7 +446,6 @@ class Smart001Move(AutomaticMove):
             next = self.path_back[-1]
             if next in possible_set:
                 return self.path_back.pop()
-        
 
     def select_move(self,start_position:Position,possible_set:set[Position]):
         possible_filtered = possible_set - self.history_path_set
