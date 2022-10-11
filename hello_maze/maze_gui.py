@@ -13,14 +13,16 @@ class MazeController:
         self.show_short_path = False
         self.show_trace = False
         
-        self.square_width = 4
-        self.wall_width = 4
+        self.square_width = 1
+        self.wall_width = 1
         self.maze_img = None
 
-        self.nr_of_cols:int = 4
-        self.nr_of_rows:int = 4
+        self.nr_of_cols:int = 10
+        self.nr_of_rows:int = 10
         self.manual_move:ManualMove = None
         self.move_behavior:str = None
+        self.nr_started:int = 0
+        self.nr_of_cycles:int = 0
         self._init_move_behaviors()
         self.generate_new()
 
@@ -31,6 +33,9 @@ class MazeController:
     
     def reset_game(self):
         self.manual_move = None
+        self.nr_started = 0
+        self.nr_of_cycles = 0
+        self.fastest:int = -1
         self.game = MazeGame(self.maze_gen.maze,square_width=self.square_width,wall_width=self.wall_width)
         blank_map:dict(str,tuple[int,int,int]) = dict()
         blank_map[Material.FLOOR_MARKED.value] = Color.WHITE.value
@@ -84,6 +89,7 @@ class MazeController:
             particle.trace_material = Material.FLOOR_HIGHLIGHTED
             behavior = self.game.game_grid.add_manual_content(particle,self.get_move_behavior_cls())
             if not behavior is None:
+                self.nr_started += 1
                 self.render_changed()
 
     def add_manual_particle(self):
@@ -91,7 +97,9 @@ class MazeController:
             particle = Particle()
             particle.material = Material.PLASTIC_HIGHLIGHTED
             self.manual_move = self.game.game_grid.add_manual_content(particle,ManualMove)
-            self.render_changed()
+            if not self.manual_move is None:
+                self.nr_started += 1
+                self.render_changed()
 
     def _add_finish_behavior(self):
         self.finish_behavior:list[FinishDetector] = self.game.game_grid.set_behavior_last_spots(FinishDetector)
@@ -102,15 +110,26 @@ class MazeController:
 
     def do_one_cycle(self):
         self.game.game_grid.do_one_cycle()
+        if (self.nr_started -self.get_total_finished()) > 0:
+            self.nr_of_cycles +=1
         self.render_changed()
 
     def get_total_finished(self):
         total = 0
+        
         if self.finish_behavior is None:
             return total
         for behavior in self.finish_behavior:
             total += len(behavior.finished)
+            # TODO move to finish behavior?
+            if total > 0:
+                min_steps = min(behavior.nr_of_steps)
+                if self.fastest > min_steps or self.fastest == -1:
+                    self.fastest = min_steps
         return total
+    
+    
+
 
 class MazeDialog:
 
@@ -160,11 +179,17 @@ class MazeDialog:
         ]
 
         stats_frame = [
+            [   sg.Text("Total cycles:",size=(self.right_width - 25,sg.DEFAULT_ELEMENT_SIZE[1])),
+                sg.Text(str(0),key='__NR_CYCLES__')
+            ],
             [   sg.Text("Total started:",size=(self.right_width - 25,sg.DEFAULT_ELEMENT_SIZE[1])),
                 sg.Text(str(0),key='__NR_STARTED__')
             ],
             [   sg.Text("Total finished:",size=(self.right_width - 25,sg.DEFAULT_ELEMENT_SIZE[1])),
                 sg.Text(str(0),key='__NR_FINISHED__')
+            ],
+            [   sg.Text("Fastest:",size=(self.right_width - 25,sg.DEFAULT_ELEMENT_SIZE[1])),
+                sg.Text(str(0),key='__FASTEST__')
             ]
         ]
 
@@ -184,7 +209,10 @@ class MazeDialog:
             self.maze_display_img= cv2.resize(self.controller.maze_img, self.maze_img_dim, interpolation = cv2.INTER_AREA)
 
     def update_statistics(self):
+        self.window.FindElement('__NR_CYCLES__').Update(str(self.controller.nr_of_cycles))
+        self.window.FindElement('__NR_STARTED__').Update(str(self.controller.nr_started))
         self.window.FindElement('__NR_FINISHED__').Update(str(self.controller.get_total_finished()))
+        self.window.FindElement('__FASTEST__').Update(str(self.controller.fastest))
 
     def update_dialog(self):
         self.controller.do_one_cycle()

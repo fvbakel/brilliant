@@ -79,7 +79,7 @@ class GameGrid(Grid):
     
     def __init__(self,size:Size):
         super().__init__(size)
-        self.behaviors:set[Behavior] = set()
+        self.behaviors:dict[int,set[Behavior]] = dict()
 
     def get_location(self,position:(Position | tuple[int,int])) -> GameContent:
         return super().get_location(position)
@@ -107,9 +107,8 @@ class GameGrid(Grid):
             content = col[-1]
             if  not content is None and \
                     not content.solid:
-                behavior = behavior_type(self)
-                behavior.subject = content
-                #self.register_behavior(behavior)
+                behavior = behavior_type(self)  # type: ignore
+                behavior.subject = content  # type: ignore
                 behaviors.append(behavior)
         return behaviors
 
@@ -162,15 +161,26 @@ class GameGrid(Grid):
         
 
     def register_behavior(self,behavior:Behavior):
-        self.behaviors.add(behavior)
+        if not behavior.priority in self.behaviors:
+            self.behaviors[behavior.priority]= set()
+          
+        self.behaviors[behavior.priority].add(behavior)
 
     def unregister_behavior(self,behavior:Behavior):
-        self.behaviors.discard(behavior)
+        if behavior.priority in self.behaviors:
+            self.behaviors[behavior.priority].discard(behavior)
 
     def do_one_cycle(self):
-        for behavior in list(self.behaviors):
-            if behavior in self.behaviors:
-                behavior.do_one_cycle()
+        priorities = sorted(self.behaviors.keys())
+        for priority in priorities:
+            # check if it is still in the list because 
+            # one cycle could have removed an other behavior 
+            # from the original list
+            if priority not in self.behaviors:
+                continue
+            for behavior in list(self.behaviors[priority]):    
+                if behavior in self.behaviors[priority]:
+                    behavior.do_one_cycle()
 
 
 class GameGridRender:
@@ -287,8 +297,9 @@ class Behavior:
 
     def __init__(self,game_grid:GameGrid):
         self.game_grid = game_grid
+        self.priority:int = 10
         self.game_grid.register_behavior(self)
-        self._subject:GameContent = None
+        self._subject:GameContent = None  # type: ignore
 
     @property
     def subject(self):
@@ -467,13 +478,20 @@ class FinishDetector(Behavior):
     def __init__(self,game_grid:GameGrid):
         super().__init__(game_grid)
         self.finished:list[GameContent] = []
+        self.priority = 1
+        self.nr_of_steps:list[int] = []
 
     def do_one_cycle(self):
         if not self._subject is None and not self._subject.guest is None:
             self.finished.append(self._subject.guest)
+            
             if not self._subject.guest.behavior is None:
                 self._subject.guest.behavior.unregister()
+                if isinstance(self._subject.guest.behavior,AutomaticMove):
+                    behavior:AutomaticMove = self._subject.guest.behavior
+                    self.nr_of_steps.append(len(behavior.history_path) -1)
+            if self._subject.guest.trace_material != Material.NONE:
+                self._subject.material = self._subject.guest.trace_material
             self._subject.guest = None
-            
 
 
