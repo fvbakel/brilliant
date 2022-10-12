@@ -1,17 +1,19 @@
 from gamegrid import *
+import basegrid as bg
 import logging
 import unittest
+import cv2
 
 TEST_TMP_DIR = "./tmp"
 
 class TestModel(unittest.TestCase):
 
     def test_direction(self):
-        l = Direction.LEFT
-        self.assertTrue(l==Direction.LEFT)
+        l = bg.Direction.LEFT
+        self.assertTrue(l==bg.Direction.LEFT)
 
     def make_test_grid(self):
-        grid_size = Size(10,10)
+        grid_size = bg.Size(10,10)
         grid = GameGrid(grid_size)
 
         grid.set_location((0,0),Wall())
@@ -67,7 +69,7 @@ class TestModel(unittest.TestCase):
         logging.debug(f"Writing image {tmp_file_name}")
         cv2.imwrite(tmp_file_name,renderer.output)
 
-        control.set_move(Direction.DOWN)
+        control.set_move(bg.Direction.DOWN)
         control.do_one_cycle()
 
         renderer.render()

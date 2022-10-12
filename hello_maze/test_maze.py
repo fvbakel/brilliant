@@ -2,8 +2,8 @@ from graph import *
 from maze import *
 import logging
 import unittest
+import cv2
 
-import os
 
 TEST_TMP_DIR = "./tmp"
 

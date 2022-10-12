@@ -1,13 +1,9 @@
-
-from abc import abstractclassmethod, abstractmethod
-from turtle import pos, position
-from basegrid import *
+import basegrid as bg
 
 import random
-import cv2
 import numpy as np
 
-class Material(Enum):
+class Material(bg.Enum):
     NONE                  = '_'
     FLOOR                 = 'f'
     FLOOR_MARKED          = ' '
@@ -17,26 +13,26 @@ class Material(Enum):
     PLASTIC_MARKED        = 'p'
     PLASTIC_HIGHLIGHTED   = '0'
 
-class Color(Enum):
+class Color(bg.Enum):
     WHITE = (255,255,255)
     BLACK = (0,0,0)
 
 class GameContent:
     pass
 
-class Behavior:
+class Behavior: 
     pass
 
 class GameContent:
     def __init__(self):
-        self.position:Position  = None
-        self.solid:bool         = False
-        self.mobile:bool        = False
-        self._guest:GameContent = None
-        self.material           = Material.FLOOR
-        self.trace_material     = Material.NONE
-        self.changed            = False
-        self.behavior:Behavior  = None
+        self.position:bg.Position   = None
+        self.solid:bool             = False
+        self.mobile:bool            = False
+        self._guest:GameContent     = None
+        self.material               = Material.FLOOR
+        self.trace_material         = Material.NONE
+        self.changed                = False
+        self.behavior:Behavior      = None
 
     def can_host_guest(self):
         if self.solid == False and self._guest is None:
@@ -75,18 +71,18 @@ class Particle(GameContent):
         self.mobile:bool    = True
         self.material       = Material.PLASTIC
 
-class GameGrid(Grid):
+class GameGrid(bg.Grid):
     
-    def __init__(self,size:Size):
+    def __init__(self,size:bg.Size):
         super().__init__(size)
         self.behaviors:dict[int,set[Behavior]] = dict()
 
-    def get_location(self,position:(Position | tuple[int,int])) -> GameContent:
+    def get_location(self,position:(bg.Position | tuple[int,int])) -> GameContent:
         return super().get_location(position)
 
-    def set_location(self,position:(Position | tuple[int,int]),content:GameContent):
+    def set_location(self,position:(bg.Position | tuple[int,int]),content:GameContent):
         if isinstance(position,tuple):
-            content.position = Position(position[0],position[1])
+            content.position = bg.Position(position[0],position[1])
         else:
             content.position = position
         super().set_location(position,content)
@@ -123,13 +119,13 @@ class GameGrid(Grid):
         behavior.subject = content
         return behavior
 
-    def move_content_direction(self,content_to_move:GameContent,direction:Direction):
-        if direction == Direction.HERE or content_to_move is None:
+    def move_content_direction(self,content_to_move:GameContent,direction:bg.Direction):
+        if direction == bg.Direction.HERE or content_to_move is None:
             return
         request_pos = content_to_move.position.get_position_in_direction(direction)
         self.move_content(content_to_move,request_pos)
 
-    def move_content(self,content_to_move:GameContent,request_position:Position):
+    def move_content(self,content_to_move:GameContent,request_position:bg.Position):
         if      content_to_move is None or \
                 not content_to_move.mobile or \
                 not self.has_location(request_position):
@@ -147,10 +143,10 @@ class GameGrid(Grid):
         if content_to_move.trace_material != Material.NONE:
             source_content.material = content_to_move.trace_material
 
-    def get_available_directions(self,position:Position):
-        result:dict[Direction,Position] = dict()
-        for direction in Direction:
-            if direction == Direction.HERE:
+    def get_available_directions(self,position:bg.Position):
+        result:dict[bg.Direction,bg.Position] = dict()
+        for direction in bg.Direction:
+            if direction == bg.Direction.HERE:
                 continue
             candidate_pos = position.get_position_in_direction(direction)
             if self.has_location(candidate_pos):
@@ -230,7 +226,7 @@ class GameGridRender:
         
         return content.material
 
-    def _render_material(self,position:Position,material:Material):
+    def _render_material(self,position:bg.Position,material:Material):
         pass
 
 class TextGameGridRender(GameGridRender):
@@ -247,7 +243,7 @@ class TextGameGridRender(GameGridRender):
         self.output += "\n"
         super()._render_row(row)
 
-    def _render_material(self,position:Position,material:Material):
+    def _render_material(self,position:bg.Position,material:Material):
         material_str = material.value
         if material_str in self.material_map:
             material_str = self.material_map[material_str]
@@ -287,11 +283,9 @@ class ImageGameGridRender(GameGridRender):
     def _pre_render(self):
         self._init_image()
 
-    def _render_material(self,position:Position,material:Material):
+    def _render_material(self,position:bg.Position,material:Material):
         material_str = material.value
         self.output[position.row,position.col] = self.material_map[material_str]
-
-
 
 class Behavior:
 
@@ -311,7 +305,6 @@ class Behavior:
         if not self._subject is None:
             self._subject.behavior = self
 
-    @abstractclassmethod
     def do_one_cycle(self):
         pass
 
@@ -322,22 +315,24 @@ class ManualMove(Behavior):
 
     def __init__(self,game_grid:GameGrid):
         super().__init__(game_grid)
-        self.next_move:Direction = Direction.HERE
+        self.next_move:bg.Direction = bg.Direction.HERE
 
-    def set_move(self,direction:Direction):
+    def set_move(self,direction:bg.Direction):
         self.next_move = direction
 
     def do_one_cycle(self):
-        if self.next_move != Direction.HERE and not self._subject is None:
+        if self.next_move != bg.Direction.HERE and not self._subject is None:
             self.game_grid.move_content_direction(self._subject,self.next_move)
-        self.next_move = Direction.HERE
+        self.next_move = bg.Direction.HERE
 
+#
+# TODO: Move all below to a separate module
 class AutomaticMove(Behavior):
 
     def __init__(self,game_grid:GameGrid):
         super().__init__(game_grid)
-        self.history_path:list[position] = []
-        self.history_path_set:set[position] = set()
+        self.history_path:list[bg.Position] = []
+        self.history_path_set:set[bg.Position] = set()
 
     @Behavior.subject.setter
     def subject(self,subject:GameContent):
@@ -348,8 +343,7 @@ class AutomaticMove(Behavior):
         self.history_path.append(self._subject.position)
         self.history_path_set.add(self._subject.position)
 
-    @abstractmethod
-    def determine_new_pos(self,start_position:Position):
+    def determine_new_pos(self,start_position:bg.Position):
         return None
 
     def do_one_cycle(self):
@@ -361,7 +355,7 @@ class AutomaticMove(Behavior):
 
 class RandomMove(AutomaticMove):
 
-    def determine_new_pos(self,start_position:Position):
+    def determine_new_pos(self,start_position:bg.Position):
         possible_directions = self.game_grid.get_available_directions(start_position)
         if len(possible_directions) == 0:
             return None
@@ -369,7 +363,7 @@ class RandomMove(AutomaticMove):
 
 class RandomDistinctMove(AutomaticMove):
 
-    def determine_new_pos(self,start_position:Position):
+    def determine_new_pos(self,start_position:bg.Position):
         possible_directions = self.game_grid.get_available_directions(start_position)
         if len(possible_directions) == 0:
             return None
@@ -382,10 +376,10 @@ class RandomDistinctMove(AutomaticMove):
 class Smart001Move(AutomaticMove):
     def __init__(self,game_grid:GameGrid):
         super().__init__(game_grid)
-        self.todo:list[(Position,Position)] = list()
-        self.path_back:list[Position] = list()
+        self.todo:list[bg.Position] = []
+        self.path_back:list[bg.Position] = []
 
-    def determine_new_pos(self,start_position:Position):
+    def determine_new_pos(self,start_position:bg.Position):
         possible_directions = self.game_grid.get_available_directions(start_position)
         if len(possible_directions) == 0:
             return None
@@ -397,13 +391,14 @@ class Smart001Move(AutomaticMove):
         else:
             return self.select_move(start_position,possible_set)
 
-    def determine_move_back_path(self,start_position:Position):
+    def determine_move_back_path(self,start_position:bg.Position):
         if len(self.todo) > 0:
             target = self.todo.pop()
             self.set_path_back(start_position,target)
             self.reduce_path()
 
-    def set_path_back(self,start:Position,target:Position):
+    # TODO: Make more generic an reusable
+    def set_path_back(self,start:bg.Position,target:bg.Position):
         """
             history path could be like this
             [1,target,2,3,target,a,b,c,start_position,x,y,z,start_position]
@@ -428,6 +423,7 @@ class Smart001Move(AutomaticMove):
         if not start_index is None and not end_index is None:
             self.path_back = self.history_path[start_index:end_index]
 
+    # TODO: make a more generic reusable method class
     def reduce_path(self):
         path = self.path_back
         pos_map = dict()
@@ -452,13 +448,15 @@ class Smart001Move(AutomaticMove):
                 self.path_back =  path[:cut_start] + path[cut_end:]
                 self.reduce_path()
 
-    def select_move_back(self,possible_set:set[Position]):
+    #
+    # TODO: Make a more generic mechanism that can be reused
+    def select_move_back(self,possible_set:set[bg.Position]):
         if len(self.path_back) > 0:
             next = self.path_back[-1]
             if next in possible_set:
                 return self.path_back.pop()
 
-    def select_move(self,start_position:Position,possible_set:set[Position]):
+    def select_move(self,start_position:bg.Position,possible_set:set[bg.Position]):
         possible_filtered = possible_set - self.history_path_set
         if len(possible_filtered) == 0:
             #TODO: switch state here, because we checked every thing here

@@ -95,8 +95,8 @@ class Graph:
         self.nodes:dict[str,Node] = dict()
         self.edges:set[Edge] = set()
         self.edge_pairs:set[EdgePair] =set()
-        self.first = None
-        self.last = None
+        self.first:Node = None
+        self.last:Node = None
 
     def reset(self):
         for node in self.nodes.values():
@@ -176,7 +176,7 @@ class Graph:
         return False
 
     def get_min_node_not_visited(self):
-        current = None
+        current:Node = None
         for node in self.nodes.values():
             if node.visited == False:
                 if current is None and node.dist != -1:

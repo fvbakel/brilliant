@@ -1,6 +1,7 @@
 from maze import *
 import PySimpleGUIQt as sg
 import logging
+import cv2
 
 class MazeConfiguration:
 
