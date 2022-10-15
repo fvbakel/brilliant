@@ -28,7 +28,7 @@ class MazeController:
         self.generate_new()
 
     def _init_move_behaviors(self):
-        self.move_behaviors:dict[str,AutomaticMove] = dict()
+        self.move_behaviors:dict[str,type[AutomaticMove]] = dict()
         for cls in AutomaticMove.__subclasses__():
             self.move_behaviors[cls.__name__] = cls
     
@@ -43,6 +43,7 @@ class MazeController:
         blank_map[Material.FLOOR_HIGHLIGHTED.value] = Color.WHITE.value
         self.renderer= ImageGameGridRender(self.game.game_grid,material_map=blank_map)
         self._add_finish_behavior()
+        self._init_auto_add_behavior()
         self._update_material_map()
         self.render()
 
@@ -82,6 +83,13 @@ class MazeController:
             self._update_material_map()
             self.render()
 
+    def set_auto_add(self,value:bool):
+        if value:
+            self.auto_add_behavior.move_type = self.get_move_behavior_cls()
+            self.auto_add_behavior.active = True
+        else:
+            self.auto_add_behavior.active = False
+
     def get_move_behavior_cls(self):
         return self.move_behaviors.get(self.move_behavior,RandomMove)
 
@@ -102,6 +110,9 @@ class MazeController:
                 self.nr_started += 1
                 self.render_changed()
 
+    def _init_auto_add_behavior(self):
+        self.auto_add_behavior = AutomaticAdd(self.game.game_grid)
+
     def _add_finish_behavior(self):
         self.finish_behavior:list[FinishDetector] = self.game.game_grid.set_behavior_last_spots(FinishDetector)
 
@@ -115,18 +126,21 @@ class MazeController:
             self.nr_of_cycles +=1
         self.render_changed()
 
+    # TODO: rename this method
     def get_total_finished(self):
         total = 0
         
         if self.finish_behavior is None:
             return total
         for behavior in self.finish_behavior:
-            total += len(behavior.finished)
+            nr_finished = len(behavior.finished)
+            if nr_finished == 0:
+                continue
+            total += nr_finished
             # TODO move to finish behavior?
-            if total > 0:
-                min_steps = min(behavior.nr_of_steps)
-                if self.fastest > min_steps or self.fastest == -1:
-                    self.fastest = min_steps
+            min_steps = min(behavior.nr_of_steps)
+            if self.fastest > min_steps or self.fastest == -1:
+                self.fastest = min_steps
         return total
     
     
@@ -159,6 +173,10 @@ class MazeDialog:
             [   sg.Text('Show trace'),
                 sg.Radio('On', 3,enable_events=True,key='__TRACE_ON__'),
                 sg.Radio('Off', 3, default=True,key='__TRACE_OFF__')
+            ],
+            [   sg.Text('Automatic add'),
+                sg.Radio('On', 4,enable_events=True,key='__ADD_ON__'),
+                sg.Radio('Off', 4, default=True,key='__ADD_OFF__')
             ],
             [sg.Text('Move behavior')],
             [sg.DropDown(list(self.controller.move_behaviors.keys()),default_value=self.controller.move_behavior ,key='__MOVE BEHAVIOR__',size=(self.right_width + 5,sg.DEFAULT_ELEMENT_SIZE[1]))],
@@ -256,6 +274,8 @@ class MazeDialog:
                 self.controller.set_show_short_path(values['__SHORT_ON__'])
             if event == '__TRACE_ON__':
                 self.controller.set_show_trace(values['__TRACE_ON__'])
+            if event == '__ADD_ON__':
+                self.controller.set_auto_add(values['__ADD_ON__'])    
             if event == '__LOG_ON__':
                 debug = values['__LOG_ON__']
                 if debug:

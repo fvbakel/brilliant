@@ -493,3 +493,19 @@ class FinishDetector(Behavior):
             self._subject.guest = None
 
 
+class AutomaticAdd(Behavior):
+
+    def __init__(self,game_grid:GameGrid):
+        super().__init__(game_grid)
+        self.priority = 90
+        self.nr_started = 0
+        self.active = False
+        self.move_type:type[AutomaticMove] = RandomMove
+
+    def do_one_cycle(self):
+        if self.active:
+            particle = Particle()
+            particle.trace_material = Material.FLOOR_HIGHLIGHTED
+            behavior = self.game_grid.add_manual_content(particle,self.move_type)
+            if not behavior is None:
+                self.nr_started += 1
