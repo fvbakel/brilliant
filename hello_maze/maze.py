@@ -1,4 +1,4 @@
-from basegrid import Grid, Rectangle,Position,Direction,Size
+from basegrid import *
 from gamegrid import *
 
 import graph as gr

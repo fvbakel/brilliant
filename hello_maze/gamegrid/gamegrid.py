@@ -1,4 +1,4 @@
-from basegrid import ExtendedEnum,Grid,Size,Position,Direction
+from basegrid import *
 
 import random
 import numpy as np
