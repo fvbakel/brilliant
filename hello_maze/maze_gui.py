@@ -33,6 +33,7 @@ class MazeController:
             self.move_behaviors[cls.__name__] = cls
     
     def reset_game(self):
+        self.run_simulation = False
         self.manual_move = None
         self.nr_started = 0
         self.nr_of_cycles = 0
@@ -89,6 +90,10 @@ class MazeController:
             self.auto_add_behavior.active = True
         else:
             self.auto_add_behavior.active = False
+    
+    def set_sim(self,value:bool):
+        if self.run_simulation != value:
+            self.run_simulation = value
 
     def get_move_behavior_cls(self):
         return self.move_behaviors.get(self.move_behavior,RandomMove)
@@ -121,10 +126,11 @@ class MazeController:
             self.manual_move.set_move(direction)
 
     def do_one_cycle(self):
-        self.game.game_grid.do_one_cycle()
-        if (self.nr_started -self.get_total_finished()) > 0:
-            self.nr_of_cycles +=1
-        self.render_changed()
+        if self.run_simulation:
+            self.game.game_grid.do_one_cycle()
+            if (self.nr_started -self.get_total_finished()) > 0:
+                self.nr_of_cycles +=1
+            self.render_changed()
 
     # TODO: rename this method
     def get_total_finished(self):
@@ -177,6 +183,10 @@ class MazeDialog:
             [   sg.Text('Automatic add'),
                 sg.Radio('On', 4,enable_events=True,key='__ADD_ON__'),
                 sg.Radio('Off', 4, default=True,key='__ADD_OFF__')
+            ],
+            [   sg.Text('Run simulation'),
+                sg.Radio('On', 5,enable_events=True,key='__SIM_ON__'),
+                sg.Radio('Off', 5, default=True,key='__SIM_OFF__')
             ],
             [sg.Text('Move behavior')],
             [sg.DropDown(list(self.controller.move_behaviors.keys()),default_value=self.controller.move_behavior ,key='__MOVE BEHAVIOR__',size=(self.right_width + 5,sg.DEFAULT_ELEMENT_SIZE[1]))],
@@ -275,7 +285,9 @@ class MazeDialog:
             if event == '__TRACE_ON__':
                 self.controller.set_show_trace(values['__TRACE_ON__'])
             if event == '__ADD_ON__':
-                self.controller.set_auto_add(values['__ADD_ON__'])    
+                self.controller.set_auto_add(values['__ADD_ON__'])
+            if event == '__SIM_ON__':
+                self.controller.set_sim(values['__SIM_ON__'])
             if event == '__LOG_ON__':
                 debug = values['__LOG_ON__']
                 if debug:

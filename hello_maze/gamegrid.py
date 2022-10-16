@@ -2,6 +2,7 @@ import basegrid as bg
 
 import random
 import numpy as np
+import logging
 
 class Material(bg.Enum):
     NONE                  = '_'
@@ -36,6 +37,11 @@ class GameContent:
 
     def can_host_guest(self):
         if self.solid == False and self._guest is None:
+            return True
+        return False
+
+    def has_guest_ability(self):
+        if self.solid == False:
             return True
         return False
 
@@ -144,15 +150,15 @@ class GameGrid(bg.Grid):
             source_content.material = content_to_move.trace_material
 
     def get_available_directions(self,position:bg.Position):
-        result:dict[bg.Direction,bg.Position] = dict()
+        result:dict[bg.Direction,GameContent] = dict()
         for direction in bg.Direction:
             if direction == bg.Direction.HERE:
                 continue
             candidate_pos = position.get_position_in_direction(direction)
             if self.has_location(candidate_pos):
                 candidate_content = self.get_location(candidate_pos)
-                if candidate_content.can_host_guest():
-                    result[direction]= candidate_pos
+                if candidate_content.has_guest_ability():
+                    result[direction]= candidate_content
         return result
         
 
@@ -333,6 +339,7 @@ class AutomaticMove(Behavior):
         super().__init__(game_grid)
         self.history_path:list[bg.Position] = []
         self.history_path_set:set[bg.Position] = set()
+        self.nr_stand_still = 0
 
     @Behavior.subject.setter
     def subject(self,subject:GameContent):
@@ -349,47 +356,80 @@ class AutomaticMove(Behavior):
     def do_one_cycle(self):
         if not self._subject is None:
             new_pos = self.determine_new_pos(self._subject.position)
-            if not new_pos is None:
+            if new_pos is None:
+                self.nr_stand_still +=1
+            else:
+                self.nr_stand_still = 0
                 self.game_grid.move_content(self._subject,new_pos)
                 self.record_new_position()
 
 class RandomMove(AutomaticMove):
 
     def determine_new_pos(self,start_position:bg.Position):
-        possible_directions = self.game_grid.get_available_directions(start_position)
-        if len(possible_directions) == 0:
+        possible_hosts = self.game_grid.get_available_directions(start_position)
+        possible_positions = tuple([content.position for content in possible_hosts.values() if content.can_host_guest() ])
+        if len(possible_positions) == 0:
             return None
-        return random.choice(tuple(possible_directions.values()))
+        
+        return random.choice(tuple(possible_positions))
 
 class RandomDistinctMove(AutomaticMove):
 
     def determine_new_pos(self,start_position:bg.Position):
-        possible_directions = self.game_grid.get_available_directions(start_position)
-        if len(possible_directions) == 0:
+        possible_hosts = self.game_grid.get_available_directions(start_position)
+        possible_positions = tuple([content.position for content in possible_hosts.values() if content.can_host_guest() ])
+        if len(possible_positions) == 0:
             return None
-        possible_set = set(possible_directions.values())
+        possible_set = set(possible_positions)
         possible_filtered = possible_set - self.history_path_set
         if len(possible_filtered) == 0:
-            possible_filtered = possible_directions.values()
+            possible_filtered = possible_positions
         return random.choice(tuple(possible_filtered))
 
-class Smart001Move(AutomaticMove):
+class BlockDeadEnds(AutomaticMove):
     def __init__(self,game_grid:GameGrid):
         super().__init__(game_grid)
         self.todo:list[bg.Position] = []
         self.path_back:list[bg.Position] = []
 
     def determine_new_pos(self,start_position:bg.Position):
-        possible_directions = self.game_grid.get_available_directions(start_position)
-        if len(possible_directions) == 0:
+        possible_hosts = self.game_grid.get_available_directions(start_position)
+        possible_positions = tuple([content.position for content in possible_hosts.values() if content.can_host_guest() ])
+        all_host_positions = set([content.position for content in possible_hosts.values() ])
+        if len(possible_positions) == 0:
             return None
     
-        possible_set = set(possible_directions.values())
+        possible_set = set(possible_positions)
+
+        if self.nr_stand_still > 10:
+            self.nr_stand_still = 0
+            logging.debug(f"""{start_position} is standing still
+                                todo size {len(self.todo)}
+                                path back {len(self.path_back)}
+                            """)
+            if len(self.todo) > 0:
+                if len(self.path_back) > 0:
+                    logging.debug(f""""
+                                    destination {self.path_back[0]}
+                                    """)
+                    if len(self.todo) > 0:
+                        logging.debug(f""""
+                                        new destination {self.todo[-1]}
+                                        """)
+                        self.todo.insert(0,self.path_back[0])
+                        self.path_back = []
+                        
+                        return self.select_move(start_position,possible_set,all_host_positions)
+            else:
+                selected = random.choice(tuple(possible_set))
+                self.todo.insert(0,start_position)
+                return selected
+            return None
 
         if len(self.path_back) > 0:
             return self.select_move_back(possible_set)
         else:
-            return self.select_move(start_position,possible_set)
+            return self.select_move(start_position,possible_set,all_host_positions)
 
     def determine_move_back_path(self,start_position:bg.Position):
         if len(self.todo) > 0:
@@ -456,18 +496,23 @@ class Smart001Move(AutomaticMove):
             if next in possible_set:
                 return self.path_back.pop()
 
-    def select_move(self,start_position:bg.Position,possible_set:set[bg.Position]):
+    def select_move(    self,
+                        start_position:bg.Position,
+                        possible_set:set[bg.Position],
+                        all_host_positions:set[bg.Position],
+                    ):
         possible_filtered = possible_set - self.history_path_set
-        if len(possible_filtered) == 0:
-            #TODO: switch state here, because we checked every thing here
-            #possible_filtered = possible_set
+        all_filtered = all_host_positions - self.history_path_set
+        if len(all_filtered) == 0:
             self.determine_move_back_path(start_position)
             return self.select_move_back(possible_set)
+        if len(possible_filtered) == 0:
+            return None
         if len(possible_filtered) == 1:
             selected = possible_filtered.pop()
         else:
             selected = random.choice(tuple(possible_filtered))
-            possible_filtered.discard(selected)
+            all_filtered.discard(selected)
             self.todo.append(start_position)
         return selected
 
