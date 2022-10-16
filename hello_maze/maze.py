@@ -1,17 +1,19 @@
-from basegrid import *
+from basegrid import Grid, Rectangle,Position,Direction,Size
 from gamegrid import *
-from graph import *
 
+import graph as gr
+from dataclasses import dataclass
+from os import PathLike
 import logging
 import random
 import graphviz
 
 class Square:
 
-    def __init__(self,position:Position,node:Node):
+    def __init__(self,position:Position,node:gr.Node):
         self.position = position
         self.node = node
-        self.edge_pairs:dict[Direction,EdgePair] = dict()
+        self.edge_pairs:dict[Direction,gr.EdgePair] = dict()
         self.is_short_part = False
         self.is_first=False
         self.is_last=False
@@ -92,7 +94,7 @@ class Maze:
 
     def __init__(self,square_size:Size):
         self.square_size = square_size
-        self.graph = Graph()
+        self.graph = gr.Graph()
         self.square_grid = SquareGrid(square_size)
         self._init_nodes()
         self._init_first_last()
@@ -325,3 +327,144 @@ class Squares2Dot:
 
     def render(self,filename:PathLike | str,directory:PathLike | str, format='svg'):
         self.dot.render(filename=filename,directory=directory, format=format)
+
+class MazeController:
+
+    def __init__(self):
+        self.show_short_path = False
+        self.show_trace = False
+        
+        self.square_width = 1
+        self.wall_width = 1
+        self.maze_img = None
+
+        self.nr_of_cols:int = 10
+        self.nr_of_rows:int = 10
+        self.manual_move:ManualMove = None
+        self.move_behavior:str = None
+        self.nr_started:int = 0
+        self.nr_of_cycles:int = 0
+        self._init_move_behaviors()
+        self.generate_new()
+
+    def _init_move_behaviors(self):
+        self.move_behaviors:dict[str,type[AutomaticMove]] = dict()
+        for cls in AutomaticMove.__subclasses__():
+            self.move_behaviors[cls.__name__] = cls
+    
+    def reset_game(self):
+        self.run_simulation = False
+        self.manual_move = None
+        self.nr_started = 0
+        self.nr_of_cycles = 0
+        self.fastest:int = -1
+        self.game = MazeGame(self.maze_gen.maze,square_width=self.square_width,wall_width=self.wall_width)
+        blank_map:dict(str,tuple[int,int,int]) = dict()
+        blank_map[Material.FLOOR_MARKED.value] = Color.WHITE.value
+        blank_map[Material.FLOOR_HIGHLIGHTED.value] = Color.WHITE.value
+        self.renderer= ImageGameGridRender(self.game.game_grid,material_map=blank_map)
+        self._add_finish_behavior()
+        self._init_auto_add_behavior()
+        self._update_material_map()
+        self.render()
+
+    def generate_new(self):
+        self.maze_gen =  MazeGenerator(Size(self.nr_of_cols,self.nr_of_rows))
+        self.reset_game()
+
+    def _update_material_map(self):
+        if self.show_short_path:
+            self.renderer.material_map[Material.FLOOR_MARKED.value] = (255,0,0)
+        else:
+            self.renderer.material_map[Material.FLOOR_MARKED.value] = Color.WHITE.value
+        
+        if self.show_trace:
+            self.renderer.material_map[Material.FLOOR_HIGHLIGHTED.value] = (0,0,126)
+        else:
+            self.renderer.material_map[Material.FLOOR_HIGHLIGHTED.value] = Color.WHITE.value
+        
+
+    def render(self):
+        self.renderer.render()
+        self.maze_img = self.renderer.output
+    
+    def render_changed(self):
+        self.renderer.render_changed()
+        self.maze_img = self.renderer.output
+
+    def set_show_short_path(self,value:bool):
+        if self.show_short_path != value:
+            self.show_short_path = value
+            self._update_material_map()
+            self.render()
+    
+    def set_show_trace(self,value:bool):
+        if self.show_trace != value:
+            self.show_trace = value
+            self._update_material_map()
+            self.render()
+
+    def set_auto_add(self,value:bool):
+        if value:
+            self.auto_add_behavior.move_type = self.get_move_behavior_cls()
+            self.auto_add_behavior.active = True
+        else:
+            self.auto_add_behavior.active = False
+    
+    def set_sim(self,value:bool):
+        if self.run_simulation != value:
+            self.run_simulation = value
+
+    def get_move_behavior_cls(self):
+        return self.move_behaviors.get(self.move_behavior,RandomMove)
+
+    def add_particle(self):
+            particle = Particle()
+            particle.trace_material = Material.FLOOR_HIGHLIGHTED
+            behavior = self.game.game_grid.add_manual_content(particle,self.get_move_behavior_cls())
+            if not behavior is None:
+                self.nr_started += 1
+                self.render_changed()
+
+    def add_manual_particle(self):
+        if self.manual_move == None:
+            particle = Particle()
+            particle.material = Material.PLASTIC_HIGHLIGHTED
+            self.manual_move = self.game.game_grid.add_manual_content(particle,ManualMove)
+            if not self.manual_move is None:
+                self.nr_started += 1
+                self.render_changed()
+
+    def _init_auto_add_behavior(self):
+        self.auto_add_behavior = AutomaticAdd(self.game.game_grid)
+
+    def _add_finish_behavior(self):
+        self.finish_behavior:list[FinishDetector] = self.game.game_grid.set_behavior_last_spots(FinishDetector)
+
+    def move_manual_particle(self,direction:Direction):
+        if self.manual_move != None:
+            self.manual_move.set_move(direction)
+
+    def do_one_cycle(self):
+        if self.run_simulation:
+            self.game.game_grid.do_one_cycle()
+            if (self.nr_started -self.get_total_finished()) > 0:
+                self.nr_of_cycles +=1
+            self.render_changed()
+
+    # TODO: rename this method
+    def get_total_finished(self):
+        total = 0
+        
+        if self.finish_behavior is None:
+            return total
+        for behavior in self.finish_behavior:
+            nr_finished = len(behavior.finished)
+            if nr_finished == 0:
+                continue
+            total += nr_finished
+            # TODO move to finish behavior?
+            min_steps = min(behavior.nr_of_steps)
+            if self.fastest > min_steps or self.fastest == -1:
+                self.fastest = min_steps
+        return total

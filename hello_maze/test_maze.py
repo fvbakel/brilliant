@@ -1,7 +1,8 @@
-from graph import *
+import basegrid as bg
 from maze import *
 import logging
 import unittest
+from graph import *
 import cv2
 
 
@@ -10,7 +11,7 @@ TEST_TMP_DIR = "./tmp"
 class TestGraph(unittest.TestCase):
 
     def test_maze_generator(self):
-        size = Size(4,4)
+        size = bg.Size(4,4)
         maze_gen =  MazeGenerator(size)
 
         r = Graph2Dot(maze_gen.maze.graph)
@@ -25,7 +26,7 @@ class TestGraph(unittest.TestCase):
         r.render(self._testMethodName + "003" + ".dot",TEST_TMP_DIR)
 
     def test_maze_game(self):
-        size = Size(4,4)
+        size = bg.Size(4,4)
         maze_gen =  MazeGenerator(size)
         game = MazeGame(maze_gen.maze,square_width=4,wall_width=2)
 

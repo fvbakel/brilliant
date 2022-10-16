@@ -1,10 +1,10 @@
-import basegrid as bg
+from basegrid import ExtendedEnum,Grid,Size,Position,Direction
 
 import random
 import numpy as np
 import logging
 
-class Material(bg.Enum):
+class Material(ExtendedEnum):
     NONE                  = '_'
     FLOOR                 = 'f'
     FLOOR_MARKED          = ' '
@@ -14,7 +14,7 @@ class Material(bg.Enum):
     PLASTIC_MARKED        = 'p'
     PLASTIC_HIGHLIGHTED   = '0'
 
-class Color(bg.Enum):
+class Color(ExtendedEnum):
     WHITE = (255,255,255)
     BLACK = (0,0,0)
 
@@ -26,7 +26,7 @@ class Behavior:
 
 class GameContent:
     def __init__(self):
-        self.position:bg.Position   = None
+        self.position:Position   = None
         self.solid:bool             = False
         self.mobile:bool            = False
         self._guest:GameContent     = None
@@ -77,18 +77,18 @@ class Particle(GameContent):
         self.mobile:bool    = True
         self.material       = Material.PLASTIC
 
-class GameGrid(bg.Grid):
+class GameGrid(Grid):
     
-    def __init__(self,size:bg.Size):
+    def __init__(self,size:Size):
         super().__init__(size)
         self.behaviors:dict[int,set[Behavior]] = dict()
 
-    def get_location(self,position:(bg.Position | tuple[int,int])) -> GameContent:
+    def get_location(self,position:(Position | tuple[int,int])) -> GameContent:
         return super().get_location(position)
 
-    def set_location(self,position:(bg.Position | tuple[int,int]),content:GameContent):
+    def set_location(self,position:(Position | tuple[int,int]),content:GameContent):
         if isinstance(position,tuple):
-            content.position = bg.Position(position[0],position[1])
+            content.position = Position(position[0],position[1])
         else:
             content.position = position
         super().set_location(position,content)
@@ -125,13 +125,13 @@ class GameGrid(bg.Grid):
         behavior.subject = content
         return behavior
 
-    def move_content_direction(self,content_to_move:GameContent,direction:bg.Direction):
-        if direction == bg.Direction.HERE or content_to_move is None:
+    def move_content_direction(self,content_to_move:GameContent,direction:Direction):
+        if direction == Direction.HERE or content_to_move is None:
             return
         request_pos = content_to_move.position.get_position_in_direction(direction)
         self.move_content(content_to_move,request_pos)
 
-    def move_content(self,content_to_move:GameContent,request_position:bg.Position):
+    def move_content(self,content_to_move:GameContent,request_position:Position):
         if      content_to_move is None or \
                 not content_to_move.mobile or \
                 not self.has_location(request_position):
@@ -149,10 +149,10 @@ class GameGrid(bg.Grid):
         if content_to_move.trace_material != Material.NONE:
             source_content.material = content_to_move.trace_material
 
-    def get_available_directions(self,position:bg.Position):
-        result:dict[bg.Direction,GameContent] = dict()
-        for direction in bg.Direction:
-            if direction == bg.Direction.HERE:
+    def get_available_directions(self,position:Position):
+        result:dict[Direction,GameContent] = dict()
+        for direction in Direction:
+            if direction == Direction.HERE:
                 continue
             candidate_pos = position.get_position_in_direction(direction)
             if self.has_location(candidate_pos):
@@ -232,7 +232,7 @@ class GameGridRender:
         
         return content.material
 
-    def _render_material(self,position:bg.Position,material:Material):
+    def _render_material(self,position:Position,material:Material):
         pass
 
 class TextGameGridRender(GameGridRender):
@@ -249,7 +249,7 @@ class TextGameGridRender(GameGridRender):
         self.output += "\n"
         super()._render_row(row)
 
-    def _render_material(self,position:bg.Position,material:Material):
+    def _render_material(self,position:Position,material:Material):
         material_str = material.value
         if material_str in self.material_map:
             material_str = self.material_map[material_str]
@@ -289,7 +289,7 @@ class ImageGameGridRender(GameGridRender):
     def _pre_render(self):
         self._init_image()
 
-    def _render_material(self,position:bg.Position,material:Material):
+    def _render_material(self,position:Position,material:Material):
         material_str = material.value
         self.output[position.row,position.col] = self.material_map[material_str]
 
@@ -321,15 +321,15 @@ class ManualMove(Behavior):
 
     def __init__(self,game_grid:GameGrid):
         super().__init__(game_grid)
-        self.next_move:bg.Direction = bg.Direction.HERE
+        self.next_move:Direction = Direction.HERE
 
-    def set_move(self,direction:bg.Direction):
+    def set_move(self,direction:Direction):
         self.next_move = direction
 
     def do_one_cycle(self):
-        if self.next_move != bg.Direction.HERE and not self._subject is None:
+        if self.next_move != Direction.HERE and not self._subject is None:
             self.game_grid.move_content_direction(self._subject,self.next_move)
-        self.next_move = bg.Direction.HERE
+        self.next_move = Direction.HERE
 
 #
 # TODO: Move all below to a separate module
@@ -337,8 +337,8 @@ class AutomaticMove(Behavior):
 
     def __init__(self,game_grid:GameGrid):
         super().__init__(game_grid)
-        self.history_path:list[bg.Position] = []
-        self.history_path_set:set[bg.Position] = set()
+        self.history_path:list[Position] = []
+        self.history_path_set:set[Position] = set()
         self.nr_stand_still = 0
 
     @Behavior.subject.setter
@@ -350,7 +350,7 @@ class AutomaticMove(Behavior):
         self.history_path.append(self._subject.position)
         self.history_path_set.add(self._subject.position)
 
-    def determine_new_pos(self,start_position:bg.Position):
+    def determine_new_pos(self,start_position:Position):
         return None
 
     def do_one_cycle(self):
@@ -365,7 +365,7 @@ class AutomaticMove(Behavior):
 
 class RandomMove(AutomaticMove):
 
-    def determine_new_pos(self,start_position:bg.Position):
+    def determine_new_pos(self,start_position:Position):
         possible_hosts = self.game_grid.get_available_directions(start_position)
         possible_positions = tuple([content.position for content in possible_hosts.values() if content.can_host_guest() ])
         if len(possible_positions) == 0:
@@ -375,7 +375,7 @@ class RandomMove(AutomaticMove):
 
 class RandomDistinctMove(AutomaticMove):
 
-    def determine_new_pos(self,start_position:bg.Position):
+    def determine_new_pos(self,start_position:Position):
         possible_hosts = self.game_grid.get_available_directions(start_position)
         possible_positions = tuple([content.position for content in possible_hosts.values() if content.can_host_guest() ])
         if len(possible_positions) == 0:
@@ -389,10 +389,10 @@ class RandomDistinctMove(AutomaticMove):
 class BlockDeadEnds(AutomaticMove):
     def __init__(self,game_grid:GameGrid):
         super().__init__(game_grid)
-        self.todo:list[bg.Position] = []
-        self.path_back:list[bg.Position] = []
+        self.todo:list[Position] = []
+        self.path_back:list[Position] = []
 
-    def determine_new_pos(self,start_position:bg.Position):
+    def determine_new_pos(self,start_position:Position):
         possible_hosts = self.game_grid.get_available_directions(start_position)
         possible_positions = tuple([content.position for content in possible_hosts.values() if content.can_host_guest() ])
         all_host_positions = set([content.position for content in possible_hosts.values() ])
@@ -431,14 +431,14 @@ class BlockDeadEnds(AutomaticMove):
         else:
             return self.select_move(start_position,possible_set,all_host_positions)
 
-    def determine_move_back_path(self,start_position:bg.Position):
+    def determine_move_back_path(self,start_position:Position):
         if len(self.todo) > 0:
             target = self.todo.pop()
             self.set_path_back(start_position,target)
             self.reduce_path()
 
     # TODO: Make more generic an reusable
-    def set_path_back(self,start:bg.Position,target:bg.Position):
+    def set_path_back(self,start:Position,target:Position):
         """
             history path could be like this
             [1,target,2,3,target,a,b,c,start_position,x,y,z,start_position]
@@ -490,16 +490,16 @@ class BlockDeadEnds(AutomaticMove):
 
     #
     # TODO: Make a more generic mechanism that can be reused
-    def select_move_back(self,possible_set:set[bg.Position]):
+    def select_move_back(self,possible_set:set[Position]):
         if len(self.path_back) > 0:
             next = self.path_back[-1]
             if next in possible_set:
                 return self.path_back.pop()
 
     def select_move(    self,
-                        start_position:bg.Position,
-                        possible_set:set[bg.Position],
-                        all_host_positions:set[bg.Position],
+                        start_position:Position,
+                        possible_set:set[Position],
+                        all_host_positions:set[Position],
                     ):
         possible_filtered = possible_set - self.history_path_set
         all_filtered = all_host_positions - self.history_path_set
