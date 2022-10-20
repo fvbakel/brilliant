@@ -386,6 +386,31 @@ class RandomDistinctMove(AutomaticMove):
             possible_filtered = possible_positions
         return random.choice(tuple(possible_filtered))
 
+class RandomCommonMove(AutomaticMove):
+
+    def __init__(self,game_grid:GameGrid):
+        super().__init__(game_grid)
+        if hasattr(self.game_grid,'random_common_move'):
+            self.coordinator = self.game_grid.random_common_move
+        else:
+            self.coordinator = self
+            self.game_grid.random_common_move = self.coordinator
+
+
+    def determine_new_pos(self,start_position:Position):
+        return self.coordinator._determine_new_pos(start_position)
+    
+    def _determine_new_pos(self,start_position:Position):
+        possible_hosts = self.game_grid.get_available_directions(start_position)
+        possible_positions = tuple([content.position for content in possible_hosts.values() if content.can_host_guest() ])
+        if len(possible_positions) == 0:
+            return None
+        possible_set = set(possible_positions)
+        possible_filtered = possible_set - self.history_path_set
+        if len(possible_filtered) == 0:
+            possible_filtered = possible_positions
+        return random.choice(tuple(possible_filtered))
+
 class BlockDeadEnds(AutomaticMove):
     def __init__(self,game_grid:GameGrid):
         super().__init__(game_grid)
