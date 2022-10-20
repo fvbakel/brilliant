@@ -1,10 +1,9 @@
 from gamegrid import *
+from .test_config import *
 import basegrid as bg
 import logging
 import unittest
 import cv2
-
-TEST_TMP_DIR = "./tmp"
 
 class TestModel(unittest.TestCase):
 
@@ -77,10 +76,3 @@ class TestModel(unittest.TestCase):
         logging.debug(f"Writing image {tmp_file_name}")
         cv2.imwrite(tmp_file_name,renderer.output)
 
-
-def main():
-    logging.basicConfig(level=logging.DEBUG)
-    unittest.main()
-
-if __name__ == "__main__":
-    main()

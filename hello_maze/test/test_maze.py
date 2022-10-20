@@ -1,12 +1,10 @@
 import basegrid as bg
 from maze import *
+from .test_config import *
 import logging
 import unittest
 from graph import *
 import cv2
-
-
-TEST_TMP_DIR = "./tmp"
 
 class TestGraph(unittest.TestCase):
 
@@ -58,12 +56,3 @@ class TestGraph(unittest.TestCase):
         cv2.imwrite(tmp_file_name,renderer.output)
         logging.debug(renderer.output[0,0])
         self.assertFalse(renderer.output[0,0].any(),f"Left corner of maze is a wall and thus black" )
-
-       
-
-def main():
-    logging.basicConfig(level=logging.DEBUG)
-    unittest.main()
-
-if __name__ == "__main__":
-    main()

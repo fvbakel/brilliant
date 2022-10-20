@@ -1,10 +1,6 @@
 from graph import *
-import logging
+from .test_config import *
 import unittest
-
-import os
-
-TEST_TMP_DIR = "./tmp"
 
 class TestGraph(unittest.TestCase):
 
@@ -70,11 +66,3 @@ class TestGraph(unittest.TestCase):
 
         r = Graph2Dot(graph)
         r.render(self._testMethodName + "001" + ".dot",TEST_TMP_DIR)
-
-
-def main():
-    logging.basicConfig(level=logging.DEBUG)
-    unittest.main()
-
-if __name__ == "__main__":
-    main()

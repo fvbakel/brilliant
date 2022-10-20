@@ -49,11 +49,3 @@ class TestBasegrid(unittest.TestCase):
         self.assertTrue(Position(0,0) in positions,"0-0 is in rectangle 0-0,2-4")
         self.assertTrue(Position(2,4) in positions,"2-4 is in rectangle 0-0,2-4")
         self.assertTrue(len(positions) == 15,"rectangle 0-0,2-4 has 3 * 5 = 15 positions")
-
-
-def main():
-    logging.basicConfig(level=logging.DEBUG)
-    unittest.main()
-
-if __name__ == "__main__":
-    main()

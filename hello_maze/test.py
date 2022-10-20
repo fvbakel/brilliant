@@ -1,9 +1,9 @@
 import logging
 import unittest
-from test_basegrid import *
-from test_gamegrid import *
-from test_graph import *
-from test_maze import *
+from test.test_basegrid import *
+from test.test_gamegrid import *
+from test.test_graph import *
+from test.test_maze import *
 
 
 def main():
