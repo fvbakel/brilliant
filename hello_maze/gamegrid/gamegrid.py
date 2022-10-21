@@ -541,6 +541,65 @@ class BlockDeadEnds(AutomaticMove):
             self.todo.append(start_position)
         return selected
 
+class Spoiler(BlockDeadEnds):
+
+    def __init__(self,game_grid:GameGrid):
+        super().__init__(game_grid)
+        self.win_path:list[Position] = []
+        self.win_known = False
+        if hasattr(self.game_grid,'coordinator'):
+            self.coordinator = self.game_grid.coordinator
+        else:
+            self.coordinator = self
+            self.game_grid.coordinator = self.coordinator
+
+    def unregister(self):
+        super().unregister()
+        if not self.win_known:
+            self.set_path_back(self.history_path[-1],self.history_path[0])
+            self.reduce_path()
+            if len(self.path_back) > 0:
+                self.coordinator.win_path = self.path_back 
+                self.coordinator.win_path.append(self._subject.position)
+                self.path_back = []
+
+    def determine_new_pos(self,start_position:Position):
+        if len(self.coordinator.win_path) > 0 and not self.win_known:
+            logging.debug("Win path is now known!")
+            self.set_win_path(start_position)
+
+        if self.win_known:
+            # TODO replace below with reuseable method
+            possible_hosts = self.game_grid.get_available_directions(start_position)
+            possible_positions = tuple([content.position for content in possible_hosts.values() if content.can_host_guest() ])
+            
+            if len(possible_positions) == 0:
+                return None
+    
+            possible_set = set(possible_positions)
+            return self.select_move_back(possible_set)
+        else:
+            return super().determine_new_pos(start_position)
+    
+    def set_win_path(self,start_pos:Position):
+        self.win_known = True
+        self.path_back = []
+        tail_path:list[Position] = []
+        for win_pos in reversed(self.coordinator.win_path):
+            tail_path.append(win_pos)
+            if win_pos in self.history_path_set:
+                if start_pos != win_pos:
+                    self.set_path_back(start_pos,win_pos)
+                    self.reduce_path()
+                self.path_back.extend(tail_path[:-1])
+                break
+        
+        if len(self.path_back) == 0:
+            # below is a problem if the square size > 0
+            logging.debug("Not possible to calculate a win path")
+            self.win_known = False
+
+
 class FinishDetector(Behavior):
 
     def __init__(self,game_grid:GameGrid):

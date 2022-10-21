@@ -347,9 +347,18 @@ class MazeController:
         self._init_move_behaviors()
         self.generate_new()
 
+    def get_all_subclasses(cls):
+        all_subclasses = []
+
+        for subclass in cls.__subclasses__():
+            all_subclasses.append(subclass)
+            all_subclasses.extend(MazeController.get_all_subclasses(subclass))
+
+        return all_subclasses
+
     def _init_move_behaviors(self):
         self.move_behaviors:dict[str,type[AutomaticMove]] = dict()
-        for cls in AutomaticMove.__subclasses__():
+        for cls in MazeController.get_all_subclasses(AutomaticMove):
             self.move_behaviors[cls.__name__] = cls
     
     def reset_game(self):
