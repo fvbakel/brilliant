@@ -27,7 +27,7 @@ class MoveInfo:
             return None
         remain = self.available_positions - exclude
         if len(remain) == 0:
-            return None
+            remain = self.available_positions
         if len(remain) == 1:
             return next(iter(remain))
         return random.choice(tuple(remain))
@@ -40,6 +40,7 @@ class AutomaticMove(Behavior):
         self.history_path:list[Position] = []
         self.history_path_set:set[Position] = set()
         self.nr_stand_still = 0
+        self.moveInfo:MoveInfo = None
 
     @Behavior.subject.setter
     def subject(self,subject:GameContent):
@@ -55,7 +56,8 @@ class AutomaticMove(Behavior):
 
     def do_one_cycle(self):
         if not self._subject is None:
-            new_pos = self.determine_new_pos(self._subject.position)
+            self.moveInfo = MoveInfo(self._subject.position,self.game_grid.get_available_hosts(self._subject.position))
+            new_pos = self.determine_new_pos()
             if new_pos is None:
                 self.nr_stand_still +=1
             else:
@@ -65,22 +67,14 @@ class AutomaticMove(Behavior):
 
 class RandomMove(AutomaticMove):
 
-    def determine_new_pos(self,start_position:Position):
-        moveInfo = MoveInfo(start_position,self.game_grid.get_available_hosts(start_position))
-        return moveInfo.get_random_available()
+    def determine_new_pos(self):
+        return self.moveInfo.get_random_available()
 
 class RandomDistinctMove(AutomaticMove):
 
-    def determine_new_pos(self,start_position:Position):
-        possible_hosts = self.game_grid.get_available_hosts(start_position)
-        possible_positions = tuple([content.position for content in possible_hosts.values() if content.can_host_guest() ])
-        if len(possible_positions) == 0:
-            return None
-        possible_set = set(possible_positions)
-        possible_filtered = possible_set - self.history_path_set
-        if len(possible_filtered) == 0:
-            possible_filtered = possible_positions
-        return random.choice(tuple(possible_filtered))
+    def determine_new_pos(self):
+        
+        return self.moveInfo.get_random_available(exclude=self.history_path_set)
 
 class RandomCommonMove(AutomaticMove):
 
@@ -93,19 +87,11 @@ class RandomCommonMove(AutomaticMove):
             self.game_grid.random_common_move = self.coordinator
 
 
-    def determine_new_pos(self,start_position:Position):
-        return self.coordinator._determine_new_pos(start_position)
+    def determine_new_pos(self):
+        return self.coordinator._determine_new_pos(self.moveInfo)
     
-    def _determine_new_pos(self,start_position:Position):
-        possible_hosts = self.game_grid.get_available_hosts(start_position)
-        possible_positions = tuple([content.position for content in possible_hosts.values() if content.can_host_guest() ])
-        if len(possible_positions) == 0:
-            return None
-        possible_set = set(possible_positions)
-        possible_filtered = possible_set - self.history_path_set
-        if len(possible_filtered) == 0:
-            possible_filtered = possible_positions
-        return random.choice(tuple(possible_filtered))
+    def _determine_new_pos(self,moveInfo:MoveInfo):
+        return moveInfo.get_random_available(exclude=self.history_path_set)
 
 class BlockDeadEnds(AutomaticMove):
     def __init__(self,game_grid:GameGrid):
@@ -113,18 +99,13 @@ class BlockDeadEnds(AutomaticMove):
         self.todo:list[Position] = []
         self.path_back:list[Position] = []
 
-    def determine_new_pos(self,start_position:Position):
-        possible_hosts = self.game_grid.get_available_hosts(start_position)
-        possible_positions = tuple([content.position for content in possible_hosts.values() if content.can_host_guest() ])
-        all_host_positions = set([content.position for content in possible_hosts.values() ])
-        if len(possible_positions) == 0:
+    def determine_new_pos(self):
+        if not self.moveInfo.has_available():
             return None
-    
-        possible_set = set(possible_positions)
 
         if self.nr_stand_still > 10:
             self.nr_stand_still = 0
-            logging.debug(f"""{start_position} is standing still
+            logging.debug(f"""{self.moveInfo.start_pos} is standing still
                                 todo size {len(self.todo)}
                                 path back {len(self.path_back)}
                             """)
@@ -140,22 +121,21 @@ class BlockDeadEnds(AutomaticMove):
                         self.todo.insert(0,self.path_back[0])
                         self.path_back = []
                         
-                        return self.select_move(start_position,possible_set,all_host_positions)
+                        return self.select_move()
             else:
-                selected = random.choice(tuple(possible_set))
-                self.todo.insert(0,start_position)
-                return selected
+                self.todo.insert(0,self.moveInfo.start_pos)
+                return self.moveInfo.get_random_available()
             return None
 
         if len(self.path_back) > 0:
-            return self.select_move_back(possible_set)
+            return self.select_move_back()
         else:
-            return self.select_move(start_position,possible_set,all_host_positions)
+            return self.select_move()
 
-    def determine_move_back_path(self,start_position:Position):
+    def determine_move_back_path(self):
         if len(self.todo) > 0:
             target = self.todo.pop()
-            self.set_path_back(start_position,target)
+            self.set_path_back(self.moveInfo.start_pos,target)
             self.reduce_path()
 
     # TODO: Make more generic an reusable
@@ -211,30 +191,29 @@ class BlockDeadEnds(AutomaticMove):
 
     #
     # TODO: Make a more generic mechanism that can be reused
-    def select_move_back(self,possible_set:set[Position]):
+    def select_move_back(self):
         if len(self.path_back) > 0:
             next = self.path_back[-1]
-            if next in possible_set:
+            if next in self.moveInfo.available_positions:
                 return self.path_back.pop()
 
-    def select_move(    self,
-                        start_position:Position,
-                        possible_set:set[Position],
-                        all_host_positions:set[Position],
-                    ):
-        possible_filtered = possible_set - self.history_path_set
-        all_filtered = all_host_positions - self.history_path_set
+    def select_move(self):
+        possible_filtered = self.moveInfo.available_positions - self.history_path_set
+        all_filtered = self.moveInfo.all_positions - self.history_path_set
         if len(all_filtered) == 0:
-            self.determine_move_back_path(start_position)
-            return self.select_move_back(possible_set)
+            self.determine_move_back_path()
+            return self.select_move_back()
+        
+        selected = self.moveInfo.get_random_available()
         if len(possible_filtered) == 0:
             return None
         if len(possible_filtered) == 1:
-            selected = possible_filtered.pop()
+            selected =  possible_filtered.pop()
         else:
             selected = random.choice(tuple(possible_filtered))
-            all_filtered.discard(selected)
-            self.todo.append(start_position)
+        all_filtered.discard(selected)
+        if len(all_filtered) >0:
+            self.todo.append(self.moveInfo.start_pos)
         return selected
 
 class Spoiler(BlockDeadEnds):
@@ -259,33 +238,25 @@ class Spoiler(BlockDeadEnds):
                 self.coordinator.win_path.append(self._subject.position)
                 self.path_back = []
 
-    def determine_new_pos(self,start_position:Position):
+    def determine_new_pos(self):
         if len(self.coordinator.win_path) > 0 and not self.win_known:
             logging.debug("Win path is now known!")
-            self.set_win_path(start_position)
+            self.set_win_path()
 
         if self.win_known:
-            # TODO replace below with reuseable method
-            possible_hosts = self.game_grid.get_available_hosts(start_position)
-            possible_positions = tuple([content.position for content in possible_hosts.values() if content.can_host_guest() ])
-            
-            if len(possible_positions) == 0:
-                return None
-    
-            possible_set = set(possible_positions)
-            return self.select_move_back(possible_set)
+            return self.select_move_back()
         else:
-            return super().determine_new_pos(start_position)
+            return super().determine_new_pos()
     
-    def set_win_path(self,start_pos:Position):
+    def set_win_path(self):
         self.win_known = True
         self.path_back = []
         tail_path:list[Position] = []
         for win_pos in reversed(self.coordinator.win_path):
             tail_path.append(win_pos)
             if win_pos in self.history_path_set:
-                if start_pos != win_pos:
-                    self.set_path_back(start_pos,win_pos)
+                if self.moveInfo.start_pos != win_pos:
+                    self.set_path_back(self.moveInfo.start_pos,win_pos)
                     self.reduce_path()
                 self.path_back.extend(tail_path[:-1])
                 break
