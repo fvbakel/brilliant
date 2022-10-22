@@ -1,5 +1,5 @@
 from gamegrid import *
-from .test_config import *
+from test.test_config import *
 import basegrid as bg
 import logging
 import unittest

@@ -32,7 +32,6 @@ class MoveInfo:
             return next(iter(remain))
         return random.choice(tuple(remain))
 
-
 class AutomaticMove(Behavior):
 
     def __init__(self,game_grid:GameGrid):
@@ -259,7 +258,6 @@ class Spoiler(BlockDeadEnds):
                     self.set_path_back(self.moveInfo.start_pos,win_pos)
                     self.reduce_path()
                 self.path_back =  tail_path[:-1] + self.path_back
-                #self.path_back.extend(tail_path[:-1])
                 break
         
         if len(self.path_back) == 0:

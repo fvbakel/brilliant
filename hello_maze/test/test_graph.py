@@ -1,5 +1,5 @@
 from graph import *
-from .test_config import *
+from test.test_config import *
 import unittest
 
 class TestGraph(unittest.TestCase):

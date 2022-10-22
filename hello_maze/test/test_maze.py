@@ -1,12 +1,12 @@
 import basegrid as bg
 from maze import *
-from .test_config import *
+from test.test_config import *
 import logging
 import unittest
 from graph import *
 import cv2
 
-class TestGraph(unittest.TestCase):
+class TestMaze(unittest.TestCase):
 
     def test_maze_generator(self):
         size = bg.Size(4,4)
