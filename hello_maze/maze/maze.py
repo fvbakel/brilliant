@@ -1,5 +1,6 @@
 from basegrid import *
 from gamegrid import *
+from .behavior import *
 
 import graph as gr
 from dataclasses import dataclass

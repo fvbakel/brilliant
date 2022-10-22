@@ -10,10 +10,5 @@ from gamegrid.gamegrid import (
     Material,
     Behavior,
     ManualMove,
-    RandomMove,
-    RandomDistinctMove,
-    AutomaticMove,
-    AutomaticAdd,
-    FinishDetector,
     Color
 )
