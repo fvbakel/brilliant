@@ -1,12 +1,7 @@
-from maze import *
+from maze import MazeController,Direction
 import PySimpleGUIQt as sg
 import logging
 import cv2
-
-class MazeConfiguration:
-
-    def __init__(self):
-        self.default_game_size = Size(4,4)
 
 class MazeDialog:
 
