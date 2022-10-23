@@ -31,12 +31,26 @@ class TestBasegrid(unittest.TestCase):
         down    = Position(5,6)
         left    = Position(4,5)
         here    = Position(5,5)
+        upright = Position(6,4)
 
         self.assertEqual(base.get_direction(up),Direction.UP)
         self.assertEqual(base.get_direction(right),Direction.RIGHT)
         self.assertEqual(base.get_direction(down),Direction.DOWN)
         self.assertEqual(base.get_direction(left),Direction.LEFT)
         self.assertEqual(base.get_direction(here),Direction.HERE)
+
+        self.assertTrue(base.is_neighbor(up))
+        self.assertTrue(base.is_neighbor(down))
+        self.assertTrue(base.is_neighbor(left))
+        self.assertTrue(base.is_neighbor(right))
+
+        self.assertFalse(base.is_neighbor(here))
+        self.assertFalse(up.is_neighbor(down))
+        self.assertFalse(down.is_neighbor(up))
+        self.assertFalse(left.is_neighbor(right))
+        self.assertFalse(right.is_neighbor(left))
+
+        self.assertFalse(base.is_neighbor(upright))
 
     def test_rectangle(self):
         rect = Rectangle(Position(0,0),Position(2,4))

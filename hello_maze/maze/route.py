@@ -2,10 +2,14 @@ from basegrid import Position
 
 class Route:
 
-    def __init__(self):
-        self._init()
+    def __init__(self,path:list[Position] = None):
+        if path is None:
+            self.reset_path()
+        else:
+            self._path = path
+        self.reset_pos_map()
 
-    def _init(self):
+    def reset(self):
         self.reset_path()
         self.reset_pos_map()
 
@@ -54,7 +58,6 @@ class Route:
     def reverse(self):
         self._path.reverse()
 
-    
     def update_pos_map(self):
         self.reset_pos_map()
         for index,pos in enumerate(self._path):
@@ -80,28 +83,26 @@ class Route:
                 self._path =  self._path[:cut_start] + self._path[cut_end:]
                 self.optimize()
 
-    # TODO: think how this can be improved .....
-    def get_sub_route(self,start:Position,target:Position):
-        """
-            the path could be like this
-            [1,target,2,3,target,a,b,c,start_position,x,y,z,start_position]
-            expected result from this method in that case
-            [target,a,b,c]
-            So mechanism is:
-            1. search from the back the first occurrence of target, 
-            2. from that point search the start_position
-            3 return the in between
-        """
-        start_index:int = None
-        end_index:int = None
-        for index, pos in reversed(list(enumerate(self.history_path))):
-            if pos == target:
-                start_index = index
-                break
-        for index, pos in list(enumerate(self.history_path))[start_index:]:
-            if pos == start:
-                end_index = index
-                break
+    def get_sub_route(self,start:Position,end:Position):
+        if start == end:
+            return None
 
-        if not start_index is None and not end_index is None:
-            self.path_back = self.history_path[start_index:end_index]
+        self.update_pos_map()
+        if  not start in self._pos_map or \
+            not end in self._pos_map:
+                return None
+
+        start_index_list = self._pos_map[start]
+        end_index_list = self._pos_map[end]
+        
+        start_index = start_index_list[0]
+        end_index = end_index_list[-1]
+        sub_path:list[Position]
+        if start_index < end_index:
+            sub_path = self._path[start_index:end_index+1]
+        else:
+            sub_path = self._path[end_index:start_index+1]
+            sub_path.reverse()
+        route = Route(sub_path)
+        route.optimize()
+        return route

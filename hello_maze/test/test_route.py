@@ -88,3 +88,38 @@ class TestRoute(unittest.TestCase):
         self.assertEqual(route.start,test_positions[0][0],"After optimize still Route starts with 0-0")
         self.assertEqual(route.length,4,"After optimize Route has length 4")
 
+    def test_get_sub_route(self):
+        test_positions = self.get_test_positions(nr=5)
+        route = Route()
+        
+        route.append(test_positions[0][0])
+        route.append(test_positions[1][0])
+        route.append(test_positions[2][0])
+        route.append(test_positions[3][0])
+        route.append(test_positions[2][0])
+        route.append(test_positions[1][0])
+        route.append(test_positions[1][1])
+        route.append(test_positions[1][2])
+        route.append(test_positions[1][2])
+        route.append(test_positions[1][2])
+        route.append(test_positions[1][3])
+        route.append(test_positions[1][4])
+        route.append(test_positions[1][3])
+        route.append(test_positions[1][2])
+
+        sub_route = route.get_sub_route(test_positions[0][0],test_positions[4][4])
+        self.assertIsNone(sub_route,"Sub route 0-0 -> 4,4 is not possible")
+
+        sub_route = route.get_sub_route(test_positions[0][0],test_positions[1][3])
+        logging.debug(f"Sub route 0-0 -> 1-3 is: {str(sub_route)}")
+        self.assertIsNotNone(sub_route,"Sub route 0-0 -> 1,3 is possible")
+        if not sub_route is None:
+            self.assertEqual(sub_route.start,test_positions[0][0],"Sub route 0-0 -> 1,3 starts with 0-0")
+            self.assertEqual(sub_route.end,test_positions[1][3],"Sub route 0-0 -> 1,3 ends with 1-3")
+
+        sub_route = route.get_sub_route(test_positions[1][3],test_positions[1][0])
+        logging.debug(f"Sub route 1-3 -> 1-0 is: {str(sub_route)}")
+        self.assertIsNotNone(sub_route,"Sub route 1-3 -> 1-0 is possible")
+        if not sub_route is None:
+            self.assertEqual(sub_route.start,test_positions[1][3],"Sub route 1-3 -> 1-0 starts with 1-3")
+            self.assertEqual(sub_route.end,test_positions[1][0],"Sub route 1-3 -> 1-0 ends with 1-0")

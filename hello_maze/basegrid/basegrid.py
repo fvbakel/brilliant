@@ -76,6 +76,20 @@ class Position:
             return self
         logging.FATAL(f"Unexpected direction {direction}")
         
+    def is_neighbor(self,position:Position):
+        if position is None:
+            return False
+
+        if self == position:
+            return False
+
+        delta_col = abs(self.col - position.col)
+        delta_row = abs(self.row - position.row)
+        if delta_col == 0 and  delta_row == 1:
+            return True
+        if delta_col == 1 and  delta_row == 0:
+            return True
+        return False
 
     def get_id(self):
         return f"{self.col}-{self.row}"
