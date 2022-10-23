@@ -93,7 +93,7 @@ class BlockDeadEnds(AutomaticMove):
     def __init__(self,game_grid:GameGrid):
         super().__init__(game_grid)
         self.todo:list[Position] = []
-        self.path_back:list[Position] = []
+        self.path_back = Route()
 
     def determine_new_pos(self):
         if not self.moveInfo.has_available():
@@ -103,19 +103,19 @@ class BlockDeadEnds(AutomaticMove):
             self.nr_stand_still = 0
             logging.debug(f"""{self.moveInfo.start_pos} is standing still
                                 todo size {len(self.todo)}
-                                path back {len(self.path_back)}
+                                path back {self.path_back.length}
                             """)
             if len(self.todo) > 0:
-                if len(self.path_back) > 0:
+                if self.path_back.length > 0:
                     logging.debug(f""""
-                                    destination {self.path_back[0]}
+                                    destination {self.path_back.end}
                                     """)
                     if len(self.todo) > 0:
                         logging.debug(f""""
                                         new destination {self.todo[-1]}
                                         """)
-                        self.todo.insert(0,self.path_back[0])
-                        self.path_back = []
+                        self.todo.insert(0,self.path_back.end)
+                        self.path_back.reset()
                         
                         return self.select_move()
             else:
@@ -123,7 +123,7 @@ class BlockDeadEnds(AutomaticMove):
                 return self.moveInfo.get_random_available()
             return None
 
-        if len(self.path_back) > 0:
+        if self.path_back.length > 0:
             return self.select_move_back()
         else:
             return self.select_move()
@@ -134,64 +134,25 @@ class BlockDeadEnds(AutomaticMove):
             self.set_path_back(self.moveInfo.start_pos,target)
             self.reduce_path()
 
-    # TODO: Make more generic an reusable
     def set_path_back(self,start:Position,target:Position):
-        """
-            history path could be like this
-            [1,target,2,3,target,a,b,c,start_position,x,y,z,start_position]
-            expected result from this method
-            [target,a,b,c]
-            Some mechanism is:
-            1. search from the back the first occurrence of target, 
-            2. from that point search the start_position
-            3 return the in between
-        """
-        start_index:int = None
-        end_index:int = None
-        for index, pos in reversed(list(enumerate(self.history.path))):
-            if pos == target:
-                start_index = index
-                break
-        for index, pos in list(enumerate(self.history.path))[start_index:]:
-            if pos == start:
-                end_index = index
-                break
+        sub_route = self.history.get_sub_route(start,target)
+        if sub_route is None:
+            self.path_back.reset()
+        else:
+            self.path_back = sub_route
 
-        if not start_index is None and not end_index is None:
-            self.path_back = self.history.path[start_index:end_index]
-
-    # TODO: make a more generic reusable method class
     def reduce_path(self):
-        path = self.path_back
-        pos_map = dict()
-        for index,pos in enumerate(path):
-            if pos in pos_map:
-                pos_map[pos].append(index)
-            else:
-                pos_map[pos] = [index]
-        
-        if len(pos_map) > 0 :
-            cut_start = None
-            cut_end = None
-            cut_diff = 0
-            for pos, index_list in pos_map.items():
-                diff = index_list[-1] - index_list[0]
-                if diff > cut_diff:
-                    cut_diff = diff
-                    cut_start = index_list[0]
-                    cut_end =  index_list[-1]
+        self.path_back.optimize()
 
-            if not cut_start is None and not cut_end is None:
-                self.path_back =  path[:cut_start] + path[cut_end:]
-                self.reduce_path()
-
-    #
     # TODO: Make a more generic mechanism that can be reused
     def select_move_back(self):
-        if len(self.path_back) > 0:
-            next = self.path_back[-1]
+        if self.path_back.length > 0:
+            next = self.path_back.start
+            if next == self.moveInfo.start_pos:
+                self.path_back.pop(0)
+                return self.select_move_back()
             if next in self.moveInfo.available_positions:
-                return self.path_back.pop()
+                return self.path_back.pop(0)
 
     def select_move(self):
         possible_filtered = self.moveInfo.available_positions - self.history.positions
@@ -216,7 +177,7 @@ class Spoiler(BlockDeadEnds):
 
     def __init__(self,game_grid:GameGrid):
         super().__init__(game_grid)
-        self.win_path:list[Position] = []
+        self.win_path:Route = None
         self.win_known = False
         if hasattr(self.game_grid,'coordinator'):
             self.coordinator = self.game_grid.coordinator
@@ -227,15 +188,17 @@ class Spoiler(BlockDeadEnds):
     def unregister(self):
         super().unregister()
         if not self.win_known:
-            self.set_path_back(self.history.end,self.history.start)
-            self.reduce_path()
-            if len(self.path_back) > 0:
-                self.coordinator.win_path = self.path_back 
-                self.coordinator.win_path.append(self._subject.position)
-                self.path_back = []
+            self.coordinator.win_path = Route(self.history.path)
+            self.coordinator.win_path.append(self._subject.position)
+            self.coordinator.win_path.optimize()
+            if not self.coordinator.win_path.is_valid():
+                logging.error(f"win path is not a valid path! {str(self.coordinator.win_path)}")
+            self.path_back.reset()
 
     def determine_new_pos(self):
-        if len(self.coordinator.win_path) > 0 and not self.win_known:
+        if  not self.coordinator.win_path is None and \
+                self.coordinator.win_path.length > 0 and  \
+                not self.win_known:
             logging.debug("Win path is now known!")
             self.set_win_path()
 
@@ -246,18 +209,24 @@ class Spoiler(BlockDeadEnds):
     
     def set_win_path(self):
         self.win_known = True
-        self.path_back = []
-        tail_path:list[Position] = []
-        for win_pos in reversed(self.coordinator.win_path):
+        tail_path = Route()
+        self.path_back.reset()
+        for win_pos in reversed(self.coordinator.win_path.path):
             tail_path.append(win_pos)
             if self.history.has_position(win_pos):
                 if self.moveInfo.start_pos != win_pos:
-                    self.set_path_back(self.moveInfo.start_pos,win_pos)
-                    self.reduce_path()
-                self.path_back =  tail_path[:-1] + self.path_back
+                    begin_route = self.history.get_sub_route(self.moveInfo.start_pos,win_pos)
+                    if begin_route is None:
+                        logging.debug("Can not calculate a route to the win path but pos in win_pat is in history?")
+                        self.win_known = False
+                        break
+                    begin_route.optimize()
+                    self.path_back = begin_route
+                tail_path.reverse()
+                self.path_back.add_route(tail_path)
                 break
         
-        if len(self.path_back) == 0:
+        if self.path_back.length == 0:
             # below is a problem if the square size > 0
             logging.debug("Not possible to calculate a win path")
             self.win_known = False
