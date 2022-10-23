@@ -48,7 +48,7 @@ class AutomaticMove(Behavior):
     def record_new_position(self):
         self.history.append(self._subject.position)
 
-    def determine_new_pos(self,start_position:Position):
+    def determine_new_pos(self):
         return None
 
     def do_one_cycle(self):
@@ -118,7 +118,6 @@ class BlockDeadEnds(MoveBack):
     def __init__(self,game_grid:GameGrid):
         super().__init__(game_grid)
         self.todo:list[Position] = []
-        self.path_back = Route()
 
     def determine_new_pos(self):
         if not self.moveInfo.has_available():
@@ -141,7 +140,9 @@ class BlockDeadEnds(MoveBack):
                                         """)
                         self.todo.insert(0,self.path_back.end)
                         self.path_back.reset()
-                        return self.select_move()
+                        self.determine_move_back_path()
+                        return self.select_move_back()
+                        #return self.select_move()
             else:
                 self.todo.insert(0,self.moveInfo.start_pos)
                 return self.moveInfo.get_random_available()
@@ -173,7 +174,7 @@ class BlockDeadEnds(MoveBack):
         else:
             selected = random.choice(tuple(possible_filtered))
         all_filtered.discard(selected)
-        if len(all_filtered) >0:
+        if len(all_filtered) > 0:
             self.todo.append(self.moveInfo.start_pos)
         return selected
 
