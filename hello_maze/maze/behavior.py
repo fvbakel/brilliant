@@ -122,7 +122,7 @@ class BlockDeadEnds(MoveBack):
     def determine_new_pos(self):
         if not self.moveInfo.has_available():
             return None
-            
+
         if self.path_back.length > 0:
             return self.select_move_back()
         else:
@@ -152,6 +152,23 @@ class BlockDeadEnds(MoveBack):
         if len(all_filtered) > 0:
             self.todo.append(self.moveInfo.start_pos)
         return selected
+
+class BackOut(BlockDeadEnds):
+
+    def determine_new_pos(self):
+        if not self.moveInfo.has_available():
+            return None
+
+        if self.nr_stand_still > 10:
+            logging.debug(f"Standstill detected on pos {self.moveInfo.start_pos}")
+            if self.path_back.length == 0:
+                logging.debug(f"Moving back pos {self.moveInfo.start_pos}")
+                self.determine_move_back_path()
+
+        if self.path_back.length > 0:
+            return self.select_move_back()
+        else:
+            return self.select_move()
 
 class Spoiler(BlockDeadEnds):
 
