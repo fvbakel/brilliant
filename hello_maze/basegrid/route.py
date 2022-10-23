@@ -59,6 +59,10 @@ class Route:
     def length(self):
         return len(self._path)
 
+    @property
+    def positions(self):
+        return set(self._path)
+
     def has_position(self,position:Position):
         return position in set(self._path)
 

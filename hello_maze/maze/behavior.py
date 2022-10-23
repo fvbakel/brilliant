@@ -36,8 +36,7 @@ class AutomaticMove(Behavior):
 
     def __init__(self,game_grid:GameGrid):
         super().__init__(game_grid)
-        self.history_path:list[Position] = []
-        self.history_path_set:set[Position] = set()
+        self.history = Route()
         self.nr_stand_still = 0
         self.moveInfo:MoveInfo = None
 
@@ -47,8 +46,7 @@ class AutomaticMove(Behavior):
         self.record_new_position()
 
     def record_new_position(self):
-        self.history_path.append(self._subject.position)
-        self.history_path_set.add(self._subject.position)
+        self.history.append(self._subject.position)
 
     def determine_new_pos(self,start_position:Position):
         return None
@@ -72,8 +70,7 @@ class RandomMove(AutomaticMove):
 class RandomDistinctMove(AutomaticMove):
 
     def determine_new_pos(self):
-        
-        return self.moveInfo.get_random_available(exclude=self.history_path_set)
+        return self.moveInfo.get_random_available(exclude=self.history.positions)
 
 class RandomCommonMove(AutomaticMove):
 
@@ -90,7 +87,7 @@ class RandomCommonMove(AutomaticMove):
         return self.coordinator._determine_new_pos(self.moveInfo)
     
     def _determine_new_pos(self,moveInfo:MoveInfo):
-        return moveInfo.get_random_available(exclude=self.history_path_set)
+        return moveInfo.get_random_available(exclude=self.history.positions)
 
 class BlockDeadEnds(AutomaticMove):
     def __init__(self,game_grid:GameGrid):
@@ -151,17 +148,17 @@ class BlockDeadEnds(AutomaticMove):
         """
         start_index:int = None
         end_index:int = None
-        for index, pos in reversed(list(enumerate(self.history_path))):
+        for index, pos in reversed(list(enumerate(self.history.path))):
             if pos == target:
                 start_index = index
                 break
-        for index, pos in list(enumerate(self.history_path))[start_index:]:
+        for index, pos in list(enumerate(self.history.path))[start_index:]:
             if pos == start:
                 end_index = index
                 break
 
         if not start_index is None and not end_index is None:
-            self.path_back = self.history_path[start_index:end_index]
+            self.path_back = self.history.path[start_index:end_index]
 
     # TODO: make a more generic reusable method class
     def reduce_path(self):
@@ -197,8 +194,8 @@ class BlockDeadEnds(AutomaticMove):
                 return self.path_back.pop()
 
     def select_move(self):
-        possible_filtered = self.moveInfo.available_positions - self.history_path_set
-        all_filtered = self.moveInfo.all_positions - self.history_path_set
+        possible_filtered = self.moveInfo.available_positions - self.history.positions
+        all_filtered = self.moveInfo.all_positions - self.history.positions
         if len(all_filtered) == 0:
             self.determine_move_back_path()
             return self.select_move_back()
@@ -230,7 +227,7 @@ class Spoiler(BlockDeadEnds):
     def unregister(self):
         super().unregister()
         if not self.win_known:
-            self.set_path_back(self.history_path[-1],self.history_path[0])
+            self.set_path_back(self.history.end,self.history.start)
             self.reduce_path()
             if len(self.path_back) > 0:
                 self.coordinator.win_path = self.path_back 
@@ -253,7 +250,7 @@ class Spoiler(BlockDeadEnds):
         tail_path:list[Position] = []
         for win_pos in reversed(self.coordinator.win_path):
             tail_path.append(win_pos)
-            if win_pos in self.history_path_set:
+            if self.history.has_position(win_pos):
                 if self.moveInfo.start_pos != win_pos:
                     self.set_path_back(self.moveInfo.start_pos,win_pos)
                     self.reduce_path()
@@ -282,7 +279,7 @@ class FinishDetector(Behavior):
                 self._subject.guest.behavior.unregister()
                 if isinstance(self._subject.guest.behavior,AutomaticMove):
                     behavior:AutomaticMove = self._subject.guest.behavior
-                    self.nr_of_steps.append(len(behavior.history_path) -1)
+                    self.nr_of_steps.append(behavior.history.length -1)
             if self._subject.guest.trace_material != Material.NONE:
                 self._subject.material = self._subject.guest.trace_material
             self._subject.guest = None
