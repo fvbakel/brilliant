@@ -59,6 +59,10 @@ class TestRoute(unittest.TestCase):
         self.assertEqual(route.length,2,"After pop Route has length 2")
         self.assertEqual(last,next,"Pop returns end")
 
+        first = route.pop(0)
+        self.assertEqual(route.length,1,"After pop(0) Route has length 1")
+        self.assertEqual(first,start,"Pop(0) returns start")
+
         route.reset_path()
         self.assertEqual(route.length,0,"After reset the route has length 0")
 
@@ -123,3 +127,70 @@ class TestRoute(unittest.TestCase):
         if not sub_route is None:
             self.assertEqual(sub_route.start,test_positions[1][3],"Sub route 1-3 -> 1-0 starts with 1-3")
             self.assertEqual(sub_route.end,test_positions[1][0],"Sub route 1-3 -> 1-0 ends with 1-0")
+    
+    def test_route_valid(self):
+        test_positions = self.get_test_positions(nr=5)
+        route = Route()
+        
+        route.append(test_positions[0][0])
+        route.append(test_positions[1][0])
+        route.append(test_positions[2][0])
+        route.append(test_positions[2][1])
+        self.assertTrue(route.is_valid())
+
+        route.append(test_positions[3][3])
+        self.assertFalse(route.is_valid())
+
+    def test_route_add(self):
+        test_positions = self.get_test_positions(nr=5)
+        route_1 = Route()
+        route_2 = Route()
+        self.assertTrue(route_1.add_route(route_2),"Two empty routes can be added")
+
+        route_2.append(test_positions[0][0])
+        self.assertTrue(route_1.add_route(route_2),"None empty route can be added to empty route")
+
+        route_1 = Route()
+        route_2 = Route()
+        route_1.append(test_positions[0][0])
+        self.assertTrue(route_1.add_route(route_2),"Empty route can be added to non empty route")
+
+        route_1 = Route()
+        route_2 = Route()
+        route_1.append(test_positions[0][0])
+        route_1.append(test_positions[1][0])
+        route_1.append(test_positions[1][1])
+        route_2.append(test_positions[1][1])
+        route_2.append(test_positions[1][2])
+        route_2.append(test_positions[1][3])
+        self.assertTrue(route_1.add_route(route_2),"Route can be added is end 1 is start 2")
+
+        route_1 = Route()
+        route_2 = Route()
+
+        route_1.append(test_positions[1][1])
+        route_1.append(test_positions[1][0])
+        route_1.append(test_positions[0][0])
+        
+        route_2.append(test_positions[1][3])
+        route_2.append(test_positions[1][2])
+        route_2.append(test_positions[1][1])
+        self.assertTrue(route_1.add_route(route_2),"Route can be added is start 1 is end 2")
+
+        route_1 = Route()
+        route_2 = Route()
+        route_1.append(test_positions[0][0])
+        route_1.append(test_positions[1][0])
+        route_1.append(test_positions[1][1])
+        route_2.append(test_positions[1][2])
+        route_2.append(test_positions[1][3])
+        self.assertTrue(route_1.add_route(route_2),"Route can be added when it starts with a neighbor")
+
+        route_1 = Route()
+        route_2 = Route()
+        route_1.append(test_positions[1][1])
+        route_1.append(test_positions[1][0])
+        route_1.append(test_positions[0][0])
+        route_2.append(test_positions[1][3])
+        route_2.append(test_positions[1][2])
+        self.assertTrue(route_1.add_route(route_2),"Route can be added when it ends with a neighbor")

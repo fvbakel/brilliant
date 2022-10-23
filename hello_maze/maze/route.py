@@ -1,4 +1,8 @@
+from typing import SupportsIndex
 from basegrid import Position
+
+class Route:
+    pass
 
 class Route:
 
@@ -45,8 +49,11 @@ class Route:
     def append(self,position:Position):
         self._path.append(position)
 
-    def pop(self):
-        return self._path.pop()
+    def pop(self,index:SupportsIndex = None):
+        if index is None:
+            return self._path.pop()
+        else:
+            return self._path.pop(index)
 
     @property
     def length(self):
@@ -57,6 +64,17 @@ class Route:
 
     def reverse(self):
         self._path.reverse()
+
+    def is_valid(self):
+        if len(self._path) <= 0:
+            return True
+        
+        previous = self._path[0]
+        for pos in self._path[1:]:
+            if not previous.is_neighbor(pos):
+                return False
+            previous = pos
+        return True
 
     def update_pos_map(self):
         self.reset_pos_map()
@@ -106,3 +124,25 @@ class Route:
         route = Route(sub_path)
         route.optimize()
         return route
+
+    def add_route(self,route:Route):
+        if self.length == 0:
+            self._path = route._path
+            return True
+        if route.length == 0:
+            return True    
+        if route.end == self.start:
+            self._path = route._path[:-1] + self._path
+            return True
+        if route.start == self.end:
+            self._path.extend(route._path[1:])
+            return True
+        if route.end.is_neighbor(self.start):
+            self._path = route._path + self._path
+            return True
+        if route.start.is_neighbor(self.end):
+            self._path.extend(route._path)
+            return True
+        
+        
+        return False
