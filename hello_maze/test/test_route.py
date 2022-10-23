@@ -1,4 +1,4 @@
-from maze.route import *
+from basegrid.route import *
 from test.test_config import *
 import logging
 import unittest

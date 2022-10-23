@@ -5,5 +5,9 @@ from basegrid.basegrid import (
     Orientation,
     Size,
     Rectangle,
-    Direction
+    Direction,
+)
+
+from basegrid.route import (
+    Route
 )
