@@ -122,32 +122,7 @@ class BlockDeadEnds(MoveBack):
     def determine_new_pos(self):
         if not self.moveInfo.has_available():
             return None
-
-        if self.nr_stand_still > 10:
-            self.nr_stand_still = 0
-            logging.debug(f"""{self.moveInfo.start_pos} is standing still
-                                todo size {len(self.todo)}
-                                path back {self.path_back.length}
-                            """)
-            if len(self.todo) > 0:
-                if self.path_back.length > 0:
-                    logging.debug(f""""
-                                    destination {self.path_back.end}
-                                    """)
-                    if len(self.todo) > 0:
-                        logging.debug(f""""
-                                        new destination {self.todo[-1]}
-                                        """)
-                        self.todo.insert(0,self.path_back.end)
-                        self.path_back.reset()
-                        self.determine_move_back_path()
-                        return self.select_move_back()
-                        #return self.select_move()
-            else:
-                self.todo.insert(0,self.moveInfo.start_pos)
-                return self.moveInfo.get_random_available()
-            return None
-
+            
         if self.path_back.length > 0:
             return self.select_move_back()
         else:
