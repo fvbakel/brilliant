@@ -89,7 +89,32 @@ class RandomCommonMove(AutomaticMove):
     def _determine_new_pos(self,moveInfo:MoveInfo):
         return moveInfo.get_random_available(exclude=self.history.positions)
 
-class BlockDeadEnds(AutomaticMove):
+class MoveBack(AutomaticMove):
+
+    def __init__(self,game_grid:GameGrid):
+        super().__init__(game_grid)
+        self.path_back = Route()
+    
+    def set_path_back(self,start:Position,target:Position):
+        sub_route = self.history.get_sub_route(start,target)
+        if sub_route is None:
+            self.path_back.reset()
+        else:
+            self.path_back = sub_route
+
+    def optimize_move_back(self):
+        self.path_back.optimize()
+
+    def select_move_back(self):
+        if self.path_back.length > 0:
+            next = self.path_back.start
+            if next == self.moveInfo.start_pos:
+                self.path_back.pop(0)
+                return self.select_move_back()
+            if next in self.moveInfo.available_positions:
+                return self.path_back.pop(0)
+
+class BlockDeadEnds(MoveBack):
     def __init__(self,game_grid:GameGrid):
         super().__init__(game_grid)
         self.todo:list[Position] = []
@@ -116,7 +141,6 @@ class BlockDeadEnds(AutomaticMove):
                                         """)
                         self.todo.insert(0,self.path_back.end)
                         self.path_back.reset()
-                        
                         return self.select_move()
             else:
                 self.todo.insert(0,self.moveInfo.start_pos)
@@ -132,27 +156,7 @@ class BlockDeadEnds(AutomaticMove):
         if len(self.todo) > 0:
             target = self.todo.pop()
             self.set_path_back(self.moveInfo.start_pos,target)
-            self.reduce_path()
-
-    def set_path_back(self,start:Position,target:Position):
-        sub_route = self.history.get_sub_route(start,target)
-        if sub_route is None:
-            self.path_back.reset()
-        else:
-            self.path_back = sub_route
-
-    def reduce_path(self):
-        self.path_back.optimize()
-
-    # TODO: Make a more generic mechanism that can be reused
-    def select_move_back(self):
-        if self.path_back.length > 0:
-            next = self.path_back.start
-            if next == self.moveInfo.start_pos:
-                self.path_back.pop(0)
-                return self.select_move_back()
-            if next in self.moveInfo.available_positions:
-                return self.path_back.pop(0)
+            self.optimize_move_back()
 
     def select_move(self):
         possible_filtered = self.moveInfo.available_positions - self.history.positions
