@@ -60,6 +60,7 @@ class MoveInfo:
 class AutomaticMove(Behavior):
 
     def __init__(self,game_grid:GameGrid):
+        self.priority = 10
         super().__init__(game_grid)
         self.history = Route()
         self.nr_stand_still = 0
@@ -436,6 +437,25 @@ class RandomDiscoverer(Discoverer):
     def get_move(self):
         return self.mover.moveInfo.get_random_available()
 
+class DirectionDiscoverer(Discoverer):
+
+    def __init__(self,mover:AutomaticMove):
+        super().__init__(mover)
+        self.directions = (Direction.DOWN,Direction.RIGHT,Direction.LEFT,Direction.UP)
+
+    def set_direction_order(self,directions:tuple(Direction)):
+        self.directions = directions
+
+    def get_move(self):
+        for direction in self.directions:
+            if direction in self.mover.moveInfo.available_hosts:
+                host = self.mover.moveInfo.available_hosts[direction]
+                if host.can_host_guest():
+                    if host.position in self.mover.moveInfo.new_available_positions:
+                        return host.position
+                     
+        return None
+
 class StandStillHandler:
     def __init__(self,mover:RuleMove):
         self.mover = mover
@@ -471,7 +491,7 @@ class BlockRuleMove(RuleMove):
         self.router = Router(self)
         self.navigator = HistoryNavigator(self)
         self.todo = ToDoManager(self)
-        self.discoverer = RandomNewDiscoverer(self)
+        self.discoverer = DirectionDiscoverer(self)
         self.standstill = None
         self.follow_coordinator = False
         self.coordinator:RuleMove
@@ -488,16 +508,16 @@ class BackOutRuleMove(RuleMove):
         self.router = Router(self)
         self.navigator = HistoryNavigator(self)
         self.todo = ToDoManager(self)
-        self.discoverer = RandomNewDiscoverer(self)
+        self.discoverer = DirectionDiscoverer(self)
         self.standstill = StandStillBackOut(self)
     
 
 class FinishDetector(Behavior):
 
     def __init__(self,game_grid:GameGrid):
+        self.priority = 1
         super().__init__(game_grid)
         self.finished:list[GameContent] = []
-        self.priority = 1
         self.nr_of_steps:list[int] = []
 
     def do_one_cycle(self):
@@ -517,8 +537,9 @@ class FinishDetector(Behavior):
 class AutomaticAdd(Behavior):
 
     def __init__(self,game_grid:GameGrid):
-        super().__init__(game_grid)
         self.priority = 90
+        super().__init__(game_grid)
+        
         self.nr_started = 0
         self.active = False
         self.move_type:type[AutomaticMove] = RandomMove

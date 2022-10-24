@@ -295,7 +295,7 @@ class Behavior:
 
     def __init__(self,game_grid:GameGrid):
         self.game_grid = game_grid
-        self.priority:int = 10
+        self.priority:int
         self.game_grid.register_behavior(self)
         self._subject:GameContent = None  # type: ignore
 
