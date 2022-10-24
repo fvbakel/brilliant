@@ -22,7 +22,18 @@
         col : int
         row : int
         get_direction(Position)
+        is_neighbor(Position)
     }
+
+    class Route {
+        _path : list[Position]
+        add_route(Route)
+        has_position(Position)
+        append(Position)
+        is_valid()
+    }
+    Route --> Position
+
     class Size {
         nr_of_cols : int
         nr_of_rows : int
@@ -145,9 +156,9 @@
         do_one_cycle()
     }
  
-    ActionControl <-- GameGrid : actions
-    ActionControl --> GameContent: subject
-    ManualMoveControl <|-- ActionControl
+    Behavior <-- GameGrid : behaviors
+    Behavior --> GameContent: subject
+    ManualMove <|-- Behavior
     
 
 ```
@@ -177,6 +188,8 @@
     }
 
 
+
+
     Maze --> Graph
     MazeGame --> Maze
     MazeGame --> SquareGeometryGrid
@@ -188,12 +201,176 @@
     SquareGrid "Position" -->  Square
     Square --> Node
     Square --> EdgePair : Direction
-    
-    
-    
-    
+
     GameGrid --> GameContent : position
 
+```
 
+### Maze Behavior
+
+```mermaid
+    classDiagram
+    class MoveInfo {
+        start_pos : Position
+        available_hosts : dict[Direction,GameContent]
+        available_positions : set[Position]
+        all_positions : set[Position]
+        has_available()
+        get_random_available(set[Position])
+    }
+
+    class AutomaticMove {
+        nr_stand_still : int
+    }
+
+    AutomaticMove <|-- Behavior
+
+    AutomaticMove --> Route : history
+    AutomaticMove --> MoveInfo
+
+    RandomMove <|-- AutomaticMove
+    RandomDistinctMove <|-- AutomaticMove
+    RandomCommonMove <|-- AutomaticMove
+    MoveBack  <|-- AutomaticMove
+
+    BlockDeadEnds  <|-- MoveBack
+    BackOut <|-- BlockDeadEnds
+
+    Spoiler <|-- BlockDeadEnds
+
+    StateMove  <|-- AutomaticMove
+
+```
+
+### Maze Behavior State Machine
+
+```mermaid
+    classDiagram
+    class MoveInfo {
+        start_pos : Position
+        available_hosts : dict[Direction,GameContent]
+        available_positions : set[Position]
+        all_positions : set[Position]
+        has_available()
+        get_random_available(set[Position])
+    }
+
+    class AutomaticMove {
+        nr_stand_still : int
+    }
+
+    AutomaticMove <|-- Behavior
+
+    AutomaticMove --> Route : history
+    AutomaticMove --> MoveInfo
+
+    RandomMove <|-- AutomaticMove
+    RandomDistinctMove <|-- AutomaticMove
+    RandomCommonMove <|-- AutomaticMove
+    MoveBack  <|-- AutomaticMove
+
+    BlockDeadEnds  <|-- MoveBack
+    BackOut <|-- BlockDeadEnds
+
+    Spoiler <|-- BlockDeadEnds
+
+```
+
+#### Options
+
+**Option 1:** Separate states for start end end in cycle
+
+**Option 2:** One state handles start and end cycle
+
+```mermaid
+stateDiagram-v2
+    [*] --> Start
+    
+    Start --> WaitNextCycle
+    WaitNextCycle --> StartCycle
+    StartCycle --> RandomMove
+    StartCycle --> FollowPath
+    RandomMove --> WaitNextCycle
+    FollowPath --> WaitNextCycle
+    StandStill --> WaitNextCycle
+    WaitNextCycle --> Finished
+    
+    Finished --> [*]
+```
+
+```mermaid
+stateDiagram-v2
+    [*] --> Start
+    
+    Start --> NewMove
+    NewMove --> MoveStopped
+    MoveStopped --> ChooseTarget
+    NewMove --> DeadEnd
+    DeadEnd --> ChooseTarget
+    ChooseTarget --> FollowPath
+    FollowPath --> NewMove
+    NewMove --> FollowPath
+    
+
+    NewMove --> RandomMove
+    RandomMove --> NewMove
+
+    NewMove --> Finished
+    Finished --> [*]
+```
+
+### Maze Behavior Rule engine
+
+```mermaid
+flowchart LR
+
+    subgraph Decide
+        direction TB
+        subgraph MoveInfo
+            direction TB
+            has_available --> 
+            has_new_available --> 
+            has_new
+        end
+        is_following_route -->
+        is_route_follow_possible -->
+        is_standing_still -->
+        is_route_set -->
+        is_route_cleared -->
+        has_coordinator -->
+        is_following_coordinator -->
+        coordinator_has_suggestion -->
+        coordinator_has_new_pos -->
+        coordinator_has_new_target -->
+        coordinator_has_new_route  -->
+        previous_action
+    end
+
+    subgraph Action
+        direction TB
+        set_target_pos -->
+        set_target_route --> 
+        clear_route -->
+        add_to_do_head -->
+        add_to_do_tail -->
+        get_next_to_do -->
+        notify_coordinator
+    end
+
+    subgraph NewMove
+        direction TB
+        StandStill -->
+        RandomMove -->
+        RandomDistinctMove -->
+        ClockWiseMove -->
+        CoordinatedMove -->
+        RouteMove
+    end
+    
+    
+    Decide --> Action
+    Action --> Decide
+    Action --> NewMove
+    Decide --> NewMove
 
 ```

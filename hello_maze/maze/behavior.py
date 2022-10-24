@@ -9,28 +9,52 @@ import random
 class MoveInfo:
     start_pos:Position
     available_hosts:dict[Direction,GameContent]
+    visited:set[Position]
     available_positions:set[Position] = field(init=False, repr=False)
+    new_available_positions:set[Position] = field(init=False, repr=False)
     all_positions:set[Position] = field(init=False, repr=False)
+    new_positions:set[Position] = field(init=False, repr=False)
 
     def __post_init__(self):
         self.available_positions = set([content.position for content in self.available_hosts.values() if content.can_host_guest() ])
+        self.new_available_positions = self.available_positions - self.visited
         self.all_positions = set([content.position for content in self.available_hosts.values()])
+        self.new_positions = self.all_positions - self.visited
 
     def has_available(self):
         return len(self.available_positions) > 0
+    
+    def has_new_available(self):
+        return len(self.new_available_positions) > 0
+    
+    def has_new_positions(self):
+        return len(self.new_positions) > 0
+
+    def nr_available(self):
+        return len(self.available_positions)
+    
+    def nr_new_available(self):
+        return len(self.new_available_positions)
+
+    def nr_new_positions(self):
+        return len(self.new_positions)
 
     def is_dead_end(self):
         return len(self.all_positions) == 1
 
-    def get_random_available(self,exclude:set[Position] = set()):
-        if not self.has_available():
+    def _get_random(self,positions:set[Position]):
+        if len(positions) == 0:
             return None
-        remain = self.available_positions - exclude
-        if len(remain) == 0:
-            remain = self.available_positions
-        if len(remain) == 1:
-            return next(iter(remain))
-        return random.choice(tuple(remain))
+        if len(positions) == 1:
+            return tuple(positions)[0]
+        return random.choice(tuple(positions))
+
+    def get_random_available(self):
+        return self._get_random(self.available_positions)
+
+    def get_random_new_available(self):
+        return self._get_random(self.new_available_positions)
+
 
 class AutomaticMove(Behavior):
 
@@ -53,7 +77,11 @@ class AutomaticMove(Behavior):
 
     def do_one_cycle(self):
         if not self._subject is None:
-            self.moveInfo = MoveInfo(self._subject.position,self.game_grid.get_available_hosts(self._subject.position))
+            self.moveInfo = MoveInfo(   
+                self._subject.position,
+                self.game_grid.get_available_hosts(self._subject.position),
+                self.history.positions
+            )
             new_pos = self.determine_new_pos()
             if new_pos is None:
                 self.nr_stand_still +=1
@@ -70,7 +98,7 @@ class RandomMove(AutomaticMove):
 class RandomDistinctMove(AutomaticMove):
 
     def determine_new_pos(self):
-        return self.moveInfo.get_random_available(exclude=self.history.positions)
+        return self.moveInfo.get_random_new_available()
 
 class RandomCommonMove(AutomaticMove):
 
@@ -87,7 +115,7 @@ class RandomCommonMove(AutomaticMove):
         return self.coordinator._determine_new_pos(self.moveInfo)
     
     def _determine_new_pos(self,moveInfo:MoveInfo):
-        return moveInfo.get_random_available(exclude=self.history.positions)
+        return moveInfo.get_random_new_available()
 
 class MoveBack(AutomaticMove):
 
@@ -135,21 +163,13 @@ class BlockDeadEnds(MoveBack):
             self.optimize_move_back()
 
     def select_move(self):
-        possible_filtered = self.moveInfo.available_positions - self.history.positions
-        all_filtered = self.moveInfo.all_positions - self.history.positions
-        if len(all_filtered) == 0:
+        if not self.moveInfo.has_new_positions():
             self.determine_move_back_path()
             return self.select_move_back()
-        
-        selected = self.moveInfo.get_random_available()
-        if len(possible_filtered) == 0:
-            return None
-        if len(possible_filtered) == 1:
-            selected =  possible_filtered.pop()
-        else:
-            selected = random.choice(tuple(possible_filtered))
-        all_filtered.discard(selected)
-        if len(all_filtered) > 0:
+        #if not self.moveInfo.has_new_available():
+        #    return None
+        selected = self.moveInfo.get_random_new_available()
+        if not selected is None and self.moveInfo.nr_new_positions() > 1:
             self.todo.append(self.moveInfo.start_pos)
         return selected
 
@@ -159,7 +179,7 @@ class BackOut(BlockDeadEnds):
         if not self.moveInfo.has_available():
             return None
 
-        if self.nr_stand_still > 10:
+        if self.nr_stand_still > 30:
             logging.debug(f"Standstill detected on pos {self.moveInfo.start_pos}")
             if self.path_back.length == 0:
                 logging.debug(f"Moving back pos {self.moveInfo.start_pos}")
@@ -227,6 +247,42 @@ class Spoiler(BlockDeadEnds):
             # below is a problem if the square size > 0
             logging.debug("Not possible to calculate a win path")
             self.win_known = False
+
+class RuleMove(AutomaticMove):
+
+    def __init__(self,game_grid:GameGrid):
+        super().__init__(game_grid)
+        self.route = Route()
+        self.todo:list[Position] = []
+        self.follow_coordinator = False
+        self.coordinator:RuleMove
+        if hasattr(self.game_grid,'coordinator'):
+            self.coordinator = self.game_grid.coordinator
+        else:
+            self.coordinator = self
+            self.game_grid.coordinator = self.coordinator
+
+    def set_route(self,start:Position,target:Position):
+        sub_route = self.history.get_sub_route(start,target)
+        if sub_route is None:
+            self.route.reset()
+        else:
+            self.route = sub_route
+
+    def optimize_route(self):
+        self.route.optimize()
+
+    def move_route(self):
+        if self.route.length > 0:
+            next = self.route.start
+            if next == self.moveInfo.start_pos:
+                self.route.pop(0)
+                return self.move_route()
+            if next in self.moveInfo.available_positions:
+                return self.route.pop(0)
+            if not next in self.moveInfo.all_positions:
+                self.route.reset()
+        return None
 
 
 class FinishDetector(Behavior):
