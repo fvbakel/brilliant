@@ -242,3 +242,19 @@ def reduce_path(path:list):
 reduced = reduce_path(path)
 print(reduced)
 
+print("composition delegation")
+
+class Router:
+
+    def __init__(self,shared_list:list[int]):
+        self.shared_list = shared_list
+
+class MainClass:
+
+    def __init__(self):
+        self.shared_list:list[int] = []
+        self.router = Router(self.shared_list)
+
+m = MainClass()
+m.shared_list.append(1)
+print(m.router.shared_list)

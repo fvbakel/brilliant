@@ -166,8 +166,6 @@ class BlockDeadEnds(MoveBack):
         if not self.moveInfo.has_new_positions():
             self.determine_move_back_path()
             return self.select_move_back()
-        #if not self.moveInfo.has_new_available():
-        #    return None
         selected = self.moveInfo.get_random_new_available()
         if not selected is None and self.moveInfo.nr_new_positions() > 1:
             self.todo.append(self.moveInfo.start_pos)
@@ -179,7 +177,7 @@ class BackOut(BlockDeadEnds):
         if not self.moveInfo.has_available():
             return None
 
-        if self.nr_stand_still > 30:
+        if self.nr_stand_still > 10:
             logging.debug(f"Standstill detected on pos {self.moveInfo.start_pos}")
             if self.path_back.length == 0:
                 logging.debug(f"Moving back pos {self.moveInfo.start_pos}")
@@ -248,22 +246,17 @@ class Spoiler(BlockDeadEnds):
             logging.debug("Not possible to calculate a win path")
             self.win_known = False
 
-class RuleMove(AutomaticMove):
+class Router:
 
-    def __init__(self,game_grid:GameGrid):
-        super().__init__(game_grid)
+    def __init__(self,mover:AutomaticMove):
+        self.mover = mover
         self.route = Route()
-        self.todo:list[Position] = []
-        self.follow_coordinator = False
-        self.coordinator:RuleMove
-        if hasattr(self.game_grid,'coordinator'):
-            self.coordinator = self.game_grid.coordinator
-        else:
-            self.coordinator = self
-            self.game_grid.coordinator = self.coordinator
+
+    def has_route(self):
+        return self.route.length > 0
 
     def set_route(self,start:Position,target:Position):
-        sub_route = self.history.get_sub_route(start,target)
+        sub_route = self.mover.history.get_sub_route(start,target)
         if sub_route is None:
             self.route.reset()
         else:
@@ -275,15 +268,52 @@ class RuleMove(AutomaticMove):
     def move_route(self):
         if self.route.length > 0:
             next = self.route.start
-            if next == self.moveInfo.start_pos:
+            if next == self.mover.moveInfo.start_pos:
                 self.route.pop(0)
                 return self.move_route()
-            if next in self.moveInfo.available_positions:
+            if next in self.mover.moveInfo.available_positions:
                 return self.route.pop(0)
-            if not next in self.moveInfo.all_positions:
+            if not next in self.mover.moveInfo.all_positions:
                 self.route.reset()
         return None
 
+class RuleMove(AutomaticMove):
+
+    def __init__(self,game_grid:GameGrid):
+        super().__init__(game_grid)
+        self.router = Router(self)
+        self.todo:list[Position] = []
+        self.follow_coordinator = False
+        self.coordinator:RuleMove
+        if hasattr(self.game_grid,'coordinator'):
+            self.coordinator = self.game_grid.coordinator
+        else:
+            self.coordinator = self
+            self.game_grid.coordinator = self.coordinator
+
+    def determine_new_pos(self):
+        if not self.moveInfo.has_available():
+            return None
+
+        if self.router.has_route():
+            return self.router.move_route()
+        else:
+            return self.select_move()
+
+    def determine_move_back_path(self):
+        if len(self.todo) > 0:
+            target = self.todo.pop()
+            self.router.set_route(self.moveInfo.start_pos,target)
+            self.router.optimize_route()
+
+    def select_move(self):
+        if not self.moveInfo.has_new_positions():
+            self.determine_move_back_path()
+            return self.router.move_route()
+        selected = self.moveInfo.get_random_new_available()
+        if not selected is None and self.moveInfo.nr_new_positions() > 1:
+            self.todo.append(self.moveInfo.start_pos)
+        return selected
 
 class FinishDetector(Behavior):
 
