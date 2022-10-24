@@ -332,11 +332,15 @@ flowchart LR
             has_new_available --> 
             has_new
         end
-        is_following_route -->
+
+        subgraph Router
+            direction TB
+            has_route
+        end
+        
         is_route_follow_possible -->
         is_standing_still -->
-        is_route_set -->
-        is_route_cleared -->
+        
         has_coordinator -->
         is_following_coordinator -->
         coordinator_has_suggestion -->
@@ -348,9 +352,14 @@ flowchart LR
 
     subgraph Action
         direction TB
-        set_target_pos -->
-        set_target_route --> 
-        clear_route -->
+        subgraph Router
+            direction TB
+            set_route -->
+            set_route_to_route --> 
+            freeze_route -->
+            reset_route
+        end
+
         add_to_do_head -->
         add_to_do_tail -->
         get_next_to_do -->
@@ -359,12 +368,18 @@ flowchart LR
 
     subgraph NewMove
         direction TB
+        subgraph Router
+            direction TB
+            get_new_pos
+        end
+        subgraph MoveInfo
+            direction TB
+            get_random_available
+            get_random_new_available
+        end
         StandStill -->
-        RandomMove -->
-        RandomDistinctMove -->
         ClockWiseMove -->
-        CoordinatedMove -->
-        RouteMove
+        CoordinatedMove
     end
     
     

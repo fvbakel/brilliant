@@ -1,5 +1,6 @@
 
 from dataclasses import dataclass,field
+from typing import SupportsIndex
 from basegrid import *
 from gamegrid import *
 import logging
@@ -42,7 +43,7 @@ class MoveInfo:
     def is_dead_end(self):
         return len(self.all_positions) == 1
 
-    def _get_random(self,positions:set[Position]):
+    def _get_random(self,positions:set[Position]) -> (None | Position):
         if len(positions) == 0:
             return None
         if len(positions) == 1:
@@ -246,43 +247,232 @@ class Spoiler(BlockDeadEnds):
             logging.debug("Not possible to calculate a win path")
             self.win_known = False
 
+class RuleMove(AutomaticMove):
+    def __init__(self,game_grid:GameGrid):
+        super().__init__(game_grid)
+        self.router:Router
+        self.navigator:Navigator
+        self.todo:ToDoManager
+        self.discoverer:Discoverer
+        self.standstill:StandStillHandler
+
+    def determine_new_pos(self):
+        if not self.moveInfo.has_available():
+            return None
+
+        if not self.standstill is None:
+            new_pos = self.standstill.get_move()
+            if not new_pos is None:
+                return new_pos
+
+        if not self.router is None and self.router.has_route():
+            return self.router.get_new_pos()
+
+        if not self.moveInfo.has_new_positions():
+            if not self.request_new_route():
+                return None
+            return self.router.get_new_pos()
+        else:
+            return self.select_discover_move()
+
+    def request_new_route(self):
+        if not self.todo.has_to_do() or self.router.locked:
+            return False
+
+        target = self.todo.get_next()
+        new_route = self.navigator.get_route(self.moveInfo.start_pos,target)
+        if new_route is None:
+            logging.error("Can not find path back ")
+            return False
+        new_route.optimize()
+        self.router.set_route(new_route)
+        return True
+
+    def select_discover_move(self):           
+        selected = self.discoverer.get_move()
+        if not selected is None and self.moveInfo.nr_new_positions() > 1:
+            self.todo.append(self.moveInfo.start_pos)
+        return selected
+
 class Router:
 
     def __init__(self,mover:AutomaticMove):
         self.mover = mover
-        self.route = Route()
+        self._route = Route()
+        self.locked = False
 
     def has_route(self):
-        return self.route.length > 0
+        return self._route.length > 0
 
-    def set_route(self,start:Position,target:Position):
-        sub_route = self.mover.history.get_sub_route(start,target)
-        if sub_route is None:
-            self.route.reset()
-        else:
-            self.route = sub_route
+    def set_route(self,route:Route):
+        if self.locked:
+            return False
+        self._route = route
+        return True
+    
+    def reset_route(self):
+        if self.locked:
+            return False
+        self._route.reset()
+        return True
 
     def optimize_route(self):
-        self.route.optimize()
+        if self.locked:
+            return
+        self._route.optimize()
 
-    def move_route(self):
-        if self.route.length > 0:
-            next = self.route.start
-            if next == self.mover.moveInfo.start_pos:
-                self.route.pop(0)
-                return self.move_route()
-            if next in self.mover.moveInfo.available_positions:
-                return self.route.pop(0)
-            if not next in self.mover.moveInfo.all_positions:
-                self.route.reset()
+    def get_new_pos(self) -> (Position | None):
+        if self._route is None or self._route.length == 0:
+            return None
+        
+        next = self._route.start
+        if next == self.mover.moveInfo.start_pos:
+            self._route.pop(0)
+            return self.get_new_pos()
+        if next in self.mover.moveInfo.available_positions:
+            return self._route.pop(0)
+        if not next in self.mover.moveInfo.all_positions:
+            # TODO: think of how to signal that this was detected?
+            logging.error("Route is no longer possible")
+            #self.route.reset()
+            return None
+
+class Navigator:
+
+    def __init__(self,mover:AutomaticMove):
+        self.mover = mover
+
+    def get_route_to_route(self,target_route:Route) -> (Route | None):
         return None
 
-class RuleMove(AutomaticMove):
+    def get_route(self,start:Position,target:Position) -> (Route | None):
+        return None
+
+class HistoryNavigator(Navigator):
+
+    def get_route_to_route(self,target_route:Route):
+        tail_path = Route()
+        new_route = Route()
+        for target_pos in reversed(target_route.path):
+            tail_path.append(target_pos)
+            if self.mover.history.has_position(target_pos):
+                if self.mover.moveInfo.start_pos != target_pos:
+                    begin_route = self.mover.history.get_sub_route(
+                        self.mover.moveInfo.start_pos,target_pos
+                    )
+                    if begin_route is None:
+                        logging.debug("Can not calculate a route to the target path but target pos in target route is in my history?")
+                        return None
+                    begin_route.optimize()
+                    new_route = begin_route
+                tail_path.reverse()
+                new_route.add_route(tail_path)
+                break
+        
+        if new_route.length == 0:
+            # below is a problem if the square size > 0
+            logging.debug("Not possible to calculate a route to the target route ")
+            return None
+
+        return new_route
+
+    def get_route(self,start:Position,target:Position):
+        return self.mover.history.get_sub_route(start,target)
+
+class ToDoManager:
+
+    def __init__(self,mover:AutomaticMove):
+        self.mover = mover
+        self.reset()
+
+    def reset(self):
+        self._to_do:list[Position] = []
+        self._to_do_set:set[Position] = set()
+
+    def append(self,position:Position):
+        if position in self._to_do_set:
+            return
+        self._to_do.append(position)
+        self._to_do_set.add(position)
+
+    def insert(self,index:SupportsIndex,position:Position):
+        if position in self._to_do_set:
+            return
+        self._to_do.insert(index,position)
+    
+    def has_to_do(self):
+        return len(self._to_do) > 0
+
+    def nr_to_do(self):
+        return len(self._to_do)
+
+    def has_position(self,position:Position):
+        return position in self._to_do_set
+
+    def peek_next(self):
+        if self.nr_to_do() == 0:
+            return None
+        return self._to_do[-1]
+
+    def get_next(self):
+        if self.nr_to_do() == 0:
+            return None
+        next = self._to_do.pop()
+        self._to_do_set.discard(next)
+        return next
+
+class Discoverer:
+    def __init__(self,mover:AutomaticMove):
+        self.mover = mover
+
+    def get_move(self) -> (Position | None):
+        return None
+    
+class RandomNewDiscoverer(Discoverer):
+    def get_move(self):
+        return self.mover.moveInfo.get_random_new_available()
+
+class RandomDiscoverer(Discoverer):
+    def get_move(self):
+        return self.mover.moveInfo.get_random_available()
+
+class StandStillHandler:
+    def __init__(self,mover:RuleMove):
+        self.mover = mover
+        self.max_stand_still = 10
+
+    def is_stand_still(self):
+        if self.mover.nr_stand_still > self.max_stand_still:
+            logging.debug(f"Standstill detected on pos {self.mover.moveInfo.start_pos}")
+            return True
+        return False
+
+    def _handle_stand_still(self):
+        pass 
+
+    def get_move(self):
+        if self.is_stand_still():
+            return self._handle_stand_still()
+        else:
+            return None
+
+class StandStillBackOut(StandStillHandler):      
+    def _handle_stand_still(self):
+        if not self.mover.router.has_route():
+            logging.debug(f"Moving back pos {self.mover.moveInfo.start_pos}")
+            if self.mover.request_new_route():
+                return self.mover.router.get_new_pos()
+        return None
+
+class BlockRuleMove(RuleMove):
 
     def __init__(self,game_grid:GameGrid):
         super().__init__(game_grid)
         self.router = Router(self)
-        self.todo:list[Position] = []
+        self.navigator = HistoryNavigator(self)
+        self.todo = ToDoManager(self)
+        self.discoverer = RandomNewDiscoverer(self)
+        self.standstill = None
         self.follow_coordinator = False
         self.coordinator:RuleMove
         if hasattr(self.game_grid,'coordinator'):
@@ -291,29 +481,16 @@ class RuleMove(AutomaticMove):
             self.coordinator = self
             self.game_grid.coordinator = self.coordinator
 
-    def determine_new_pos(self):
-        if not self.moveInfo.has_available():
-            return None
+class BackOutRuleMove(RuleMove):
 
-        if self.router.has_route():
-            return self.router.move_route()
-        else:
-            return self.select_move()
-
-    def determine_move_back_path(self):
-        if len(self.todo) > 0:
-            target = self.todo.pop()
-            self.router.set_route(self.moveInfo.start_pos,target)
-            self.router.optimize_route()
-
-    def select_move(self):
-        if not self.moveInfo.has_new_positions():
-            self.determine_move_back_path()
-            return self.router.move_route()
-        selected = self.moveInfo.get_random_new_available()
-        if not selected is None and self.moveInfo.nr_new_positions() > 1:
-            self.todo.append(self.moveInfo.start_pos)
-        return selected
+    def __init__(self,game_grid:GameGrid):
+        super().__init__(game_grid)
+        self.router = Router(self)
+        self.navigator = HistoryNavigator(self)
+        self.todo = ToDoManager(self)
+        self.discoverer = RandomNewDiscoverer(self)
+        self.standstill = StandStillBackOut(self)
+    
 
 class FinishDetector(Behavior):
 
