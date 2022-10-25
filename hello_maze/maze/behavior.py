@@ -280,6 +280,11 @@ class RuleMove(AutomaticMove):
 
         if not self.moveInfo.has_available():
             return None
+        
+        if not self.standstill is None:
+            new_pos = self.standstill.get_move()
+            if not new_pos is None:
+                return new_pos
 
         if  not self.router is None and \
                 self.router.has_route() and \
@@ -294,11 +299,6 @@ class RuleMove(AutomaticMove):
                 self.router.set_route(win_route)
                 self.router.optimize_route()
                 self.router.locked = True
-
-        if not self.standstill is None:
-            new_pos = self.standstill.get_move()
-            if not new_pos is None:
-                return new_pos
 
         if not self.router is None and self.router.has_route():
             return self.router.get_new_pos()
@@ -499,8 +499,21 @@ class StandStillHandler:
         else:
             return None
 
-class StandStillNewRoute(StandStillHandler):      
+class StandStillNewRoute(StandStillHandler):
     def _handle_stand_still(self):
+        if not self.mover.router.has_route():
+            logging.debug(f"Moving back pos {self.mover.moveInfo.start_pos}")
+            if self.mover.request_new_route():
+                return self.mover.router.get_new_pos()
+        return None
+
+class StandStillForceNewRoute(StandStillHandler):
+    def _handle_stand_still(self):
+        if self.mover.router.locked:
+            self.mover.router.locked = False
+            self.mover.router.reset_route()
+            self.mover.nr_stand_still = 0
+            return self.mover.moveInfo.start_pos
         if not self.mover.router.has_route():
             logging.debug(f"Moving back pos {self.mover.moveInfo.start_pos}")
             if self.mover.request_new_route():
@@ -604,6 +617,18 @@ class BlockRuleMove(RuleMove):
         self.todo = ToDoManager()
         self.discoverer = DirectionDiscoverer(self)
         self.standstill = None
+        self.coordinator = None
+        #self.register_coordinator(SpoilCoordinator)
+
+class SpoilRuleMove(RuleMove):
+
+    def __init__(self,game_grid:GameGrid):
+        super().__init__(game_grid)
+        self.router = Router(self)
+        self.navigator = RouteBasedNavigator(self.history)
+        self.todo = ToDoManager()
+        self.discoverer = DirectionDiscoverer(self)
+        self.standstill = StandStillForceNewRoute(self)
         self.register_coordinator(SpoilCoordinator)
 
 class BackOutRuleMove(RuleMove):
