@@ -275,6 +275,9 @@ class RuleMove(AutomaticMove):
         self.coordinator.register_finish(self)
 
     def determine_new_pos(self):
+        if not self.coordinator is None:
+            self.coordinator.register_moveInfo(self.moveInfo)
+
         if not self.moveInfo.has_available():
             return None
 
@@ -284,7 +287,8 @@ class RuleMove(AutomaticMove):
             return self.router.get_new_pos()
 
         if  not self.router is None and \
-                not self.coordinator is None:
+                not self.coordinator is None and \
+                not self.router.locked:
             win_route = self.coordinator.get_finish_route(self)
             if not win_route is None:
                 self.router.set_route(win_route)
@@ -307,9 +311,18 @@ class RuleMove(AutomaticMove):
             return self.select_discover_move()
 
     def request_new_route(self):
-        if not self.todo.has_to_do() or self.router.locked:
+        if self.router.locked:
             return False
+        
+        if not self.coordinator is None:
+            discover_route = self.coordinator.get_discover_route(self)
+            if not discover_route is None:
+                self.router.set_route(discover_route)
+                self.router.optimize_route()
+                return True
 
+        if not self.todo.has_to_do():
+            return False
         target = self.todo.get_next()
         new_route = self.navigator.get_route(self.moveInfo.start_pos,target)
         if new_route is None:
@@ -319,8 +332,12 @@ class RuleMove(AutomaticMove):
         self.router.set_route(new_route)
         return True
 
-    def select_discover_move(self):           
-        selected = self.discoverer.get_move()
+    def select_discover_move(self):
+        selected:Position = None
+        if not self.coordinator is None:
+            selected = self.coordinator.get_discover_pos(self)
+        if selected is None:
+            selected = self.discoverer.get_move()
         if not selected is None and self.moveInfo.nr_new_positions() > 1:
             self.todo.append(self.moveInfo.start_pos)
         return selected
@@ -504,6 +521,9 @@ class Coordinator:
     def get_discover_route(self,mover:RuleMove) -> (None | Route) :
         return None
 
+    def get_discover_pos(self,mover:RuleMove) -> (None | Position) :
+        return None
+
 class SpoilCoordinator(Coordinator):
 
     def __init__(self):
@@ -570,6 +590,9 @@ class SpoilCoordinator(Coordinator):
         pass
 
     def get_discover_route(self,mover:RuleMove) -> (None | Route) :
+        return None
+    
+    def get_discover_pos(self,mover:RuleMove) -> (None | Position) :
         return None
 
 class BlockRuleMove(RuleMove):
