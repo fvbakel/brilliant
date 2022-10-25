@@ -248,6 +248,9 @@ class Spoiler(BlockDeadEnds):
             logging.debug("Not possible to calculate a win path")
             self.win_known = False
 
+class Coordinator:
+    pass
+
 class RuleMove(AutomaticMove):
     def __init__(self,game_grid:GameGrid):
         super().__init__(game_grid)
@@ -256,6 +259,14 @@ class RuleMove(AutomaticMove):
         self.todo:ToDoManager
         self.discoverer:Discoverer
         self.standstill:StandStillHandler
+        self.coordinator:Coordinator
+    
+    def register_coordinator(self,coordinator_type:type[Coordinator]):
+        if hasattr(self.game_grid,'coordinator'):
+            self.coordinator = self.game_grid.coordinator
+        else:
+            self.coordinator = coordinator_type()
+            self.game_grid.coordinator = self.coordinator
 
     def determine_new_pos(self):
         if not self.moveInfo.has_available():
@@ -340,50 +351,26 @@ class Router:
 
 class Navigator:
 
-    def __init__(self,mover:AutomaticMove):
-        self.mover = mover
-
-    def get_route_to_route(self,target_route:Route) -> (Route | None):
+    def get_route_to_route(self,start:Position,target_route:Route) -> (Route | None):
         return None
 
     def get_route(self,start:Position,target:Position) -> (Route | None):
         return None
 
-class HistoryNavigator(Navigator):
+class RouteBasedNavigator(Navigator):
+    
+    def __init__(self,base_route:Route):
+        self.base_route = base_route
 
-    def get_route_to_route(self,target_route:Route):
-        tail_path = Route()
-        new_route = Route()
-        for target_pos in reversed(target_route.path):
-            tail_path.append(target_pos)
-            if self.mover.history.has_position(target_pos):
-                if self.mover.moveInfo.start_pos != target_pos:
-                    begin_route = self.mover.history.get_sub_route(
-                        self.mover.moveInfo.start_pos,target_pos
-                    )
-                    if begin_route is None:
-                        logging.debug("Can not calculate a route to the target path but target pos in target route is in my history?")
-                        return None
-                    begin_route.optimize()
-                    new_route = begin_route
-                tail_path.reverse()
-                new_route.add_route(tail_path)
-                break
-        
-        if new_route.length == 0:
-            # below is a problem if the square size > 0
-            logging.debug("Not possible to calculate a route to the target route ")
-            return None
-
-        return new_route
+    def get_route_to_route(self,start:Position,target_route:Route) :
+        return self.base_route.get_route_to_route(start,target_route)
 
     def get_route(self,start:Position,target:Position):
-        return self.mover.history.get_sub_route(start,target)
+        return self.base_route.get_sub_route(start,target)
 
 class ToDoManager:
 
-    def __init__(self,mover:AutomaticMove):
-        self.mover = mover
+    def __init__(self):
         self.reset()
 
     def reset(self):
@@ -476,7 +463,7 @@ class StandStillHandler:
         else:
             return None
 
-class StandStillBackOut(StandStillHandler):      
+class StandStillNewRoute(StandStillHandler):      
     def _handle_stand_still(self):
         if not self.mover.router.has_route():
             logging.debug(f"Moving back pos {self.mover.moveInfo.start_pos}")
@@ -484,32 +471,99 @@ class StandStillBackOut(StandStillHandler):
                 return self.mover.router.get_new_pos()
         return None
 
+class Coordinator:
+
+    def get_finish_route(self,mover:RuleMove) -> (None | Route) :
+        return None
+
+    def register_finish(self,mover:RuleMove):
+        pass
+
+    def register_moveInfo(self,moveInfo:MoveInfo):
+        pass
+
+    def get_discover_route(self,mover:RuleMove) -> (None | Route) :
+        return None
+
+class SpoilCoordinator(Coordinator):
+
+    def __init__(self):
+        self.win_routes:list[Route] = []
+        self.win_positions:set[Position] = set()
+
+    def get_finish_route(self,mover:RuleMove) -> (None | Route) :
+        if mover.moveInfo.start_pos in self.win_positions:
+            return self._get_finish_route(mover.moveInfo.start_pos)
+        for pos in mover.moveInfo.all_positions:
+            if pos in self.win_positions:
+                win_route =  self._get_finish_route(pos)
+                if win_route is None:
+                    return None
+                win_route.insert(mover.moveInfo.start_pos,pos)
+                return win_route
+        return None
+
+    def _get_finish_route(self,start_pos:Position) -> (None | Route):
+        for route in self.win_routes:
+            if start_pos in route.positions:
+                return route.get_route_to_route(start_pos)
+        return None
+
+    def register_finish(self,mover:RuleMove):
+        if not self._is_new_win_route(mover.history):
+            return
+
+        self._add_win_route(mover.history)
+        optimized_win = mover.history.copy()
+        optimized_win.optimize()
+        if not self._is_new_win_route(optimized_win):
+            return
+        self._add_win_route(optimized_win)
+
+    def _add_win_route(self,win_route:Route):
+        self.win_positions.update(win_route.positions)
+        insert_before = 0
+        for index,route in enumerate(self.win_routes):
+            if win_route.length < route.length:
+                insert_before = index
+                break
+        self.win_routes.insert(insert_before,win_route)
+
+    def _is_new_win_route(self,new_route:Route):
+        new_pos = new_route.positions - self.win_positions
+        if len(new_pos > 0):
+            return True
+        for win_route in self.win_routes:
+            if win_route != new_route:
+                return True
+        return False
+
+    def register_moveInfo(self,moveInfo:MoveInfo):
+        pass
+
+    def get_discover_route(self,mover:RuleMove) -> (None | Route) :
+        return None
+
 class BlockRuleMove(RuleMove):
 
     def __init__(self,game_grid:GameGrid):
         super().__init__(game_grid)
         self.router = Router(self)
-        self.navigator = HistoryNavigator(self)
-        self.todo = ToDoManager(self)
+        self.navigator = RouteBasedNavigator(self.history)
+        self.todo = ToDoManager()
         self.discoverer = DirectionDiscoverer(self)
         self.standstill = None
-        self.follow_coordinator = False
-        self.coordinator:RuleMove
-        if hasattr(self.game_grid,'coordinator'):
-            self.coordinator = self.game_grid.coordinator
-        else:
-            self.coordinator = self
-            self.game_grid.coordinator = self.coordinator
+        self.register_coordinator(SpoilCoordinator)
 
 class BackOutRuleMove(RuleMove):
 
     def __init__(self,game_grid:GameGrid):
         super().__init__(game_grid)
         self.router = Router(self)
-        self.navigator = HistoryNavigator(self)
-        self.todo = ToDoManager(self)
+        self.navigator = RouteBasedNavigator(self.history)
+        self.todo = ToDoManager()
         self.discoverer = DirectionDiscoverer(self)
-        self.standstill = StandStillBackOut(self)
+        self.standstill = StandStillNewRoute(self)
     
 
 class FinishDetector(Behavior):

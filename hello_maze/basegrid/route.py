@@ -58,6 +58,9 @@ class Route:
     def append(self,position:Position):
         self._path.append(position)
 
+    def insert(self,index:SupportsIndex,position:Position):
+        self._path.insert(index,position)
+
     def pop(self,index:SupportsIndex = None):
         if index is None:
             return self._path.pop()
