@@ -56,6 +56,8 @@ class MoveInfo:
     def get_random_new_available(self):
         return self._get_random(self.new_available_positions)
 
+class Coordinator:
+    pass
 
 class AutomaticMove(Behavior):
 
@@ -65,6 +67,12 @@ class AutomaticMove(Behavior):
         self.history = Route()
         self.nr_stand_still = 0
         self.moveInfo:MoveInfo = None
+        self.router:Router
+        self.navigator:Navigator
+        self.todo:ToDoManager
+        self.discoverer:Discoverer
+        self.standstill:StandStillHandler
+        self.coordinator:Coordinator
 
     @Behavior.subject.setter
     def subject(self,subject:GameContent):
@@ -91,19 +99,6 @@ class AutomaticMove(Behavior):
                 self.nr_stand_still = 0
                 self.game_grid.move_content(self._subject,new_pos)
                 self.record_new_position()
-
-class Coordinator:
-    pass
-
-class RuleMove(AutomaticMove):
-    def __init__(self,game_grid:GameGrid):
-        super().__init__(game_grid)
-        self.router:Router
-        self.navigator:Navigator
-        self.todo:ToDoManager
-        self.discoverer:Discoverer
-        self.standstill:StandStillHandler
-        self.coordinator:Coordinator
     
     def register_coordinator(self,coordinator_type:type[Coordinator]):
         if hasattr(self.game_grid,'coordinator'):
@@ -326,7 +321,7 @@ class DirectionDiscoverer(Discoverer):
         return None
 
 class StandStillHandler:
-    def __init__(self,mover:RuleMove):
+    def __init__(self,mover:AutomaticMove):
         self.mover = mover
         self.max_stand_still = 10
 
@@ -368,19 +363,19 @@ class StandStillForceNewRoute(StandStillNewRoute):
 
 class Coordinator:
 
-    def get_finish_route(self,mover:RuleMove) -> (None | Route) :
+    def get_finish_route(self,mover:AutomaticMove) -> (None | Route) :
         return None
 
-    def register_finish(self,mover:RuleMove):
+    def register_finish(self,mover:AutomaticMove):
         pass
 
     def register_moveInfo(self,moveInfo:MoveInfo):
         pass
 
-    def get_discover_route(self,mover:RuleMove) -> (None | Route) :
+    def get_discover_route(self,mover:AutomaticMove) -> (None | Route) :
         return None
 
-    def get_discover_pos(self,mover:RuleMove) -> (None | Position) :
+    def get_discover_pos(self,mover:AutomaticMove) -> (None | Position) :
         return None
 
 class SpoilCoordinator(Coordinator):
@@ -389,7 +384,7 @@ class SpoilCoordinator(Coordinator):
         self.win_routes:list[Route] = []
         self.win_positions:set[Position] = set()
 
-    def get_finish_route(self,mover:RuleMove) -> (None | Route) :
+    def get_finish_route(self,mover:AutomaticMove) -> (None | Route) :
         if mover.moveInfo.start_pos in self.win_positions:
             return self._get_direct_finish_route(mover.moveInfo.start_pos)
         for pos in mover.moveInfo.all_positions:
@@ -410,13 +405,13 @@ class SpoilCoordinator(Coordinator):
                 return route.get_sub_route(start_pos,route.end)
         return None
 
-    def _get_finish_route(self,mover:RuleMove) -> (None | Route):
+    def _get_finish_route(self,mover:AutomaticMove) -> (None | Route):
         for route in self.win_routes:
             if not mover.history.positions.isdisjoint(route.positions):
                 return mover.history.get_route_to_route(mover.moveInfo.start_pos,route)
         return None
 
-    def register_finish(self,mover:RuleMove):
+    def register_finish(self,mover:AutomaticMove):
         if not self._is_new_win_route(mover.history):
             return
 
@@ -448,13 +443,13 @@ class SpoilCoordinator(Coordinator):
     def register_moveInfo(self,moveInfo:MoveInfo):
         pass
 
-    def get_discover_route(self,mover:RuleMove) -> (None | Route) :
+    def get_discover_route(self,mover:AutomaticMove) -> (None | Route) :
         return None
     
-    def get_discover_pos(self,mover:RuleMove) -> (None | Position) :
+    def get_discover_pos(self,mover:AutomaticMove) -> (None | Position) :
         return None
 
-class RandomRuleMove(RuleMove):
+class RandomAutomaticMove(AutomaticMove):
     selectable = True
 
     def __init__(self,game_grid:GameGrid):
@@ -467,7 +462,7 @@ class RandomRuleMove(RuleMove):
         self.coordinator = None
         #self.register_coordinator(SpoilCoordinator)
 
-class TryOutRuleMove(RuleMove):
+class TryOutAutomaticMove(AutomaticMove):
     selectable = True
     def __init__(self,game_grid:GameGrid):
         super().__init__(game_grid)
@@ -479,7 +474,7 @@ class TryOutRuleMove(RuleMove):
         self.coordinator = None
         #self.register_coordinator(SpoilCoordinator)
 
-class BlockRuleMove(RuleMove):
+class BlockAutomaticMove(AutomaticMove):
     selectable = True
     def __init__(self,game_grid:GameGrid):
         super().__init__(game_grid)
@@ -491,7 +486,7 @@ class BlockRuleMove(RuleMove):
         self.coordinator = None
         #self.register_coordinator(SpoilCoordinator)
 
-class SpoilRuleMove(RuleMove):
+class SpoilAutomaticMove(AutomaticMove):
     selectable = True
     def __init__(self,game_grid:GameGrid):
         super().__init__(game_grid)
@@ -502,7 +497,7 @@ class SpoilRuleMove(RuleMove):
         self.standstill = StandStillForceNewRoute(self)
         self.register_coordinator(SpoilCoordinator)
 
-class BackOutRuleMove(RuleMove):
+class BackOutAutomaticMove(AutomaticMove):
     selectable = True
     def __init__(self,game_grid:GameGrid):
         super().__init__(game_grid)

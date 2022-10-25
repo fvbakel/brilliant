@@ -428,7 +428,7 @@ class MazeController:
             self.run_simulation = value
 
     def get_move_behavior_cls(self):
-        return self.move_behaviors.get(self.move_behavior,RandomRuleMove)
+        return self.move_behaviors.get(self.move_behavior,RandomAutomaticMove)
 
     def add_particle(self):
             particle = Particle()
