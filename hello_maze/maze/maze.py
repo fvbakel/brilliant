@@ -360,7 +360,9 @@ class MazeController:
     def _init_move_behaviors(self):
         self.move_behaviors:dict[str,type[AutomaticMove]] = dict()
         for cls in MazeController.get_all_subclasses(AutomaticMove):
-            self.move_behaviors[cls.__name__] = cls
+            if hasattr(cls,'selectable') :
+                self.move_behaviors[cls.__name__] = cls
+
     
     def reset_game(self):
         self.run_simulation = False
@@ -426,7 +428,7 @@ class MazeController:
             self.run_simulation = value
 
     def get_move_behavior_cls(self):
-        return self.move_behaviors.get(self.move_behavior,RandomMove)
+        return self.move_behaviors.get(self.move_behavior,RandomRuleMove)
 
     def add_particle(self):
             particle = Particle()

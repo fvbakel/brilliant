@@ -74,7 +74,7 @@ class AutomaticMove(Behavior):
     def record_new_position(self):
         self.history.append(self._subject.position)
 
-    def determine_new_pos(self):
+    def determine_new_pos(self) -> (None | Position):
         return None
 
     def do_one_cycle(self):
@@ -91,162 +91,6 @@ class AutomaticMove(Behavior):
                 self.nr_stand_still = 0
                 self.game_grid.move_content(self._subject,new_pos)
                 self.record_new_position()
-
-class RandomMove(AutomaticMove):
-
-    def determine_new_pos(self):
-        return self.moveInfo.get_random_available()
-
-class RandomDistinctMove(AutomaticMove):
-
-    def determine_new_pos(self):
-        return self.moveInfo.get_random_new_available()
-
-class RandomCommonMove(AutomaticMove):
-
-    def __init__(self,game_grid:GameGrid):
-        super().__init__(game_grid)
-        if hasattr(self.game_grid,'random_common_move'):
-            self.coordinator = self.game_grid.random_common_move
-        else:
-            self.coordinator = self
-            self.game_grid.random_common_move = self.coordinator
-
-
-    def determine_new_pos(self):
-        return self.coordinator._determine_new_pos(self.moveInfo)
-    
-    def _determine_new_pos(self,moveInfo:MoveInfo):
-        return moveInfo.get_random_new_available()
-
-class MoveBack(AutomaticMove):
-
-    def __init__(self,game_grid:GameGrid):
-        super().__init__(game_grid)
-        self.path_back = Route()
-    
-    def set_path_back(self,start:Position,target:Position):
-        sub_route = self.history.get_sub_route(start,target)
-        if sub_route is None:
-            self.path_back.reset()
-        else:
-            self.path_back = sub_route
-
-    def optimize_move_back(self):
-        self.path_back.optimize()
-
-    def select_move_back(self):
-        if self.path_back.length > 0:
-            next = self.path_back.start
-            if next == self.moveInfo.start_pos:
-                self.path_back.pop(0)
-                return self.select_move_back()
-            if next in self.moveInfo.available_positions:
-                return self.path_back.pop(0)
-
-class BlockDeadEnds(MoveBack):
-    def __init__(self,game_grid:GameGrid):
-        super().__init__(game_grid)
-        self.todo:list[Position] = []
-
-    def determine_new_pos(self):
-        if not self.moveInfo.has_available():
-            return None
-
-        if self.path_back.length > 0:
-            return self.select_move_back()
-        else:
-            return self.select_move()
-
-    def determine_move_back_path(self):
-        if len(self.todo) > 0:
-            target = self.todo.pop()
-            self.set_path_back(self.moveInfo.start_pos,target)
-            self.optimize_move_back()
-
-    def select_move(self):
-        if not self.moveInfo.has_new_positions():
-            self.determine_move_back_path()
-            return self.select_move_back()
-        selected = self.moveInfo.get_random_new_available()
-        if not selected is None and self.moveInfo.nr_new_positions() > 1:
-            self.todo.append(self.moveInfo.start_pos)
-        return selected
-
-class BackOut(BlockDeadEnds):
-
-    def determine_new_pos(self):
-        if not self.moveInfo.has_available():
-            return None
-
-        if self.nr_stand_still > 10:
-            logging.debug(f"Standstill detected on pos {self.moveInfo.start_pos}")
-            if self.path_back.length == 0:
-                logging.debug(f"Moving back pos {self.moveInfo.start_pos}")
-                self.determine_move_back_path()
-
-        if self.path_back.length > 0:
-            return self.select_move_back()
-        else:
-            return self.select_move()
-
-class Spoiler(BlockDeadEnds):
-
-    def __init__(self,game_grid:GameGrid):
-        super().__init__(game_grid)
-        self.win_path:Route = None
-        self.win_known = False
-        if hasattr(self.game_grid,'coordinator'):
-            self.coordinator = self.game_grid.coordinator
-        else:
-            self.coordinator = self
-            self.game_grid.coordinator = self.coordinator
-
-    def unregister(self):
-        super().unregister()
-        if not self.win_known:
-            self.coordinator.win_path = Route(self.history.path)
-            self.coordinator.win_path.append(self._subject.position)
-            self.coordinator.win_path.optimize()
-            if not self.coordinator.win_path.is_valid():
-                logging.error(f"win path is not a valid path! {str(self.coordinator.win_path)}")
-            self.path_back.reset()
-
-    def determine_new_pos(self):
-        if  not self.coordinator.win_path is None and \
-                self.coordinator.win_path.length > 0 and  \
-                not self.win_known:
-            logging.debug("Win path is now known!")
-            self.set_win_path()
-
-        if self.win_known:
-            return self.select_move_back()
-        else:
-            return super().determine_new_pos()
-    
-    def set_win_path(self):
-        self.win_known = True
-        tail_path = Route()
-        self.path_back.reset()
-        for win_pos in reversed(self.coordinator.win_path.path):
-            tail_path.append(win_pos)
-            if self.history.has_position(win_pos):
-                if self.moveInfo.start_pos != win_pos:
-                    begin_route = self.history.get_sub_route(self.moveInfo.start_pos,win_pos)
-                    if begin_route is None:
-                        logging.debug("Can not calculate a route to the win path but pos in win_pat is in history?")
-                        self.win_known = False
-                        break
-                    begin_route.optimize()
-                    self.path_back = begin_route
-                tail_path.reverse()
-                self.path_back.add_route(tail_path)
-                break
-        
-        if self.path_back.length == 0:
-            # below is a problem if the square size > 0
-            logging.debug("Not possible to calculate a win path")
-            self.win_known = False
 
 class Coordinator:
     pass
@@ -611,6 +455,7 @@ class SpoilCoordinator(Coordinator):
         return None
 
 class RandomRuleMove(RuleMove):
+    selectable = True
 
     def __init__(self,game_grid:GameGrid):
         super().__init__(game_grid)
@@ -623,19 +468,19 @@ class RandomRuleMove(RuleMove):
         #self.register_coordinator(SpoilCoordinator)
 
 class TryOutRuleMove(RuleMove):
-
+    selectable = True
     def __init__(self,game_grid:GameGrid):
         super().__init__(game_grid)
         self.router = None
         self.navigator = None
         self.todo = None
-        self.discoverer = None #RandomNewDiscoverer(self)
+        self.discoverer = None
         self.standstill = None
         self.coordinator = None
         #self.register_coordinator(SpoilCoordinator)
 
 class BlockRuleMove(RuleMove):
-
+    selectable = True
     def __init__(self,game_grid:GameGrid):
         super().__init__(game_grid)
         self.router = Router(self)
@@ -647,7 +492,7 @@ class BlockRuleMove(RuleMove):
         #self.register_coordinator(SpoilCoordinator)
 
 class SpoilRuleMove(RuleMove):
-
+    selectable = True
     def __init__(self,game_grid:GameGrid):
         super().__init__(game_grid)
         self.router = Router(self)
@@ -658,7 +503,7 @@ class SpoilRuleMove(RuleMove):
         self.register_coordinator(SpoilCoordinator)
 
 class BackOutRuleMove(RuleMove):
-
+    selectable = True
     def __init__(self,game_grid:GameGrid):
         super().__init__(game_grid)
         self.router = Router(self)
@@ -698,7 +543,7 @@ class AutomaticAdd(Behavior):
         
         self.nr_started = 0
         self.active = False
-        self.move_type:type[AutomaticMove] = RandomMove
+        self.move_type:type[AutomaticMove]
 
     def do_one_cycle(self):
         if self.active:
