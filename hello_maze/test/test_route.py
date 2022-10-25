@@ -268,3 +268,46 @@ class TestRoute(unittest.TestCase):
                 "New route is expected 7 long"
             )
 
+    def test_compare_and_copy_route(self):
+        test_positions = self.get_test_positions(nr=5)
+        route_1 = Route()
+        route_2 = Route()
+
+        self.assertEqual(route_1,route_2,"Two empty routes are equal")
+
+        route_1 = Route()
+        route_2 = Route()
+        route_1.append(test_positions[0][0])
+        self.assertNotEqual(route_1,route_2,"Empty routes is not equal to non-empty route")
+        self.assertNotEqual(route_2,None,"Empty routes is not equal to None ")
+        self.assertNotEqual(route_1,None,"Non-empty routes is not equal to None ")
+
+        route_1 = Route()
+        route_2 = Route()
+        route_1.append(test_positions[0][0])
+        route_1.append(test_positions[1][0])
+        route_1.append(test_positions[2][0])
+
+        route_2.append(test_positions[0][0])
+        route_2.append(test_positions[1][0])
+        route_2.append(test_positions[2][0])
+
+        self.assertEqual(route_1,route_2,"Same positions in same order is equal")
+        route_2.reverse()
+        self.assertNotEqual(route_1,route_2,"Same positions in reverse order is not equal")
+
+        route_2 = Route()
+        route_2.append(test_positions[0][0])
+        route_2.append(test_positions[1][0])
+        route_2.append(test_positions[2][0])
+        route_2.append(test_positions[3][0])
+        self.assertNotEqual(route_1,route_2,"One more position is not equal")
+
+        route_2 = route_1.copy()
+        self.assertEqual(route_1,route_2,"Copies are equal")
+
+        route_2.pop()
+        self.assertNotEqual(route_1,route_2,"After a pop of one copies are not equal")
+
+
+

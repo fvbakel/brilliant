@@ -14,6 +14,14 @@ class Route:
             self._path = path
         self.reset_pos_map()
 
+    def __eq__(self, other):
+        if not isinstance(other,Route):
+            return False
+        return self._path == other._path
+
+    def copy(self):
+        return Route(self._path.copy())
+
     def reset(self):
         self.reset_path()
         self.reset_pos_map()
