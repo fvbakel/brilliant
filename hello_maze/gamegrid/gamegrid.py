@@ -75,6 +75,9 @@ class Particle(GameContent):
         self.mobile:bool    = True
         self.material       = Material.PLASTIC
 
+class BehaviorFactory:
+    pass
+
 class GameGrid(Grid):
     
     def __init__(self,size:Size):
@@ -112,14 +115,14 @@ class GameGrid(Grid):
                 behaviors.append(behavior)
         return behaviors
 
-    def add_manual_content(self,content:GameContent,behavior_type:type[Behavior]):
+    def add_manual_content(self,content:GameContent,factory:BehaviorFactory):
         if content is None or not content.mobile:
             return None
         if not content.behavior is None:
             return None
         if not self.add_to_first_free_spot(content):
             return None
-        behavior = behavior_type(self)
+        behavior = factory.get_new(self)
         behavior.subject = content
         return behavior
 
@@ -329,3 +332,11 @@ class ManualMove(Behavior):
         if self.next_move != Direction.HERE and not self._subject is None:
             self.game_grid.move_content_direction(self._subject,self.next_move)
         self.next_move = Direction.HERE
+
+class BehaviorFactory:
+    def __init__(self):
+        self.behavior_type:type[Behavior] = Behavior
+        self.is_default = True
+
+    def get_new(self,game_grid:GameGrid) -> Behavior:
+        return self.behavior_type(game_grid)

@@ -329,6 +329,7 @@ class Squares2Dot:
     def render(self,filename:PathLike | str,directory:PathLike | str, format='svg'):
         self.dot.render(filename=filename,directory=directory, format=format)
 
+
 class MazeController:
 
     def __init__(self):
@@ -343,6 +344,8 @@ class MazeController:
         self.nr_of_rows:int = 10
         self.manual_move:ManualMove = None
         self.move_behavior:str = None
+        self.configure_factory = ConfigurableFactory()
+        self.default_factory = BehaviorFactory()
         self.nr_started:int = 0
         self.nr_of_cycles:int = 0
         self._init_move_behaviors()
@@ -427,13 +430,15 @@ class MazeController:
         if self.run_simulation != value:
             self.run_simulation = value
 
-    def get_move_behavior_cls(self):
+    def get_move_behavior_cls(self) -> type[AutomaticMove]:
         return self.move_behaviors.get(self.move_behavior,RandomAutomaticMove)
+
 
     def add_particle(self):
             particle = Particle()
             particle.trace_material = Material.FLOOR_HIGHLIGHTED
-            behavior = self.game.game_grid.add_manual_content(particle,self.get_move_behavior_cls())
+            self.default_factory.behavior_type = self.get_move_behavior_cls()
+            behavior = self.game.game_grid.add_manual_content(particle,self.default_factory)
             if not behavior is None:
                 self.nr_started += 1
                 self.render_changed()
@@ -442,13 +447,15 @@ class MazeController:
         if self.manual_move == None:
             particle = Particle()
             particle.material = Material.PLASTIC_HIGHLIGHTED
-            self.manual_move = self.game.game_grid.add_manual_content(particle,ManualMove)
+            self.default_factory.behavior_type = ManualMove
+            self.manual_move = self.game.game_grid.add_manual_content(particle,self.default_factory)
             if not self.manual_move is None:
                 self.nr_started += 1
                 self.render_changed()
 
     def _init_auto_add_behavior(self):
         self.auto_add_behavior = AutomaticAdd(self.game.game_grid)
+        self.auto_add_behavior.factory = self.default_factory
 
     def _add_finish_behavior(self):
         self.finish_behavior:list[FinishDetector] = self.game.game_grid.set_behavior_last_spots(FinishDetector)

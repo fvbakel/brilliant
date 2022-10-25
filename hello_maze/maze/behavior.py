@@ -6,6 +6,8 @@ from gamegrid import *
 import logging
 import random
 
+from gamegrid.gamegrid import BehaviorFactory
+
 @dataclass
 class MoveInfo:
     start_pos:Position
@@ -507,7 +509,70 @@ class BackOutAutomaticMove(AutomaticMove):
         self.discoverer = DirectionDiscoverer(self)
         self.standstill = StandStillNewRoute(self)
         self.coordinator = None
+
+class ConfigurableMove(AutomaticMove):
+    selectable = True
+    def __init__(self,game_grid:GameGrid):
+        super().__init__(game_grid)
+        self.router = None
+        self.navigator = None
+        self.todo = None
+        self.discoverer = None
+        self.standstill = None
+        self.coordinator = None
+        self.coordinator_type:type[Coordinator] = None
+
+    def reconfigure(self):
+        if not self.coordinator_type is None:
+            self.register_coordinator(self.coordinator_type)
+
+class ConfigurableFactory(BehaviorFactory):
+
+    def __init__(self):
+        self.move_type:type[AutomaticMove] = ConfigurableMove
+        self.router_type:type[Router] = None
+        self.navigator_type:type[Navigator] = None
+        self.is_default = False
+        self.coordinator_type:type[Coordinator] = None
+        self.todo_type:type[ToDoManager] = None
+        self.discover_type:type[Discoverer] = None
+        self.standstill_type:type[StandStillHandler] = None
+        
+
+    def get_new(self, game_grid: GameGrid) -> Behavior:
+        mover = ConfigurableMove()
+
+        if self._check_type(self.router_type,Router):
+            mover.router = self.router_type(mover)
+        
+        if self._check_type(self.navigator_type,RouteBasedNavigator):
+            mover.navigator = self.navigator_type(base_route=mover.history)
+        elif self._check_type(self.navigator_type,Navigator):
+            mover.navigator = self.navigator_type()
+
+        if self._check_type(self.todo_type,ToDoManager):
+            mover.todo = self.todo_type()
+
+        if self._check_type(self.discover_type,Discoverer):
+            mover.discoverer = self.discover_type(mover)
+
+        if self._check_type(self.standstill_type,StandStillHandler):
+            mover.standstill = self.standstill_type(mover)
+
+        if self._check_type(self.coordinator_type,Coordinator):
+            mover.coordinator_type = self.coordinator_type
+        mover.reconfigure()
+        return mover
     
+    def _check_type(self,main_class:type):
+        if main_class is None:
+            return False
+        if not issubclass(main_class,main_class):
+            logging.error(f"router type {str(self.router_type)} is not a {str(main_class)}")
+            return False
+        return True
+        
+
 
 class FinishDetector(Behavior):
 
@@ -538,12 +603,26 @@ class AutomaticAdd(Behavior):
         
         self.nr_started = 0
         self.active = False
-        self.move_type:type[AutomaticMove]
+        self._move_type:type[AutomaticMove]
+        self.factory:BehaviorFactory = BehaviorFactory()
+
+    @property
+    def move_type(self):
+        return self._move_type
+
+    @move_type.setter
+    def move_type(self,move_type:type[AutomaticMove]):
+        self._move_type = move_type
+        if self.factory.behavior_type == self._move_type:
+            return
+        if not self.factory.is_default:
+            self.factory = BehaviorFactory()
+        self.factory.behavior_type = self._move_type
 
     def do_one_cycle(self):
         if self.active:
             particle = Particle()
             particle.trace_material = Material.FLOOR_HIGHLIGHTED
-            behavior = self.game_grid.add_manual_content(particle,self.move_type)
+            behavior = self.game_grid.add_manual_content(particle,self.factory)
             if not behavior is None:
                 self.nr_started += 1
