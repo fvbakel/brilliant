@@ -194,3 +194,77 @@ class TestRoute(unittest.TestCase):
         route_2.append(test_positions[1][3])
         route_2.append(test_positions[1][2])
         self.assertTrue(route_1.add_route(route_2),"Route can be added when it ends with a neighbor")
+
+
+    def test_get_route_to_route(self):
+        test_positions = self.get_test_positions(nr=5)
+        route_1 = Route()
+        route_2 = Route()
+
+        self.assertIsNone(
+            route_1.get_route_to_route(
+                test_positions[0][0],route_2
+            ),
+            "Two empty routes result in no route"
+        )
+        
+        route_1.append(test_positions[0][0])
+        route_1.append(test_positions[1][0])
+        route_1.append(test_positions[1][1])
+        route_1.append(test_positions[1][2])
+        route_1.append(test_positions[1][3])
+
+        route_2.append(test_positions[2][0])
+        route_2.append(test_positions[2][1])
+        route_2.append(test_positions[2][2])
+
+        self.assertIsNone(
+            route_1.get_route_to_route(
+                test_positions[0][0],route_2
+            ),
+            "Two disconnected routes result in no route"
+        )
+
+        route_1.append(test_positions[0][0])
+        route_1.append(test_positions[1][0])
+        route_1.append(test_positions[1][1])
+        route_1.append(test_positions[1][2])
+        route_1.append(test_positions[1][3])
+
+        route_2.append(test_positions[1][1])
+        route_2.append(test_positions[2][1])
+        route_2.append(test_positions[2][2])
+        route_2.append(test_positions[3][2])
+
+        new_route = route_1.get_route_to_route(
+            test_positions[0][0],
+            route_2
+        )
+
+        self.assertIsNotNone(
+            new_route,
+            "New route can be found"
+        )
+        if not new_route is None:
+            self.assertEquals(
+                new_route.length,
+                6,
+                "New route is expected 6 long"
+            )
+
+        new_route = route_1.get_route_to_route(
+            test_positions[1][3],
+            route_2
+        )
+
+        self.assertIsNotNone(
+            new_route,
+            "New route can be found backwards"
+        )
+        if not new_route is None:
+            self.assertEquals(
+                new_route.length,
+                7,
+                "New route is expected 7 long"
+            )
+

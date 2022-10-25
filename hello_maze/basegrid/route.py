@@ -1,5 +1,6 @@
 from typing import SupportsIndex
 from basegrid import Position
+import logging
 
 class Route:
     pass
@@ -147,6 +148,30 @@ class Route:
         if route.start.is_neighbor(self.end):
             self._path.extend(route._path)
             return True
-        
-        
         return False
+
+    def get_route_to_route(self,start:Position,target_route:Route) :
+        tail_path = Route()
+        new_route = Route()
+        for target_pos in reversed(target_route.path):
+            tail_path.append(target_pos)
+            if self.has_position(target_pos):
+                if start != target_pos:
+                    begin_route = self.get_sub_route(
+                        start,
+                        target_pos
+                    )
+                    if begin_route is None:
+                        logging.debug("Can not calculate a route to the target path but target pos in target route is in my route?")
+                        return None
+                    begin_route.optimize()
+                    new_route = begin_route
+                tail_path.reverse()
+                new_route.add_route(tail_path)
+                break
+        
+        if new_route.length == 0:
+            logging.debug("Not possible to calculate a route to the target route ")
+            return None
+
+        return new_route
