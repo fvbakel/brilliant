@@ -268,9 +268,28 @@ class RuleMove(AutomaticMove):
             self.coordinator = coordinator_type()
             self.game_grid.coordinator = self.coordinator
 
+    def unregister(self):
+        super().unregister()
+        if self.coordinator is None:
+            return
+        self.coordinator.register_finish(self)
+
     def determine_new_pos(self):
         if not self.moveInfo.has_available():
             return None
+
+        if  not self.router is None and \
+                self.router.has_route() and \
+                self.router.locked:
+            return self.router.get_new_pos()
+
+        if  not self.router is None and \
+                not self.coordinator is None:
+            win_route = self.coordinator.get_finish_route(self)
+            if not win_route is None:
+                self.router.set_route(win_route)
+                self.router.optimize_route()
+                self.router.locked = True
 
         if not self.standstill is None:
             new_pos = self.standstill.get_move()
@@ -493,20 +512,29 @@ class SpoilCoordinator(Coordinator):
 
     def get_finish_route(self,mover:RuleMove) -> (None | Route) :
         if mover.moveInfo.start_pos in self.win_positions:
-            return self._get_finish_route(mover.moveInfo.start_pos)
+            return self._get_direct_finish_route(mover.moveInfo.start_pos)
         for pos in mover.moveInfo.all_positions:
             if pos in self.win_positions:
-                win_route =  self._get_finish_route(pos)
+                win_route =  self._get_direct_finish_route(pos)
                 if win_route is None:
                     return None
-                win_route.insert(mover.moveInfo.start_pos,pos)
+                win_route.insert(0,pos)
                 return win_route
+
+        if not mover.history.positions.isdisjoint(self.win_positions):
+            return self._get_finish_route(mover)
         return None
 
-    def _get_finish_route(self,start_pos:Position) -> (None | Route):
+    def _get_direct_finish_route(self,start_pos:Position) -> (None | Route):
         for route in self.win_routes:
             if start_pos in route.positions:
-                return route.get_route_to_route(start_pos)
+                return route.get_sub_route(start_pos,route.end)
+        return None
+
+    def _get_finish_route(self,mover:RuleMove) -> (None | Route):
+        for route in self.win_routes:
+            if not mover.history.positions.isdisjoint(route.positions):
+                return mover.history.get_route_to_route(mover.moveInfo.start_pos,route)
         return None
 
     def register_finish(self,mover:RuleMove):
@@ -531,7 +559,7 @@ class SpoilCoordinator(Coordinator):
 
     def _is_new_win_route(self,new_route:Route):
         new_pos = new_route.positions - self.win_positions
-        if len(new_pos > 0):
+        if len(new_pos) > 0:
             return True
         for win_route in self.win_routes:
             if win_route != new_route:
@@ -564,6 +592,7 @@ class BackOutRuleMove(RuleMove):
         self.todo = ToDoManager()
         self.discoverer = DirectionDiscoverer(self)
         self.standstill = StandStillNewRoute(self)
+        self.coordinator = None
     
 
 class FinishDetector(Behavior):
