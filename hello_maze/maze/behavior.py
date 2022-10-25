@@ -311,7 +311,7 @@ class RuleMove(AutomaticMove):
             return self.select_discover_move()
 
     def request_new_route(self):
-        if self.router.locked:
+        if self.router is None or self.router.locked:
             return False
         
         if not self.coordinator is None:
@@ -336,9 +336,12 @@ class RuleMove(AutomaticMove):
         selected:Position = None
         if not self.coordinator is None:
             selected = self.coordinator.get_discover_pos(self)
-        if selected is None:
+        if selected is None and \
+                not self.discoverer is None:
             selected = self.discoverer.get_move()
-        if not selected is None and self.moveInfo.nr_new_positions() > 1:
+        if not selected is None and \
+                self.moveInfo.nr_new_positions() > 1 and \
+                not self.todo is None:
             self.todo.append(self.moveInfo.start_pos)
         return selected
 
@@ -476,7 +479,6 @@ class DirectionDiscoverer(Discoverer):
                 if host.can_host_guest():
                     if host.position in self.mover.moveInfo.new_available_positions:
                         return host.position
-                     
         return None
 
 class StandStillHandler:
@@ -501,24 +503,24 @@ class StandStillHandler:
 
 class StandStillNewRoute(StandStillHandler):
     def _handle_stand_still(self):
+        if  self.mover.router is None:
+            return None
         if not self.mover.router.has_route():
             logging.debug(f"Moving back pos {self.mover.moveInfo.start_pos}")
             if self.mover.request_new_route():
                 return self.mover.router.get_new_pos()
         return None
 
-class StandStillForceNewRoute(StandStillHandler):
+class StandStillForceNewRoute(StandStillNewRoute):
     def _handle_stand_still(self):
+        if  self.mover.router is None:
+            return None
         if self.mover.router.locked:
             self.mover.router.locked = False
             self.mover.router.reset_route()
             self.mover.nr_stand_still = 0
             return self.mover.moveInfo.start_pos
-        if not self.mover.router.has_route():
-            logging.debug(f"Moving back pos {self.mover.moveInfo.start_pos}")
-            if self.mover.request_new_route():
-                return self.mover.router.get_new_pos()
-        return None
+        return super()._handle_stand_still()
 
 class Coordinator:
 
@@ -608,6 +610,30 @@ class SpoilCoordinator(Coordinator):
     def get_discover_pos(self,mover:RuleMove) -> (None | Position) :
         return None
 
+class RandomRuleMove(RuleMove):
+
+    def __init__(self,game_grid:GameGrid):
+        super().__init__(game_grid)
+        self.router = None
+        self.navigator = None
+        self.todo = None
+        self.discoverer = RandomNewDiscoverer(self)
+        self.standstill = None
+        self.coordinator = None
+        #self.register_coordinator(SpoilCoordinator)
+
+class TryOutRuleMove(RuleMove):
+
+    def __init__(self,game_grid:GameGrid):
+        super().__init__(game_grid)
+        self.router = None
+        self.navigator = None
+        self.todo = None
+        self.discoverer = None #RandomNewDiscoverer(self)
+        self.standstill = None
+        self.coordinator = None
+        #self.register_coordinator(SpoilCoordinator)
+
 class BlockRuleMove(RuleMove):
 
     def __init__(self,game_grid:GameGrid):
@@ -663,7 +689,6 @@ class FinishDetector(Behavior):
             if self._subject.guest.trace_material != Material.NONE:
                 self._subject.material = self._subject.guest.trace_material
             self._subject.guest = None
-
 
 class AutomaticAdd(Behavior):
 

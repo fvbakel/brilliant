@@ -318,6 +318,7 @@ class Behavior:
 class ManualMove(Behavior):
 
     def __init__(self,game_grid:GameGrid):
+        self.priority = 9
         super().__init__(game_grid)
         self.next_move:Direction = Direction.HERE
 
