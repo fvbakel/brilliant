@@ -434,7 +434,7 @@ class MazeController:
 
     def set_auto_add(self,value:bool):
         if value:
-            self.auto_add_behavior.move_type = self.get_move_behavior_cls()
+            self.auto_add_behavior.factory = self.get_factory()
             self.auto_add_behavior.active = True
         else:
             self.auto_add_behavior.active = False
@@ -446,20 +446,23 @@ class MazeController:
     def get_move_behavior_cls(self) -> type[AutomaticMove]:
         return self.move_behaviors.get(self.move_behavior,RandomAutomaticMove)
 
-
     def add_particle(self):
             particle = Particle()
             particle.trace_material = Material.FLOOR_HIGHLIGHTED
-            move_type =  self.get_move_behavior_cls()
-            factory = self.default_factory
-            if hasattr(move_type,'configurable') and move_type.configurable:
-                factory = self.configure_factory
-            else:
-                factory.behavior_type = move_type
-            behavior = self.game.game_grid.add_manual_content(particle,self.default_factory)
+            factory = self.get_factory()
+            behavior = self.game.game_grid.add_manual_content(particle,factory)
             if not behavior is None:
                 self.nr_started += 1
                 self.render_changed()
+
+    def get_factory(self):
+        move_type =  self.get_move_behavior_cls()
+        factory = self.default_factory
+        if hasattr(move_type,'configurable') and move_type.configurable:
+            factory = self.configure_factory
+        else:
+            factory.behavior_type = move_type
+        return factory
 
     def add_manual_particle(self):
         if self.manual_move == None:
@@ -473,7 +476,7 @@ class MazeController:
 
     def _init_auto_add_behavior(self):
         self.auto_add_behavior = AutomaticAdd(self.game.game_grid)
-        self.auto_add_behavior.factory = self.default_factory
+        self.auto_add_behavior.factory = self.get_factory()
 
     def _add_finish_behavior(self):
         self.finish_behavior:list[FinishDetector] = self.game.game_grid.set_behavior_last_spots(FinishDetector)

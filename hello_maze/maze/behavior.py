@@ -549,7 +549,7 @@ class ConfigurableMove(AutomaticMove):
 class ConfigurableFactory(BehaviorFactory):
 
     def __init__(self):
-        self.move_type:type[AutomaticMove] = ConfigurableMove
+        self.behavior_type:type[AutomaticMove] = ConfigurableMove
         self.router_type:type[Router] = None
         self.navigator_type:type[Navigator] = None
         self.is_default = False
@@ -559,7 +559,7 @@ class ConfigurableFactory(BehaviorFactory):
         self.standstill_type:type[StandStillHandler] = None
         
     def get_new(self, game_grid: GameGrid) -> Behavior:
-        mover = ConfigurableMove()
+        mover = ConfigurableMove(game_grid)
 
         if self._check_type(self.router_type,Router):
             mover.router = self.router_type(mover)
@@ -583,11 +583,12 @@ class ConfigurableFactory(BehaviorFactory):
         mover.reconfigure()
         return mover
     
-    def _check_type(self,main_class:type):
-        if main_class is None:
+    #TODO Move this to a generic module
+    def _check_type(self,sub_class:type,main_class:type):
+        if sub_class is None:
             return False
-        if not issubclass(main_class,main_class):
-            logging.error(f"router type {str(self.router_type)} is not a {str(main_class)}")
+        if not issubclass(sub_class,main_class):
+            logging.error(f"Type {str(sub_class)} is not a {str(main_class)}")
             return False
         return True
         

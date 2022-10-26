@@ -39,7 +39,7 @@ class MazeDialog:
                 sg.Radio('Off', 5, default=True,key='__SIM_OFF__')
             ],
             [sg.Text('Move behavior')],
-            [sg.DropDown(list(self.controller.move_behaviors.keys()),default_value=self.controller.move_behavior ,key='__MOVE BEHAVIOR__',size=(self.right_width + 5,sg.DEFAULT_ELEMENT_SIZE[1]))],
+            [sg.DropDown(list(self.controller.move_behaviors.keys()),default_value=self.controller.move_behavior ,key='__MOVE_BEHAVIOR__',size=(self.right_width + 5,sg.DEFAULT_ELEMENT_SIZE[1]))],
             [sg.Button('Manual particle',key='__MANUAL_PARTICLE__',size=(self.right_width + 5,sg.DEFAULT_ELEMENT_SIZE[1]))],
             [sg.Button('Add particle',key='__ADD_PARTICLE__',size=(self.right_width + 5,sg.DEFAULT_ELEMENT_SIZE[1]))],
 
@@ -55,6 +55,27 @@ class MazeDialog:
             [sg.Button('Reset maze',key='__RESET_MAZE__',size=(self.right_width + 5,sg.DEFAULT_ELEMENT_SIZE[1]))],
             [sg.Button('Generate new',key='__GENERATE__',size=(self.right_width + 5,sg.DEFAULT_ELEMENT_SIZE[1]))],
             [sg.Button('Quit',key='__QUIT__',size=(self.right_width + 5,sg.DEFAULT_ELEMENT_SIZE[1]))]
+        ]
+
+        config_move_Frame = [
+            [   sg.Text('Discoverer'),
+                sg.DropDown(list(self.controller.discoverers.keys()),default_value=None ,key='__DISCOVERER__',size=(self.right_width + 5,sg.DEFAULT_ELEMENT_SIZE[1]))
+            ],
+            [   sg.Text('Router'),
+                sg.DropDown(list(self.controller.routers.keys()),default_value=None ,key='__ROUTER__',size=(self.right_width + 5,sg.DEFAULT_ELEMENT_SIZE[1]))
+            ],
+            [   sg.Text('Navigator'),
+                sg.DropDown(list(self.controller.navigators.keys()),default_value=None ,key='__NAVIGATOR__',size=(self.right_width + 5,sg.DEFAULT_ELEMENT_SIZE[1]))
+            ],
+            [   sg.Text('TODO Manager'),
+                sg.DropDown(list(self.controller.todo_managers.keys()),default_value=None ,key='__TODO__',size=(self.right_width + 5,sg.DEFAULT_ELEMENT_SIZE[1]))
+            ],
+            [   sg.Text('Stand still Manager'),
+                sg.DropDown(list(self.controller.standstill_handlers.keys()),default_value=None ,key='__STANDSTILL__',size=(self.right_width + 5,sg.DEFAULT_ELEMENT_SIZE[1]))
+            ],
+            [   sg.Text('Coordinator'),
+                sg.DropDown(list(self.controller.coordinators.keys()),default_value=None ,key='__COORDINATOR__',size=(self.right_width + 5,sg.DEFAULT_ELEMENT_SIZE[1]))
+            ]
         ]
 
         stats_frame = [
@@ -78,7 +99,7 @@ class MazeDialog:
 
         layout = [  
             [sg.Frame("", right_frame),sg.Frame("", left_frame)],
-            [sg.Frame("",stats_frame)],
+            [sg.Frame("",stats_frame),sg.Frame("",config_move_Frame)],
             [sg.Frame("",layout=bottom_frame)]
         ]
         self.window = sg.Window('Maze simulator', layout=layout,return_keyboard_events=True)
@@ -149,8 +170,13 @@ class MazeDialog:
             self.update_nr_of_rows(values['__NR_OF_ROWS__'])
             self.update_square_width(values['__SQUARE_WIDTH__'])
             self.update_wall_width(values['__WALL_WIDTH__'])
-            self.update_move_behavior(values['__MOVE BEHAVIOR__'])
-            
+            self.update_move_behavior(values['__MOVE_BEHAVIOR__'])
+            self.update_discoverer(values['__DISCOVERER__'])
+            self.update_router(values['__ROUTER__'])
+            self.update_navigator(values['__NAVIGATOR__'])
+            self.update_todo_manager(values['__TODO__'])
+            self.update_standstill(values['__STANDSTILL__'])
+            self.update_coordinator(values['__COORDINATOR__'])
 
             self.update_dialog()
         self.window.close()
@@ -173,6 +199,26 @@ class MazeDialog:
 
     def update_move_behavior(self,value:str):
         self.controller.move_behavior = value
+    
+    def update_discoverer(self,value:str):
+        self.controller.configure_factory.discover_type = self.controller.discoverers.get(value,None)
+
+    def update_router(self,value:str):
+        self.controller.configure_factory.router_type = self.controller.routers.get(value,None)
+    
+    def update_navigator(self,value:str):
+        self.controller.configure_factory.navigator_type = self.controller.navigators.get(value,None)
+
+    def update_todo_manager(self,value:str):
+        self.controller.configure_factory.todo_type = self.controller.todo_managers.get(value,None)
+
+    def update_standstill(self,value:str):
+        self.controller.configure_factory.standstill_type = self.controller.standstill_handlers.get(value,None)
+
+    def update_coordinator(self,value:str):
+        self.controller.configure_factory.coordinator_type = self.controller.coordinators.get(value,None)
+
+
 
 def main():
     dialog = MazeDialog()
