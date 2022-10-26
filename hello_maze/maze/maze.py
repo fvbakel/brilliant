@@ -348,7 +348,7 @@ class MazeController:
         self.default_factory = BehaviorFactory()
         self.nr_started:int = 0
         self.nr_of_cycles:int = 0
-        self._init_move_behaviors()
+        self._init_configurable_subclasses()
         self.generate_new()
 
     def get_all_subclasses(cls):
@@ -360,12 +360,25 @@ class MazeController:
 
         return all_subclasses
 
-    def _init_move_behaviors(self):
-        self.move_behaviors:dict[str,type[AutomaticMove]] = dict()
-        for cls in MazeController.get_all_subclasses(AutomaticMove):
+    def make_class_dict(self,main_cls:type):
+        result:dict[str,type[main_cls]] = dict()
+        if hasattr(main_cls,'selectable'):
+            if main_cls.selectable:
+                result[main_cls.__name__] = main_cls
+        for cls in MazeController.get_all_subclasses(main_cls):
             if hasattr(cls,'selectable') :
-                self.move_behaviors[cls.__name__] = cls
+                if cls.selectable:
+                    result[cls.__name__] = cls
+        return result
 
+    def _init_configurable_subclasses(self):
+        self.move_behaviors:dict[str,type[AutomaticMove]] = self.make_class_dict(AutomaticMove)
+        self.routers:dict[str,type[Router]] = self.make_class_dict(Router)
+        self.navigators:dict[str,type[Navigator]] = self.make_class_dict(Navigator)
+        self.todo_managers:dict[str,type[ToDoManager]] = self.make_class_dict(ToDoManager)
+        self.discoverers:dict[str,type[Discoverer]] = self.make_class_dict(Discoverer)
+        self.standstill_handlers:dict[str,type[StandStillHandler]] = self.make_class_dict(StandStillHandler)
+        self.coordinators:dict[str,type[Coordinator]] = self.make_class_dict(Coordinator)
     
     def reset_game(self):
         self.run_simulation = False
@@ -437,7 +450,12 @@ class MazeController:
     def add_particle(self):
             particle = Particle()
             particle.trace_material = Material.FLOOR_HIGHLIGHTED
-            self.default_factory.behavior_type = self.get_move_behavior_cls()
+            move_type =  self.get_move_behavior_cls()
+            factory = self.default_factory
+            if hasattr(move_type,'configurable') and move_type.configurable:
+                factory = self.configure_factory
+            else:
+                factory.behavior_type = move_type
             behavior = self.game.game_grid.add_manual_content(particle,self.default_factory)
             if not behavior is None:
                 self.nr_started += 1

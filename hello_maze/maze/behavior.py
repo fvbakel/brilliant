@@ -57,6 +57,15 @@ class MoveInfo:
 
     def get_random_new_available(self):
         return self._get_random(self.new_available_positions)
+    
+    def get_first_available_direction(self,search_order:tuple(Direction)):
+        for direction in search_order:
+            if direction in self.available_hosts:
+                host = self.available_hosts[direction]
+                if host.can_host_guest():
+                    if host.position in self.new_available_positions:
+                        return host.position
+        return None
 
 class Coordinator:
     pass
@@ -187,7 +196,7 @@ class AutomaticMove(Behavior):
         return selected
 
 class Router:
-
+    selectable = True
     def __init__(self,mover:AutomaticMove):
         self.mover = mover
         self._route = Route()
@@ -238,7 +247,7 @@ class Navigator:
         return None
 
 class RouteBasedNavigator(Navigator):
-    
+    selectable = True
     def __init__(self,base_route:Route):
         self.base_route = base_route
 
@@ -249,7 +258,7 @@ class RouteBasedNavigator(Navigator):
         return self.base_route.get_sub_route(start,target)
 
 class ToDoManager:
-
+    selectable = True
     def __init__(self):
         self.reset()
 
@@ -297,32 +306,40 @@ class Discoverer:
         return None
     
 class RandomNewDiscoverer(Discoverer):
+    selectable = True
     def get_move(self):
         return self.mover.moveInfo.get_random_new_available()
 
 class RandomDiscoverer(Discoverer):
+    selectable = True
     def get_move(self):
         return self.mover.moveInfo.get_random_available()
 
 class DirectionDiscoverer(Discoverer):
+    selectable = True
+    configurable = True
+    def __init__(self,mover:AutomaticMove):
+        super().__init__(mover)
+        self.directions:tuple(Direction)
 
+    def get_move(self):
+        return self.mover.moveInfo.get_first_available_direction(self.directions)
+
+class DirectionDiscoverer_DRLU(DirectionDiscoverer):
+    selectable = True
     def __init__(self,mover:AutomaticMove):
         super().__init__(mover)
         self.directions = (Direction.DOWN,Direction.RIGHT,Direction.LEFT,Direction.UP)
 
-    def set_direction_order(self,directions:tuple(Direction)):
-        self.directions = directions
+class DirectionDiscoverer_RDUL(DirectionDiscoverer):
+    selectable = True
+    def __init__(self,mover:AutomaticMove):
+        super().__init__(mover)
+        self.directions = (Direction.RIGHT,Direction.DOWN,Direction.UP,Direction.LEFT)
 
-    def get_move(self):
-        for direction in self.directions:
-            if direction in self.mover.moveInfo.available_hosts:
-                host = self.mover.moveInfo.available_hosts[direction]
-                if host.can_host_guest():
-                    if host.position in self.mover.moveInfo.new_available_positions:
-                        return host.position
-        return None
 
 class StandStillHandler:
+    selectable = True
     def __init__(self,mover:AutomaticMove):
         self.mover = mover
         self.max_stand_still = 10
@@ -343,6 +360,7 @@ class StandStillHandler:
             return None
 
 class StandStillNewRoute(StandStillHandler):
+    selectable = True
     def _handle_stand_still(self):
         if  self.mover.router is None:
             return None
@@ -353,6 +371,7 @@ class StandStillNewRoute(StandStillHandler):
         return None
 
 class StandStillForceNewRoute(StandStillNewRoute):
+    selectable = True
     def _handle_stand_still(self):
         if  self.mover.router is None:
             return None
@@ -381,7 +400,7 @@ class Coordinator:
         return None
 
 class SpoilCoordinator(Coordinator):
-
+    selectable = True
     def __init__(self):
         self.win_routes:list[Route] = []
         self.win_positions:set[Position] = set()
@@ -483,7 +502,7 @@ class BlockAutomaticMove(AutomaticMove):
         self.router = Router(self)
         self.navigator = RouteBasedNavigator(self.history)
         self.todo = ToDoManager()
-        self.discoverer = DirectionDiscoverer(self)
+        self.discoverer = DirectionDiscoverer_DRLU(self)
         self.standstill = None
         self.coordinator = None
         #self.register_coordinator(SpoilCoordinator)
@@ -495,7 +514,7 @@ class SpoilAutomaticMove(AutomaticMove):
         self.router = Router(self)
         self.navigator = RouteBasedNavigator(self.history)
         self.todo = ToDoManager()
-        self.discoverer = DirectionDiscoverer(self)
+        self.discoverer = DirectionDiscoverer_DRLU(self)
         self.standstill = StandStillForceNewRoute(self)
         self.register_coordinator(SpoilCoordinator)
 
@@ -506,12 +525,13 @@ class BackOutAutomaticMove(AutomaticMove):
         self.router = Router(self)
         self.navigator = RouteBasedNavigator(self.history)
         self.todo = ToDoManager()
-        self.discoverer = DirectionDiscoverer(self)
+        self.discoverer = DirectionDiscoverer_DRLU(self)
         self.standstill = StandStillNewRoute(self)
         self.coordinator = None
 
 class ConfigurableMove(AutomaticMove):
     selectable = True
+    configurable = True
     def __init__(self,game_grid:GameGrid):
         super().__init__(game_grid)
         self.router = None
@@ -538,7 +558,6 @@ class ConfigurableFactory(BehaviorFactory):
         self.discover_type:type[Discoverer] = None
         self.standstill_type:type[StandStillHandler] = None
         
-
     def get_new(self, game_grid: GameGrid) -> Behavior:
         mover = ConfigurableMove()
 
