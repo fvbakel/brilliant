@@ -369,6 +369,7 @@ class MazeController:
             if hasattr(cls,'selectable') :
                 if cls.selectable:
                     result[cls.__name__] = cls
+        result["NONE"] = None
         return result
 
     def _init_configurable_subclasses(self):

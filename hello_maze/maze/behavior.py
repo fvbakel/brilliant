@@ -171,6 +171,9 @@ class AutomaticMove(Behavior):
                 self.router.optimize_route()
                 return True
 
+        if self.todo is None or self.navigator is None:
+            return False
+        
         if not self.todo.has_to_do():
             return False
         target = self.todo.get_next()

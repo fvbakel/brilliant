@@ -59,22 +59,22 @@ class MazeDialog:
 
         config_move_Frame = [
             [   sg.Text('Discoverer'),
-                sg.DropDown(list(self.controller.discoverers.keys()),default_value=None ,key='__DISCOVERER__',size=(self.right_width + 5,sg.DEFAULT_ELEMENT_SIZE[1]))
+                sg.DropDown(list(self.controller.discoverers.keys()),default_value="NONE" ,key='__DISCOVERER__',size=(self.right_width + 5,sg.DEFAULT_ELEMENT_SIZE[1]))
             ],
             [   sg.Text('Router'),
-                sg.DropDown(list(self.controller.routers.keys()),default_value=None ,key='__ROUTER__',size=(self.right_width + 5,sg.DEFAULT_ELEMENT_SIZE[1]))
+                sg.DropDown(list(self.controller.routers.keys()),default_value="NONE" ,key='__ROUTER__',size=(self.right_width + 5,sg.DEFAULT_ELEMENT_SIZE[1]))
             ],
             [   sg.Text('Navigator'),
-                sg.DropDown(list(self.controller.navigators.keys()),default_value=None ,key='__NAVIGATOR__',size=(self.right_width + 5,sg.DEFAULT_ELEMENT_SIZE[1]))
+                sg.DropDown(list(self.controller.navigators.keys()),default_value="NONE" ,key='__NAVIGATOR__',size=(self.right_width + 5,sg.DEFAULT_ELEMENT_SIZE[1]))
             ],
             [   sg.Text('TODO Manager'),
-                sg.DropDown(list(self.controller.todo_managers.keys()),default_value=None ,key='__TODO__',size=(self.right_width + 5,sg.DEFAULT_ELEMENT_SIZE[1]))
+                sg.DropDown(list(self.controller.todo_managers.keys()),default_value="NONE",key='__TODO__',size=(self.right_width + 5,sg.DEFAULT_ELEMENT_SIZE[1]))
             ],
             [   sg.Text('Stand still Manager'),
-                sg.DropDown(list(self.controller.standstill_handlers.keys()),default_value=None ,key='__STANDSTILL__',size=(self.right_width + 5,sg.DEFAULT_ELEMENT_SIZE[1]))
+                sg.DropDown(list(self.controller.standstill_handlers.keys()),default_value="NONE" ,key='__STANDSTILL__',size=(self.right_width + 5,sg.DEFAULT_ELEMENT_SIZE[1]))
             ],
             [   sg.Text('Coordinator'),
-                sg.DropDown(list(self.controller.coordinators.keys()),default_value=None ,key='__COORDINATOR__',size=(self.right_width + 5,sg.DEFAULT_ELEMENT_SIZE[1]))
+                sg.DropDown(list(self.controller.coordinators.keys()),default_value="NONE" ,key='__COORDINATOR__',size=(self.right_width + 5,sg.DEFAULT_ELEMENT_SIZE[1]))
             ]
         ]
 
@@ -100,7 +100,7 @@ class MazeDialog:
         layout = [  
             [sg.Frame("", right_frame),sg.Frame("", left_frame)],
             [sg.Frame("",stats_frame),sg.Frame("",config_move_Frame)],
-            [sg.Frame("",layout=bottom_frame)]
+            [sg.Frame("",bottom_frame)]
         ]
         self.window = sg.Window('Maze simulator', layout=layout,return_keyboard_events=True)
 
