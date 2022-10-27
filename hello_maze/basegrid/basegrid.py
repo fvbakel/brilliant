@@ -75,7 +75,15 @@ class Position:
         if direction == Direction.HERE:
             return self
         logging.FATAL(f"Unexpected direction {direction}")
-        
+    
+    def get_all_neighbors(self):
+        neighbors:set[Position] = set()
+        neighbors.add(Position(self.col,self.row + 1))
+        neighbors.add(Position(self.col + 1,self.row))
+        neighbors.add(Position(self.col,self.row - 1))
+        neighbors.add(Position(self.col - 1,self.row))
+        return neighbors
+
     def is_neighbor(self,position:Position):
         if position is None:
             return False

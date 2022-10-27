@@ -186,3 +186,31 @@ class Route:
             return None
 
         return new_route
+
+    def apply_short_cuts(self):
+        self.update_pos_map()
+        if len(self._pos_map) == 0:
+            return
+        positions = self.positions
+        cut_start = -1
+        cut_end = -1
+        cur_diff = 0
+        length = len(self._path)
+        for index, pos in enumerate(self._path[:-1],start=1):
+            neighbors = pos.get_all_neighbors()
+            neighbors.discard(self._path[index])
+            if not neighbors.isdisjoint(positions):
+                for other in neighbors:
+                    if other in self._pos_map:
+                        other_index = self._pos_map[other][-1]
+                        diff = other_index - index
+                        if other_index > cut_start and diff > cur_diff:
+                            cut_start = index
+                            cut_end = other_index
+                            cur_diff = diff
+                if cur_diff > length - index:
+                    break
+        
+        if cut_start > -1 and cut_end > -1:
+            self._path =  self._path[:cut_start] + self._path[cut_end:]
+            self.apply_short_cuts()

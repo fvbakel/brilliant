@@ -181,7 +181,6 @@ class AutomaticMove(Behavior):
         if new_route is None:
             logging.error("Can not find path back ")
             return False
-        new_route.optimize()
         self.router.set_route(new_route)
         return True
 
@@ -255,10 +254,33 @@ class RouteBasedNavigator(Navigator):
         self.base_route = base_route
 
     def get_route_to_route(self,start:Position,target_route:Route) :
-        return self.base_route.get_route_to_route(start,target_route)
+        new_route = self.base_route.get_route_to_route(start,target_route)
+        if not new_route is None:
+            new_route.optimize()
+        return new_route
 
     def get_route(self,start:Position,target:Position):
-        return self.base_route.get_sub_route(start,target)
+        new_route = self.base_route.get_sub_route(start,target)
+        if not new_route is None:
+            new_route.optimize()
+        return new_route
+
+class RouteShortCutNavigator(RouteBasedNavigator):
+    selectable = True
+
+    def get_route_to_route(self,start:Position,target_route:Route) :
+        new_route = self.base_route.get_route_to_route(start,target_route)
+        if not new_route is None:
+            new_route.optimize()
+            new_route.apply_short_cuts()
+        return new_route
+
+    def get_route(self,start:Position,target:Position):
+        new_route = self.base_route.get_sub_route(start,target)
+        if not new_route is None:
+            new_route.optimize()
+            new_route.apply_short_cuts()
+        return new_route
 
 class ToDoManager:
     selectable = True
