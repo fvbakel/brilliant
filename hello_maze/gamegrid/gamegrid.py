@@ -51,7 +51,7 @@ class GameContent:
     def guest(self,guest:GameContent):
         self.changed = True
         self._guest = guest
-        if not guest is None:
+        if guest is not None:
             guest.position =self.position
 
 class Floor(GameContent):
@@ -108,7 +108,7 @@ class GameGrid(Grid):
         behaviors:list[Behavior] = []
         for col in self.locations:
             content = col[-1]
-            if  not content is None and \
+            if  content is not None and \
                     not content.solid:
                 behavior = behavior_type(self)  # type: ignore
                 behavior.subject = content  # type: ignore
@@ -118,7 +118,7 @@ class GameGrid(Grid):
     def add_manual_content(self,content:GameContent,factory:BehaviorFactory):
         if content is None or not content.mobile:
             return None
-        if not content.behavior is None:
+        if content.behavior is not None:
             return None
         if not self.add_to_first_free_spot(content):
             return None
@@ -211,7 +211,7 @@ class GameGridRender:
         for row in self.game_grid.locations:
             content:GameContent
             for content in row:
-                if not content is None and content.changed:
+                if content is not None and content.changed:
                     self._render_content(content)
                     content.changed = False
 
@@ -220,7 +220,7 @@ class GameGridRender:
             self._render_content(content)
 
     def _render_content(self,content:GameContent):
-        if not content is None:
+        if content is not None:
             material = self._get_material(content)
             self._render_material(content.position,material)
             
@@ -228,7 +228,7 @@ class GameGridRender:
         if content is None:
             return Material.NONE
         
-        if not content.guest is None:
+        if content.guest is not None:
             return self._get_material(content.guest)
         
         return content.material
@@ -309,7 +309,7 @@ class Behavior:
     @subject.setter
     def subject(self,subject:GameContent):
         self._subject = subject
-        if not self._subject is None:
+        if self._subject is not None:
             self._subject.behavior = self
 
     def do_one_cycle(self):

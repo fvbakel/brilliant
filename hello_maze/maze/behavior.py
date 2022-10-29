@@ -97,7 +97,7 @@ class AutomaticMove(Behavior):
         return None
 
     def do_one_cycle(self):
-        if not self._subject is None:
+        if self._subject is not None:
             self.moveInfo = MoveInfo(   
                 self._subject.position,
                 self.game_grid.get_available_hosts(self._subject.position),
@@ -125,32 +125,31 @@ class AutomaticMove(Behavior):
         self.coordinator.register_finish(self)
 
     def determine_new_pos(self):
-        if not self.coordinator is None:
+        if self.coordinator is not None:
             self.coordinator.register_moveInfo(self.moveInfo)
 
         if not self.moveInfo.has_available():
             return None
         
-        if not self.standstill is None:
+        if self.standstill is not None:
             new_pos = self.standstill.get_move()
             if not new_pos is None:
                 return new_pos
 
-        if  not self.router is None and \
+        if  self.router is not None and \
                 self.router.has_route() and \
                 self.router.locked:
             return self.router.get_new_pos()
 
-        if  not self.router is None and \
-                not self.coordinator is None and \
+        if  self.router is not None and \
+                self.coordinator is not None and \
                 not self.router.locked:
             win_route = self.coordinator.get_finish_route(self)
-            if not win_route is None:
+            if win_route is not None:
                 self.router.set_route(win_route)
-                self.router.optimize_route()
                 self.router.locked = True
 
-        if not self.router is None and self.router.has_route():
+        if self.router is not None and self.router.has_route():
             return self.router.get_new_pos()
 
         if not self.moveInfo.has_new_positions():
@@ -164,9 +163,9 @@ class AutomaticMove(Behavior):
         if self.router is None or self.router.locked:
             return False
         
-        if not self.coordinator is None:
+        if self.coordinator is not None:
             discover_route = self.coordinator.get_discover_route(self)
-            if not discover_route is None:
+            if discover_route is not None:
                 self.router.set_route(discover_route)
                 self.router.optimize_route()
                 return True
@@ -186,14 +185,14 @@ class AutomaticMove(Behavior):
 
     def select_discover_move(self):
         selected:Position = None
-        if not self.coordinator is None:
+        if self.coordinator is not None:
             selected = self.coordinator.get_discover_pos(self)
         if selected is None and \
                 not self.discoverer is None:
             selected = self.discoverer.get_move()
-        if not selected is None and \
+        if selected is not None and \
                 self.moveInfo.nr_new_positions() > 1 and \
-                not self.todo is None:
+                self.todo is not None:
             self.todo.append(self.moveInfo.start_pos)
         return selected
 
@@ -255,13 +254,13 @@ class RouteBasedNavigator(Navigator):
 
     def get_route_to_route(self,start:Position,target_route:Route) :
         new_route = self.base_route.get_route_to_route(start,target_route)
-        if not new_route is None:
+        if new_route is not None:
             new_route.optimize()
         return new_route
 
     def get_route(self,start:Position,target:Position):
         new_route = self.base_route.get_sub_route(start,target)
-        if not new_route is None:
+        if new_route is not None:
             new_route.optimize()
         return new_route
 
@@ -270,14 +269,14 @@ class RouteShortCutNavigator(RouteBasedNavigator):
 
     def get_route_to_route(self,start:Position,target_route:Route) :
         new_route = self.base_route.get_route_to_route(start,target_route)
-        if not new_route is None:
+        if new_route is not None:
             new_route.optimize()
             new_route.apply_short_cuts()
         return new_route
 
     def get_route(self,start:Position,target:Position):
         new_route = self.base_route.get_sub_route(start,target)
-        if not new_route is None:
+        if new_route is not None:
             new_route.optimize()
             new_route.apply_short_cuts()
         return new_route
@@ -430,7 +429,16 @@ class SpoilCoordinator(Coordinator):
         self.win_routes:list[Route] = []
         self.win_positions:set[Position] = set()
 
+    def optimize_route(self,route:Route):
+        if route is not None:
+            route.optimize()
+
     def get_finish_route(self,mover:AutomaticMove) -> (None | Route) :
+        route = self._get_finish_route(mover)
+        self.optimize_route(route)
+        return route
+
+    def _get_finish_route(self,mover:AutomaticMove) -> (None | Route) :
         if mover.moveInfo.start_pos in self.win_positions:
             return self._get_direct_finish_route(mover.moveInfo.start_pos)
         for pos in mover.moveInfo.all_positions:
@@ -442,7 +450,7 @@ class SpoilCoordinator(Coordinator):
                 return win_route
 
         if not mover.history.positions.isdisjoint(self.win_positions):
-            return self._get_finish_route(mover)
+            return self._get_finish_route_to_route(mover)
         return None
 
     def _get_direct_finish_route(self,start_pos:Position) -> (None | Route):
@@ -451,7 +459,7 @@ class SpoilCoordinator(Coordinator):
                 return route.get_sub_route(start_pos,route.end)
         return None
 
-    def _get_finish_route(self,mover:AutomaticMove) -> (None | Route):
+    def _get_finish_route_to_route(self,mover:AutomaticMove) -> (None | Route):
         for route in self.win_routes:
             if not mover.history.positions.isdisjoint(route.positions):
                 return mover.history.get_route_to_route(mover.moveInfo.start_pos,route)
@@ -463,7 +471,8 @@ class SpoilCoordinator(Coordinator):
 
         self._add_win_route(mover.history)
         optimized_win = mover.history.copy()
-        optimized_win.optimize()
+        #optimized_win.optimize()
+        self.optimize_route(optimized_win)
         if not self._is_new_win_route(optimized_win):
             return
         self._add_win_route(optimized_win)
@@ -494,6 +503,14 @@ class SpoilCoordinator(Coordinator):
     
     def get_discover_pos(self,mover:AutomaticMove) -> (None | Position) :
         return None
+
+class SpoilShortCutCoordinator(SpoilCoordinator):
+    selectable = True
+
+    def optimize_route(self,route:Route):
+        if route is not None:
+            route.optimize()
+            route.apply_short_cuts()
 
 class RandomAutomaticMove(AutomaticMove):
     selectable = True
@@ -568,7 +585,7 @@ class ConfigurableMove(AutomaticMove):
         self.coordinator_type:type[Coordinator] = None
 
     def reconfigure(self):
-        if not self.coordinator_type is None:
+        if self.coordinator_type is not None:
             self.register_coordinator(self.coordinator_type)
 
 class ConfigurableFactory(BehaviorFactory):
@@ -628,10 +645,10 @@ class FinishDetector(Behavior):
         self.nr_of_steps:list[int] = []
 
     def do_one_cycle(self):
-        if not self._subject is None and not self._subject.guest is None:
+        if self._subject is not None and self._subject.guest is not None:
             self.finished.append(self._subject.guest)
             
-            if not self._subject.guest.behavior is None:
+            if self._subject.guest.behavior is not None:
                 self._subject.guest.behavior.unregister()
                 if isinstance(self._subject.guest.behavior,AutomaticMove):
                     behavior:AutomaticMove = self._subject.guest.behavior
@@ -669,5 +686,5 @@ class AutomaticAdd(Behavior):
             particle = Particle()
             particle.trace_material = Material.FLOOR_HIGHLIGHTED
             behavior = self.game_grid.add_manual_content(particle,self.factory)
-            if not behavior is None:
+            if behavior is not None:
                 self.nr_started += 1

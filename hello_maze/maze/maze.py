@@ -452,7 +452,7 @@ class MazeController:
             particle.trace_material = Material.FLOOR_HIGHLIGHTED
             factory = self.get_factory()
             behavior = self.game.game_grid.add_manual_content(particle,factory)
-            if not behavior is None:
+            if behavior is not None:
                 self.nr_started += 1
                 self.render_changed()
 
@@ -471,7 +471,7 @@ class MazeController:
             particle.material = Material.PLASTIC_HIGHLIGHTED
             self.default_factory.behavior_type = ManualMove
             self.manual_move = self.game.game_grid.add_manual_content(particle,self.default_factory)
-            if not self.manual_move is None:
+            if self.manual_move is not None:
                 self.nr_started += 1
                 self.render_changed()
 

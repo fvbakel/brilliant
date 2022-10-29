@@ -113,7 +113,7 @@ class Route:
                     cut_start = index_list[0]
                     cut_end =  index_list[-1]
 
-            if not cut_start is None and not cut_end is None:
+            if cut_start is not None and cut_end is not None:
                 self._path =  self._path[:cut_start] + self._path[cut_end:]
                 self.optimize()
 
