@@ -11,7 +11,7 @@ from gamegrid.gamegrid import BehaviorFactory
 @dataclass
 class MoveInfo:
     start_pos:Position
-    available_hosts:dict[Direction,GameContent]
+    all_hosts:dict[Direction,GameContent]
     visited:set[Position]
     available_positions:set[Position] = field(init=False, repr=False)
     new_available_positions:set[Position] = field(init=False, repr=False)
@@ -19,9 +19,9 @@ class MoveInfo:
     new_positions:set[Position] = field(init=False, repr=False)
 
     def __post_init__(self):
-        self.available_positions = set([content.position for content in self.available_hosts.values() if content.can_host_guest() ])
+        self.available_positions = set([content.position for content in self.all_hosts.values() if content.can_host_guest() ])
         self.new_available_positions = self.available_positions - self.visited
-        self.all_positions = set([content.position for content in self.available_hosts.values()])
+        self.all_positions = set([content.position for content in self.all_hosts.values()])
         self.new_positions = self.all_positions - self.visited
 
     def has_available(self):
@@ -60,12 +60,27 @@ class MoveInfo:
     
     def get_first_available_direction(self,search_order:tuple(Direction)):
         for direction in search_order:
-            if direction in self.available_hosts:
-                host = self.available_hosts[direction]
+            if direction in self.all_hosts:
+                host = self.all_hosts[direction]
                 if host.can_host_guest():
                     if host.position in self.new_available_positions:
                         return host.position
         return None
+
+    def get_available_directions(self):
+        new_directions:dict[Direction,Position] = dict()
+        for direction,host in self.all_hosts.items():
+            if host.can_host_guest():
+                new_directions[direction] = host.position
+        return new_directions
+
+    def get_new_available_directions(self):
+        new_directions:dict[Direction,Position] = dict()
+        for direction,host in self.all_hosts.items():
+            if host.can_host_guest():
+                if host.position in self.new_available_positions:
+                    new_directions[direction] = host.position
+        return new_directions
 
 class Coordinator:
     pass
@@ -338,6 +353,26 @@ class RandomDiscoverer(Discoverer):
     selectable = True
     def get_move(self):
         return self.mover.moveInfo.get_random_available()
+
+class KeepRandomDirection(Discoverer):
+    selectable = True
+
+    def __init__(self,mover:AutomaticMove):
+        super().__init__(mover)
+        self.previous:Direction = None
+
+    def get_move(self):
+        new_directions = self.mover.moveInfo.get_new_available_directions()
+        if self.previous  in new_directions:
+            return new_directions[self.previous]
+        if len(new_directions) == 0:
+            return None
+        elif len(new_directions) == 1:
+            select =  tuple(new_directions.keys())[0]
+        else:
+            select = random.choice(tuple(new_directions.keys()))
+        self.previous = select
+        return new_directions[select]
 
 class DirectionDiscoverer(Discoverer):
     selectable = True

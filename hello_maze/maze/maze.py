@@ -343,7 +343,7 @@ class MazeController:
         self.nr_of_cols:int = 10
         self.nr_of_rows:int = 10
         self.manual_move:ManualMove = None
-        self.move_behavior:str = None
+        self.move_behavior:str = 'ConfigurableMove'
         self.configure_factory = ConfigurableFactory()
         self.default_factory = BehaviorFactory()
         self.nr_started:int = 0
@@ -445,7 +445,7 @@ class MazeController:
             self.run_simulation = value
 
     def get_move_behavior_cls(self) -> type[AutomaticMove]:
-        return self.move_behaviors.get(self.move_behavior,RandomAutomaticMove)
+        return self.move_behaviors.get(self.move_behavior,ConfigurableMove)
 
     def add_particle(self):
             particle = Particle()
