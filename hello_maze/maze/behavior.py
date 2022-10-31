@@ -118,12 +118,18 @@ class AutomaticMove(Behavior):
                 self.game_grid.get_available_hosts(self._subject.position),
                 self.history.positions
             )
+            if self.coordinator is not None:
+                self.coordinator.register_moveInfo(self.moveInfo)
+            if self.todo is not None:
+                self.todo.notify_cur_pos(self.moveInfo)
             new_pos = self.determine_new_pos()
             if new_pos is None:
                 self.nr_stand_still +=1
             else:
                 self.nr_stand_still = 0
                 self.game_grid.move_content(self._subject,new_pos)
+                if self.todo is not None:
+                    self.todo.notify(self.moveInfo,new_pos)
                 self.record_new_position()
     
     def register_coordinator(self,coordinator_type:type[Coordinator]):
@@ -140,8 +146,6 @@ class AutomaticMove(Behavior):
         self.coordinator.register_finish(self)
 
     def determine_new_pos(self):
-        if self.coordinator is not None:
-            self.coordinator.register_moveInfo(self.moveInfo)
 
         if not self.moveInfo.has_available():
             return None
@@ -205,10 +209,10 @@ class AutomaticMove(Behavior):
         if selected is None and \
                 not self.discoverer is None:
             selected = self.discoverer.get_move()
-        if selected is not None and \
-                self.moveInfo.nr_new_positions() > 1 and \
-                self.todo is not None:
-            self.todo.append(self.moveInfo.start_pos)
+        # TODO Move to begin og the move
+        #if selected is not None and \
+        #        self.todo is not None:
+        #    self.todo.notify(self.moveInfo)
         return selected
 
 class Router:
@@ -297,6 +301,21 @@ class RouteShortCutNavigator(RouteBasedNavigator):
         return new_route
 
 class ToDoManager:
+    selectable = False
+
+    def notify_cur_pos(self,moveInfo:MoveInfo):
+        pass
+
+    def notify(self,moveInfo:MoveInfo):
+        pass
+
+    def has_to_do(self) -> bool:
+        pass
+
+    def get_next(self) -> (None | Position):
+        pass
+
+class PositionList(ToDoManager):
     selectable = True
     def __init__(self):
         self.reset()
@@ -304,6 +323,18 @@ class ToDoManager:
     def reset(self):
         self._to_do:list[Position] = []
         self._to_do_set:set[Position] = set()
+
+    def notify_cur_pos(self,moveInfo:MoveInfo):
+        if moveInfo.start_pos in self._to_do_set:
+            self._to_do.remove(moveInfo.start_pos)
+            self._to_do_set.discard(moveInfo.start_pos)
+
+    def notify(self,moveInfo:MoveInfo,new_pos:Position):
+        if moveInfo.nr_new_positions() > 0:
+            remain = set(moveInfo.new_positions)
+            remain.discard(new_pos)
+            if len(remain) >  0:
+                self.append(moveInfo.start_pos)
 
     def append(self,position:Position):
         if position in self._to_do_set:
@@ -334,6 +365,52 @@ class ToDoManager:
         if self.nr_to_do() == 0:
             return None
         next = self._to_do.pop()
+        self._to_do_set.discard(next)
+        return next
+
+class SmartPositionList(PositionList):
+    selectable = True
+
+    def __init__(self):
+        super().__init__()
+        self._todo_vs_remain:dict[Position,set[Position]] = dict()
+        self._remain_vs_todo:dict[Position,set[Position]] = dict()
+
+    def notify_cur_pos(self,moveInfo:MoveInfo):
+        if moveInfo.start_pos in self._to_do_set:
+            self._to_do.remove(moveInfo.start_pos)
+            self._to_do_set.discard(moveInfo.start_pos)
+
+        if moveInfo.start_pos in self._remain_vs_todo:
+            todo_s = self._remain_vs_todo.pop(moveInfo.start_pos)
+            for todo in todo_s:
+                self._todo_vs_remain[todo].discard(moveInfo.start_pos)
+                if len(self._todo_vs_remain[todo]) == 0:
+                    if todo in self._to_do_set:
+                        self._to_do.remove(todo)
+                        self._to_do_set.discard(todo)
+
+    def notify(self,moveInfo:MoveInfo,new_pos:Position):
+        if moveInfo.nr_new_positions() > 0:
+            remain = set(moveInfo.new_positions)
+            remain.discard(new_pos)
+            if len(remain) >  0: 
+                self.append(moveInfo.start_pos)
+                self._add_remain(moveInfo.start_pos,remain)
+
+    def _add_remain(self,start_pos:Position,remain:set[Position]):
+        self._todo_vs_remain[start_pos] = remain
+        for pos in remain:
+            if pos not in self._remain_vs_todo:
+                self._remain_vs_todo[pos] = set()
+            self._remain_vs_todo[pos].add(start_pos)
+        
+class RandomSmartPosition(SmartPositionList):
+
+    def get_next(self):
+        if self.nr_to_do() == 0:
+            return None
+        next = random.choice(self._to_do)
         self._to_do_set.discard(next)
         return next
 
@@ -578,7 +655,7 @@ class BlockAutomaticMove(AutomaticMove):
         super().__init__(game_grid)
         self.router = Router(self)
         self.navigator = RouteBasedNavigator(self.history)
-        self.todo = ToDoManager()
+        self.todo = PositionList()
         self.discoverer = DirectionDiscoverer_DRLU(self)
         self.standstill = None
         self.coordinator = None
@@ -590,7 +667,7 @@ class SpoilAutomaticMove(AutomaticMove):
         super().__init__(game_grid)
         self.router = Router(self)
         self.navigator = RouteBasedNavigator(self.history)
-        self.todo = ToDoManager()
+        self.todo = PositionList()
         self.discoverer = DirectionDiscoverer_DRLU(self)
         self.standstill = StandStillForceNewRoute(self)
         self.register_coordinator(SpoilCoordinator)
@@ -601,7 +678,7 @@ class BackOutAutomaticMove(AutomaticMove):
         super().__init__(game_grid)
         self.router = Router(self)
         self.navigator = RouteBasedNavigator(self.history)
-        self.todo = ToDoManager()
+        self.todo = PositionList()
         self.discoverer = DirectionDiscoverer_DRLU(self)
         self.standstill = StandStillNewRoute(self)
         self.coordinator = None
