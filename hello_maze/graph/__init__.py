@@ -3,6 +3,8 @@ from graph.graph import (
     Node,
     Edge,
     EdgePair,
-    Graph2Dot
+    Graph2Dot,
+    SearchCondition,
+    SpecificNode
 )
 

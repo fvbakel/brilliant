@@ -89,6 +89,22 @@ class EdgePair:
     def is_active(self):
         return self.forward.active and self.backward.active
 
+class SearchCondition:
+
+    def check(self,current:Node) -> bool:
+        pass
+
+class SpecificNode(SearchCondition):
+
+    def __init__(self,node:Node):
+        self.node = node
+
+    def check(self,current:Node) -> bool:
+        return current == self.node
+
+    def __repr__(self):
+        return f'search node : str(self.node)'
+
 class Graph:
 
     def __init__(self):
@@ -187,10 +203,14 @@ class Graph:
         return current 
 
     def find_short_path_dijkstra(self,start:Node,end:Node):
+        condition = SpecificNode(end)
+        return self.find_short_path_condition(start,condition)
+    
+    def find_short_path_condition(self,start:Node,condition:SearchCondition):
         path:list[Node] = []
         self.reset()
 
-        found = False
+        found = None
         
         start.dist = 0 
         current = start
@@ -206,13 +226,13 @@ class Graph:
                         other.dist = alt
                         other.prev = current
             current = self.get_min_node_not_visited()
-            if current == end:
-                found = True
+            if condition.check(current):
+                found = current
         
-        if not found:
-            print("Unable to find path from %s to %s" % (start.id, end.id))
+        if found is None:
+            logging.error("Unable to find path from %s with condition %s" % (start.id, str(condition)))
         else:
-            current = end
+            current = found
             while current is not None:
                 path.insert(0,current)
                 current = current.prev

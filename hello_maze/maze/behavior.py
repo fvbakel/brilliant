@@ -3,7 +3,7 @@ from dataclasses import dataclass,field
 from typing import SupportsIndex
 from basegrid import *
 from gamegrid import *
-import graph as gr
+from graph import *
 import logging
 import random
 
@@ -109,9 +109,6 @@ class AutomaticMove(Behavior):
     def record_new_position(self):
         self.history.append(self._subject.position)
 
-    def determine_new_pos(self) -> (None | Position):
-        return None
-
     def notify_cur_pos(self):
         if self.coordinator is not None:
             self.coordinator.notify_cur_pos(self.moveInfo)
@@ -183,6 +180,12 @@ class AutomaticMove(Behavior):
 
         if self.router is not None and self.router.has_route():
             return self.router.get_new_pos()
+
+        if self.coordinator is not None and self.router is not None:
+            discover_route = self.coordinator.get_discover_route(self)
+            if discover_route is not None:
+                self.router.set_route(discover_route)
+                return self.router.get_new_pos()
 
         if not self.moveInfo.has_new_positions():
             if not self.request_new_route():
@@ -287,7 +290,8 @@ class Navigator:
 class GraphNavigator(Navigator):
     selectable = True
     def __init__(self):
-        self.graph = gr.Graph()
+        self.graph = Graph()
+        self.new_condition = NewNode()
 
     def notify_cur_pos(self,moveInfo:MoveInfo):
         cur_node = self.graph.get_or_create(moveInfo.start_pos.get_id())
@@ -299,7 +303,7 @@ class GraphNavigator(Navigator):
             if not hasattr(child_node,'position'):
                 child_node.position = child_pos
                 child_node.discoverd = False
-                cur_node.visit_pending = False
+                child_node.visit_pending = False
             self.graph.create_edge_pair(cur_node,child_node)
         return None
     
@@ -318,6 +322,9 @@ class GraphNavigator(Navigator):
             return None
         
         path = self.graph.find_short_path_dijkstra(start_node,target_node)
+        return self.path_to_route(path)
+
+    def path_to_route(self,path):
         if len(path) == 0:
             return None
         
@@ -325,6 +332,18 @@ class GraphNavigator(Navigator):
         for node in path:
             route.append(node.position)
         return route
+
+    def get_discover_route(self,moveInfo:MoveInfo):
+        start_node = self.graph.get_node(moveInfo.start_pos.get_id())
+        if start_node is None:
+            return None
+
+        for edge in start_node.child_edges:
+            if self.new_condition.check(edge.child):
+                return Route([edge.child.position])
+
+        path = self.graph.find_short_path_condition(start_node,self.new_condition)
+        return self.path_to_route(path)
 
 class RouteBasedNavigator(Navigator):
     selectable = True
@@ -567,12 +586,12 @@ class StandStillNewRoute(StandStillHandler):
         if  self.mover.router is None:
             return None
         if not self.mover.router.has_route():
-            logging.debug(f"Moving back pos {self.mover.moveInfo.start_pos}")
+            logging.debug(f"Moving back from pos {self.mover.moveInfo.start_pos}")
             if self.mover.request_new_route():
                 return self.mover.router.get_new_pos()
         return None
 
-class StandStillForceNewRoute(StandStillNewRoute):
+class ForceNewFinishRoute(StandStillNewRoute):
     selectable = True
     def _handle_stand_still(self):
         if  self.mover.router is None:
@@ -582,6 +601,18 @@ class StandStillForceNewRoute(StandStillNewRoute):
             self.mover.router.reset_route()
             self.mover.nr_stand_still = 0
             return self.mover.moveInfo.start_pos
+        return super()._handle_stand_still()
+
+class ForceNewRoute(StandStillNewRoute):
+    selectable = True
+    def _handle_stand_still(self):
+        if  self.mover.router is None:
+            return None
+
+        self.mover.router.locked = False
+        self.mover.router.reset_route()
+        self.mover.nr_stand_still = 0
+        
         return super()._handle_stand_still()
 
 class Coordinator:
@@ -716,6 +747,31 @@ class CentralToDO(Coordinator):
                 self.todo.get_next()
                 return route
 
+class NewNode(SearchCondition):
+
+    def check(self,current:Node) -> bool:
+        return current is not None and \
+                    current.discoverd == False and \
+                    current.visit_pending == False
+
+    def __repr__(self):
+        return f'not discovered and no visit pending'
+
+class GraphCoordinator(Coordinator):
+    selectable = True
+
+    def __init__(self):
+        super().__init__()
+        self.navigator = GraphNavigator()
+
+    def notify_cur_pos(self,moveInfo:MoveInfo):
+        self.navigator.notify_cur_pos(moveInfo)
+
+    def notify_new_pos(self, moveInfo: MoveInfo, new_pos: Position):
+        self.navigator.notify_new_pos(moveInfo, new_pos)
+    
+    def get_discover_route(self,mover:AutomaticMove) -> (None | Route) :
+        return self.navigator.get_discover_route(mover.moveInfo)
 
 class RandomAutomaticMove(AutomaticMove):
     selectable = True
@@ -762,7 +818,7 @@ class SpoilAutomaticMove(AutomaticMove):
         self.navigator = RouteBasedNavigator(self.history)
         self.todo = PositionList()
         self.discoverer = DirectionDiscoverer_DRLU(self)
-        self.standstill = StandStillForceNewRoute(self)
+        self.standstill = ForceNewFinishRoute(self)
         self.register_coordinator(SpoilCoordinator)
 
 class BackOutAutomaticMove(AutomaticMove):
