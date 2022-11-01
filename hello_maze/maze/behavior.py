@@ -119,7 +119,7 @@ class AutomaticMove(Behavior):
                 self.history.positions
             )
             if self.coordinator is not None:
-                self.coordinator.register_moveInfo(self.moveInfo)
+                self.coordinator.notify_cur_pos(self.moveInfo)
             if self.todo is not None:
                 self.todo.notify_cur_pos(self.moveInfo)
             new_pos = self.determine_new_pos()
@@ -128,8 +128,10 @@ class AutomaticMove(Behavior):
             else:
                 self.nr_stand_still = 0
                 self.game_grid.move_content(self._subject,new_pos)
+                if self.coordinator is not None:
+                    self.coordinator.notify_new_pos(self.moveInfo,new_pos)
                 if self.todo is not None:
-                    self.todo.notify(self.moveInfo,new_pos)
+                    self.todo.notify_new_pos(self.moveInfo,new_pos)
                 self.record_new_position()
     
     def register_coordinator(self,coordinator_type:type[Coordinator]):
@@ -186,7 +188,6 @@ class AutomaticMove(Behavior):
             discover_route = self.coordinator.get_discover_route(self)
             if discover_route is not None:
                 self.router.set_route(discover_route)
-                self.router.optimize_route()
                 return True
 
         if self.todo is None or self.navigator is None:
@@ -306,7 +307,7 @@ class ToDoManager:
     def notify_cur_pos(self,moveInfo:MoveInfo):
         pass
 
-    def notify(self,moveInfo:MoveInfo):
+    def notify_new_pos(self,moveInfo:MoveInfo):
         pass
 
     def has_to_do(self) -> bool:
@@ -329,7 +330,7 @@ class PositionList(ToDoManager):
             self._to_do.remove(moveInfo.start_pos)
             self._to_do_set.discard(moveInfo.start_pos)
 
-    def notify(self,moveInfo:MoveInfo,new_pos:Position):
+    def notify_new_pos(self,moveInfo:MoveInfo,new_pos:Position):
         if moveInfo.nr_new_positions() > 0:
             remain = set(moveInfo.new_positions)
             remain.discard(new_pos)
@@ -346,7 +347,13 @@ class PositionList(ToDoManager):
         if position in self._to_do_set:
             return
         self._to_do.insert(index,position)
-    
+        self._to_do_set.add(position)
+
+    def discard(self,position:Position):
+        if position in self._to_do_set:
+            self._to_do.remove(position)
+            self._to_do_set.discard(position)
+
     def has_to_do(self):
         return len(self._to_do) > 0
 
@@ -390,7 +397,7 @@ class SmartPositionList(PositionList):
                         self._to_do.remove(todo)
                         self._to_do_set.discard(todo)
 
-    def notify(self,moveInfo:MoveInfo,new_pos:Position):
+    def notify_new_pos(self,moveInfo:MoveInfo,new_pos:Position):
         if moveInfo.nr_new_positions() > 0:
             remain = set(moveInfo.new_positions)
             remain.discard(new_pos)
@@ -526,7 +533,10 @@ class Coordinator:
     def register_finish(self,mover:AutomaticMove):
         pass
 
-    def register_moveInfo(self,moveInfo:MoveInfo):
+    def notify_cur_pos(self,moveInfo:MoveInfo):
+        pass
+
+    def notify_new_pos(self,moveInfo:MoveInfo,new_pos:Position):
         pass
 
     def get_discover_route(self,mover:AutomaticMove) -> (None | Route) :
@@ -607,15 +617,6 @@ class SpoilCoordinator(Coordinator):
                 return True
         return False
 
-    def register_moveInfo(self,moveInfo:MoveInfo):
-        pass
-
-    def get_discover_route(self,mover:AutomaticMove) -> (None | Route) :
-        return None
-    
-    def get_discover_pos(self,mover:AutomaticMove) -> (None | Position) :
-        return None
-
 class SpoilShortCutCoordinator(SpoilCoordinator):
     selectable = True
 
@@ -623,6 +624,39 @@ class SpoilShortCutCoordinator(SpoilCoordinator):
         if route is not None:
             route.optimize()
             route.apply_short_cuts()
+
+class CentralToDO(Coordinator):
+    selectable = True
+
+    def __init__(self):
+        super().__init__()
+        self.todo = PositionList()
+        self.done:set[Position] = set()
+        self.neighbor:dict[Position,Position] = dict()
+
+    def notify_cur_pos(self,moveInfo:MoveInfo):
+        self.todo.discard(moveInfo.start_pos)
+        self.done.add(moveInfo.start_pos)
+
+        for pos in moveInfo.all_positions:
+            if pos not in self.done and\
+                    not self.todo.has_position(pos):
+                self.todo.insert(0,pos)
+                self.neighbor[pos] = moveInfo.start_pos
+
+    def notify_new_pos(self,moveInfo:MoveInfo,new_pos:Position):
+        self.todo.discard(new_pos)
+
+    def get_discover_route(self,mover:AutomaticMove) -> (None | Route) :
+        target = self.todo.peek_next()
+        if target in self.neighbor:
+            target = self.neighbor[target]
+        if target is not None:
+            route = mover.navigator.get_route(mover.moveInfo.start_pos,target)
+            if route is not None:
+                self.todo.get_next()
+                return route
+
 
 class RandomAutomaticMove(AutomaticMove):
     selectable = True
