@@ -3,6 +3,7 @@ from dataclasses import dataclass,field
 from typing import SupportsIndex
 from basegrid import *
 from gamegrid import *
+import graph as gr
 import logging
 import random
 
@@ -111,6 +112,22 @@ class AutomaticMove(Behavior):
     def determine_new_pos(self) -> (None | Position):
         return None
 
+    def notify_cur_pos(self):
+        if self.coordinator is not None:
+            self.coordinator.notify_cur_pos(self.moveInfo)
+        if self.navigator is not None:
+            self.navigator.notify_cur_pos(self.moveInfo)
+        if self.todo is not None:
+            self.todo.notify_cur_pos(self.moveInfo)
+
+    def notify_new_pos(self,new_pos:Position):
+        if self.coordinator is not None:
+            self.coordinator.notify_new_pos(self.moveInfo,new_pos)
+        if self.navigator is not None:
+            self.navigator.notify_new_pos(self.moveInfo,new_pos)
+        if self.todo is not None:
+            self.todo.notify_new_pos(self.moveInfo,new_pos)
+
     def do_one_cycle(self):
         if self._subject is not None:
             self.moveInfo = MoveInfo(   
@@ -118,20 +135,14 @@ class AutomaticMove(Behavior):
                 self.game_grid.get_available_hosts(self._subject.position),
                 self.history.positions
             )
-            if self.coordinator is not None:
-                self.coordinator.notify_cur_pos(self.moveInfo)
-            if self.todo is not None:
-                self.todo.notify_cur_pos(self.moveInfo)
+            self.notify_cur_pos()
             new_pos = self.determine_new_pos()
             if new_pos is None:
                 self.nr_stand_still +=1
             else:
                 self.nr_stand_still = 0
                 self.game_grid.move_content(self._subject,new_pos)
-                if self.coordinator is not None:
-                    self.coordinator.notify_new_pos(self.moveInfo,new_pos)
-                if self.todo is not None:
-                    self.todo.notify_new_pos(self.moveInfo,new_pos)
+                self.notify_new_pos(new_pos)
                 self.record_new_position()
     
     def register_coordinator(self,coordinator_type:type[Coordinator]):
@@ -261,11 +272,59 @@ class Router:
 
 class Navigator:
 
+    def notify_cur_pos(self,moveInfo:MoveInfo):
+        pass
+
+    def notify_new_pos(self,moveInfo:MoveInfo,new_pos:Position):
+        pass
+
     def get_route_to_route(self,start:Position,target_route:Route) -> (Route | None):
         return None
 
     def get_route(self,start:Position,target:Position) -> (Route | None):
         return None
+
+class GraphNavigator(Navigator):
+    selectable = True
+    def __init__(self):
+        self.graph = gr.Graph()
+
+    def notify_cur_pos(self,moveInfo:MoveInfo):
+        cur_node = self.graph.get_or_create(moveInfo.start_pos.get_id())
+        cur_node.position = moveInfo.start_pos
+        cur_node.discoverd = True
+        cur_node.visit_pending = False
+        for child_pos in moveInfo.all_positions:
+            child_node = self.graph.get_or_create(child_pos.get_id())
+            if not hasattr(child_node,'position'):
+                child_node.position = child_pos
+                child_node.discoverd = False
+                cur_node.visit_pending = False
+            self.graph.create_edge_pair(cur_node,child_node)
+        return None
+    
+    def notify_new_pos(self,moveInfo:MoveInfo,new_pos:Position):
+        new_node = self.graph.get_or_create(new_pos.get_id())
+        new_node.visit_pending = True
+    
+    def get_route(self,start:Position,target:Position) -> (Route | None):
+        if start is None or target is None:
+            return None
+
+        start_node = self.graph.get_node(start.get_id())
+        target_node = self.graph.get_node(target.get_id())
+
+        if start_node is None or target_node is None:
+            return None
+        
+        path = self.graph.find_short_path_dijkstra(start_node,target_node)
+        if len(path) == 0:
+            return None
+        
+        route = Route()
+        for node in path:
+            route.append(node.position)
+        return route
 
 class RouteBasedNavigator(Navigator):
     selectable = True
@@ -752,7 +811,7 @@ class ConfigurableFactory(BehaviorFactory):
         if self._check_type(self.router_type,Router):
             mover.router = self.router_type(mover)
         
-        if self._check_type(self.navigator_type,RouteBasedNavigator):
+        if self._check_type(self.navigator_type,RouteBasedNavigator,False):
             mover.navigator = self.navigator_type(base_route=mover.history)
         elif self._check_type(self.navigator_type,Navigator):
             mover.navigator = self.navigator_type()
@@ -772,11 +831,12 @@ class ConfigurableFactory(BehaviorFactory):
         return mover
     
     #TODO Move this to a generic module
-    def _check_type(self,sub_class:type,main_class:type):
+    def _check_type(self,sub_class:type,main_class:type,log_error=True):
         if sub_class is None:
             return False
         if not issubclass(sub_class,main_class):
-            logging.error(f"Type {str(sub_class)} is not a {str(main_class)}")
+            if log_error:
+                logging.error(f"Type {str(sub_class)} is not a {str(main_class)}")
             return False
         return True
         

@@ -46,7 +46,7 @@ class Node:
             return
 
         edge = self.get_edge_to_child(node)
-        if edge == None:
+        if edge is None:
             edge = Edge(self,node)
             self.child_edges.add(edge)
             node.add_parent_edge(edge)
@@ -57,7 +57,7 @@ class Node:
 
     def has_child_node(self,node):
         edge = self.get_edge_to_child(node)
-        if edge != None:
+        if edge is not None:
             return True
         return False
 
@@ -119,11 +119,11 @@ class Graph:
             return node
     
     def create_edge(self,parent:Node,child:Node):
-        if parent == None or child == None:
+        if parent is None or child is None:
             return
 
         edge = parent.add_child_edge(child)
-        if edge != None:
+        if edge is not None:
             self.edges.add(edge)
         
         return edge
@@ -132,7 +132,7 @@ class Graph:
         edge = self.create_edge(parent,child)
         reverse_edge = self.create_edge(child,parent)
         
-        if reverse_edge == None or edge == None:
+        if reverse_edge is None or edge is None:
             return None
         
         pair = EdgePair(edge,reverse_edge) 
