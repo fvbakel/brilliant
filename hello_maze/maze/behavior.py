@@ -344,7 +344,7 @@ class GraphNavigator(Navigator):
                 #return Route([edge.child.position])
                 return None
 
-        path = self.graph.find_short_path_condition(start_node,self.new_condition,stop_when_found=False)
+        path = self.graph.find_short_path_condition(start_node,self.new_condition)
         return self.path_to_route(path)
 
     def register_finish(self,position:Position):

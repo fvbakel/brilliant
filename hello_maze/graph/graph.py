@@ -124,7 +124,7 @@ class Graph:
         else:
             return None
 
-    def get_or_create(self,id:str,weight:int = 0):
+    def get_or_create(self,id:str,weight:int = 1):
         if id in self.nodes:
             return self.nodes[id]
         else:
@@ -206,7 +206,7 @@ class Graph:
         condition = SpecificNode(end)
         return self.find_short_path_condition(start,condition)
     
-    def find_short_path_condition(self,start:Node,condition:SearchCondition,stop_when_found=True):
+    def find_short_path_condition(self,start:Node,condition:SearchCondition):
         path:list[Node] = []
         self.reset()
 
@@ -214,7 +214,7 @@ class Graph:
         
         start.dist = 0 
         current = start
-        while current:
+        while current and found is None:
             current.visited = True
             for edge in current.child_edges:
                 if not edge.active:
@@ -228,8 +228,6 @@ class Graph:
             current = self.get_min_node_not_visited()
             if condition.check(current):
                 found = current
-                if stop_when_found:
-                    break
         
         if found is None:
             logging.error("Unable to find path from %s with condition %s" % (start.id, str(condition)))
