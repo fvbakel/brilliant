@@ -292,6 +292,7 @@ class GraphNavigator(Navigator):
     def __init__(self):
         self.graph = Graph()
         self.new_condition = NewNode()
+        self.win_pos:Position = None
 
     def notify_cur_pos(self,moveInfo:MoveInfo):
         cur_node = self.graph.get_or_create(moveInfo.start_pos.get_id())
@@ -340,10 +341,24 @@ class GraphNavigator(Navigator):
 
         for edge in start_node.child_edges:
             if self.new_condition.check(edge.child):
-                return Route([edge.child.position])
+                #return Route([edge.child.position])
+                return None
 
-        path = self.graph.find_short_path_condition(start_node,self.new_condition)
+        path = self.graph.find_short_path_condition(start_node,self.new_condition,stop_when_found=False)
         return self.path_to_route(path)
+
+    def register_finish(self,position:Position):
+        if self.win_pos is not None:
+            return
+        
+        self.win_pos = position
+
+    def get_finish_route(self,position:Position):
+        if self.win_pos is None:
+            return None
+        return self.get_route(position,self.win_pos)
+
+    
 
 class RouteBasedNavigator(Navigator):
     selectable = True
@@ -772,6 +787,12 @@ class GraphCoordinator(Coordinator):
     
     def get_discover_route(self,mover:AutomaticMove) -> (None | Route) :
         return self.navigator.get_discover_route(mover.moveInfo)
+
+    def register_finish(self,mover:AutomaticMove):
+        return self.navigator.register_finish(mover.history.end)
+    
+    def get_finish_route(self, mover: AutomaticMove) -> (None | Route):
+        return self.navigator.get_finish_route(mover.moveInfo.start_pos)
 
 class RandomAutomaticMove(AutomaticMove):
     selectable = True
