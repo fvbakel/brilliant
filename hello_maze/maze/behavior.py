@@ -1,5 +1,6 @@
 
 from dataclasses import dataclass,field
+from hashlib import new
 from typing import SupportsIndex
 from basegrid import *
 from gamegrid import *
@@ -551,9 +552,61 @@ class KeepRandomDirection(Discoverer):
         self.previous = select
         return new_directions[select]
 
-class DirectionDiscoverer(Discoverer):
+class KeepRelative(Discoverer):
+    selectable = False
+
+    MAP:dict[Direction,tuple[Direction,Direction,Direction]] = dict()
+
+    def __init__(self,mover:AutomaticMove):
+        super().__init__(mover)
+        self.previous:Direction = None
+
+    def get_move(self):
+        new_directions = self.mover.moveInfo.get_new_available_directions()
+        if len(new_directions) == 0:
+            self.previous = None
+            return None
+
+        select:Direction = None
+        if self.previous is None:
+            select = random.choice(tuple(new_directions.keys()))
+        else:
+            search_order = self.__class__.MAP[self.previous]
+            for direction in search_order:
+                if direction in new_directions:
+                    select = direction
+                    break
+        if select is None:
+            self.previous = None
+            return None
+
+        self.previous = select
+        return new_directions[select]
+
+class KeepRight(KeepRelative):
     selectable = True
-    configurable = True
+
+    MAP:dict[Direction,tuple[Direction,Direction,Direction]] = dict( { \
+            Direction.RIGHT: (Direction.DOWN,Direction.RIGHT,Direction.UP), \
+            Direction.DOWN: (Direction.LEFT,Direction.DOWN,Direction.RIGHT), \
+            Direction.UP: (Direction.RIGHT,Direction.UP,Direction.LEFT), \
+            Direction.LEFT: (Direction.UP,Direction.LEFT,Direction.DOWN)
+        }
+    )
+
+class KeepLeft(KeepRelative):
+    selectable = True
+
+    MAP:dict[Direction,tuple[Direction,Direction,Direction]] = dict( { \
+            Direction.RIGHT: (Direction.UP,Direction.RIGHT,Direction.DOWN), \
+            Direction.DOWN: (Direction.RIGHT,Direction.DOWN,Direction.LEFT), \
+            Direction.UP: (Direction.LEFT,Direction.UP,Direction.RIGHT), \
+            Direction.LEFT: (Direction.DOWN,Direction.LEFT,Direction.UP)
+        }
+    )
+
+class DirectionDiscoverer(Discoverer):
+    selectable = False
     def __init__(self,mover:AutomaticMove):
         super().__init__(mover)
         self.directions:tuple(Direction)
