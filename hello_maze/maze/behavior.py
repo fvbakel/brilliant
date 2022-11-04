@@ -225,10 +225,6 @@ class AutomaticMove(Behavior):
         if selected is None and \
                 not self.discoverer is None:
             selected = self.discoverer.get_move()
-        # TODO Move to begin og the move
-        #if selected is not None and \
-        #        self.todo is not None:
-        #    self.todo.notify(self.moveInfo)
         return selected
 
 class Router:
@@ -294,18 +290,21 @@ class GraphNavigator(Navigator):
         self.graph = Graph()
         self.new_condition = NewNode()
         self.win_pos:Position = None
+        self.start_weight = 10
 
     def notify_cur_pos(self,moveInfo:MoveInfo):
-        cur_node = self.graph.get_or_create(moveInfo.start_pos.get_id())
+        cur_node = self.graph.get_or_create(moveInfo.start_pos.get_id(),self.start_weight)
         cur_node.position = moveInfo.start_pos
         cur_node.discoverd = True
         cur_node.visit_pending = False
+        cur_node.route_target = 0
         for child_pos in moveInfo.all_positions:
-            child_node = self.graph.get_or_create(child_pos.get_id())
+            child_node = self.graph.get_or_create(child_pos.get_id(),self.start_weight)
             if not hasattr(child_node,'position'):
                 child_node.position = child_pos
                 child_node.discoverd = False
                 child_node.visit_pending = False
+                child_node.route_target = 0
             self.graph.create_edge_pair(cur_node,child_node)
         return None
     
@@ -342,11 +341,23 @@ class GraphNavigator(Navigator):
 
         for edge in start_node.child_edges:
             if self.new_condition.check(edge.child):
-                #return Route([edge.child.position])
+                # no Route needed, discover rules will handle this one
                 return None
 
         path = self.graph.find_short_path_condition(start_node,self.new_condition)
-        return self.path_to_route(path)
+        if len(path) > 0:
+            path[-1].route_target += 1
+        return self.path_to_route(path) 
+
+    def get_discover_pos(self,moveInfo:MoveInfo):
+        start_node = self.graph.get_node(moveInfo.start_pos.get_id())
+        if start_node is None:
+            return None
+
+        for edge in start_node.child_edges:
+            if self.new_condition.check(edge.child):
+                return edge.child.position
+        return None
 
     def register_finish(self,position:Position):
         if self.win_pos is not None:
@@ -359,7 +370,30 @@ class GraphNavigator(Navigator):
             return None
         return self.get_route(position,self.win_pos)
 
-    
+class GraphNewRoute_1(GraphNavigator):
+    selectable = True
+    def __init__(self):
+        super().__init__()
+        self.new_condition = NewNotTarget(1)
+
+class GraphNewRoute_3(GraphNavigator):
+    selectable = True
+    def __init__(self):
+        super().__init__()
+        self.new_condition = NewNotTarget(3)
+
+class GraphBalanceWeight(GraphNavigator):
+    selectable= True
+
+    def path_to_route(self, path:list[Node]):
+        if len(path) == 0:
+            return None
+        
+        for node in path:
+            if node.weight > 1:
+                node.weight -= 1
+        return super().path_to_route(path)
+
 
 class RouteBasedNavigator(Navigator):
     selectable = True
@@ -820,17 +854,32 @@ class NewNode(SearchCondition):
     def check(self,current:Node) -> bool:
         return current is not None and \
                     current.discoverd == False and \
-                    current.visit_pending == False
+                    current.visit_pending == False 
 
     def __repr__(self):
         return f'not discovered and no visit pending'
+
+class NewNotTarget(SearchCondition):
+
+    def __init__(self,max_target:int = 1):
+        self.max_target = max_target
+
+    def check(self,current:Node) -> bool:
+        return current is not None and \
+                    current.discoverd == False and \
+                    current.visit_pending == False and \
+                    current.route_target < self.max_target
+
+    def __repr__(self):
+        return f'not discovered, no visit pending and not a route_target'
 
 class GraphCoordinator(Coordinator):
     selectable = True
 
     def __init__(self):
         super().__init__()
-        self.navigator = GraphNavigator()
+        # TODO: Make configurable!
+        self.navigator = GraphNewRoute_3()#GraphBalanceWeight() #GraphNavigator()
 
     def notify_cur_pos(self,moveInfo:MoveInfo):
         self.navigator.notify_cur_pos(moveInfo)
