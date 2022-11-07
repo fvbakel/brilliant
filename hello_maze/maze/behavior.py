@@ -298,6 +298,7 @@ class GraphNavigator(Navigator):
         cur_node.discoverd = True
         cur_node.visit_pending = False
         cur_node.route_target = 0
+        cur_node.occupied = True
         for child_pos in moveInfo.all_positions:
             child_node = self.graph.get_or_create(child_pos.get_id(),self.start_weight)
             if not hasattr(child_node,'position'):
@@ -305,11 +306,14 @@ class GraphNavigator(Navigator):
                 child_node.discoverd = False
                 child_node.visit_pending = False
                 child_node.route_target = 0
+                child_node.occupied = False
             self.graph.create_edge_pair(cur_node,child_node)
         return None
     
     def notify_new_pos(self,moveInfo:MoveInfo,new_pos:Position):
-        new_node = self.graph.get_or_create(new_pos.get_id())
+        old_node = self.graph.get_node(moveInfo.start_pos.get_id())
+        old_node.occupied = False
+        new_node = self.graph.get_node(new_pos.get_id())
         new_node.visit_pending = True
     
     def get_route(self,start:Position,target:Position) -> (Route | None):
@@ -394,6 +398,68 @@ class GraphBalanceWeight(GraphNavigator):
                 node.weight -= 1
         return super().path_to_route(path)
 
+class GraphWeightAfterWin(GraphNavigator):
+    selectable = True
+    def __init__(self):
+        super().__init__()
+        self.start_nodes:set[Node] = set()
+        self.end_nodes:set[Node] = set()
+        self.occupied_nodes:set[Node] = set()
+        self.weight_non_win_nodes_set = False
+        self.max_weight = 1024
+
+    def update_start_nodes(self):
+        if self.graph.first is None:
+            return
+        
+        self.start_nodes.add(self.graph.first)
+        cur_pos:Position = self.graph.first.position
+        while True:
+            next_pos = cur_pos.get_position_in_direction (Direction.RIGHT)
+            next_start_node = self.graph.get_node(next_pos.get_id())
+            if next_start_node is None:
+                break
+            self.start_nodes.add(next_start_node)
+            cur_pos = next_pos
+
+    def update_end_nodes(self):
+        self.end_nodes = set()
+        
+        if self.win_pos is None:
+            for node in self.graph.nodes.values():
+                if node.discoverd == False:
+                    self.end_nodes.add(node)
+        else:
+            win_node = self.graph.get_node(self.win_pos)
+            self.end_nodes.add(win_node)
+
+    def update_occupied_nodes(self):
+        self.occupied_nodes = set()
+        for node in self.graph.nodes.values():
+            if node.occupied == True:
+                self.occupied_nodes.add(node)
+
+    def increase_non_win_nodes(self):
+        logging.debug('Start Increase weight nodes not needed for win routes')
+        if self.win_pos is None:
+            return
+        self.update_start_nodes()
+        win_node = self.graph.get_node(self.win_pos.get_id())
+        keep_nodes:set[Node] = set()
+        for begin_node in self.start_nodes:
+            needed = set(self.graph.find_short_path_dijkstra(begin_node,win_node))
+            keep_nodes = keep_nodes.union(needed)
+
+        for node in self.graph.nodes.values():
+            if node not in keep_nodes:
+                node.weight = self.max_weight
+        logging.debug('Ready Increase weight nodes not needed for win routes')
+
+    def register_finish(self, position: Position):
+        super().register_finish(position)
+        if self.weight_non_win_nodes_set == False:
+            self.increase_non_win_nodes()
+            self.weight_non_win_nodes_set = True
 
 class RouteBasedNavigator(Navigator):
     selectable = True
@@ -879,7 +945,7 @@ class GraphCoordinator(Coordinator):
     def __init__(self):
         super().__init__()
         # TODO: Make configurable!
-        self.navigator = GraphNewRoute_3()#GraphBalanceWeight() #GraphNavigator()
+        self.navigator = GraphWeightAfterWin() #GraphPurgeNavigator() # GraphNewRoute_3()#GraphBalanceWeight() #GraphNavigator()
 
     def notify_cur_pos(self,moveInfo:MoveInfo):
         self.navigator.notify_cur_pos(moveInfo)

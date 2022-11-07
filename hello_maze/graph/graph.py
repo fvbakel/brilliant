@@ -103,7 +103,7 @@ class SpecificNode(SearchCondition):
         return current == self.node
 
     def __repr__(self):
-        return f'search node : str(self.node)'
+        return f'search node : {str(self.node)}'
 
 class Graph:
 
