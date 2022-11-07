@@ -145,11 +145,13 @@ class MazeDialog:
             if event == '__RESET_MAZE__':
                 logging.debug("Resetting maze")
                 self.controller.reset_game()
+                self.reset_toggles()
                 logging.debug("Reset maze ready")
             if event == '__GENERATE__':
                 logging.debug("Generate button pressed")
-                self.set_status_message('Generating new')
+                self.set_status_message('Generating new maze')
                 self.controller.generate_new()
+                self.reset_toggles()
                 self.set_status_message('')
             if event == '__SHORT_ON__':
                 self.controller.set_show_short_path(values['__SHORT_ON__'])
@@ -181,9 +183,15 @@ class MazeDialog:
             self.update_dialog()
         self.window.close()
 
-    # TODO: Move to contoller and add meaning full status updates to the controller
+    # TODO: Allow for an observer in the controller so we can subscribe to update messages ....
     def set_status_message(self,msg:str):
         self.window.FindElement('__STATUS__').Update(msg)
+
+    def reset_toggles(self):
+        self.window.FindElement('__ADD_ON__').Update(False)
+        self.window.FindElement('__ADD_OFF__').Update(True)
+        self.window.FindElement('__SIM_ON__').Update(False)
+        self.window.FindElement('__SIM_OFF__').Update(True)
 
     def update_nr_of_cols(self,value:int):
         self.controller.nr_of_cols = value

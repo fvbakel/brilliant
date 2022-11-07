@@ -88,9 +88,9 @@ class Coordinator:
     pass
 
 class AutomaticMove(Behavior):
-
+    DEFAULT_PRIORITY = 10
     def __init__(self,game_grid:GameGrid):
-        self.priority = 10
+        self.priority = AutomaticMove.DEFAULT_PRIORITY
         super().__init__(game_grid)
         self.history = Route()
         self.nr_stand_still = 0
@@ -1084,13 +1084,12 @@ class ConfigurableFactory(BehaviorFactory):
                 logging.error(f"Type {str(sub_class)} is not a {str(main_class)}")
             return False
         return True
-        
-
 
 class FinishDetector(Behavior):
+    DEFAULT_PRIORITY = 1
 
     def __init__(self,game_grid:GameGrid):
-        self.priority = 1
+        self.priority = FinishDetector.DEFAULT_PRIORITY
         super().__init__(game_grid)
         self.finished:list[GameContent] = []
         self.nr_of_steps:list[int] = []
@@ -1109,13 +1108,15 @@ class FinishDetector(Behavior):
             self._subject.guest = None
 
 class AutomaticAdd(Behavior):
+    DEFAULT_NEW_CYCLE_INTERVAL = 3
+    DEFAULT_PRIORITY = 90
 
     def __init__(self,game_grid:GameGrid):
-        self.priority = 90
+        self.priority = AutomaticAdd.DEFAULT_PRIORITY
         super().__init__(game_grid)
         
         self.nr_started = 0
-        self.cycles_per_start = 3
+        self.new_cycle_interval = AutomaticAdd.DEFAULT_NEW_CYCLE_INTERVAL
         self.cycle_nr = 0
         self.active = False
         self._move_type:type[AutomaticMove]
@@ -1137,7 +1138,7 @@ class AutomaticAdd(Behavior):
     def do_one_cycle(self):
         if self.active:
             self.cycle_nr += 1
-            if (self.cycle_nr % self.cycles_per_start) != 0:
+            if (self.cycle_nr % self.new_cycle_interval) != 0:
                 return
                 
             particle = Particle()
