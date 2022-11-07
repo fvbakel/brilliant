@@ -346,7 +346,7 @@ class MazeController:
         self.move_behavior:str = 'ConfigurableMove'
         self.configure_factory = ConfigurableFactory()
         self.default_factory = BehaviorFactory()
-        self.nr_started:int = 0
+        self._nr_started:int = 0
         self.nr_of_cycles:int = 0
         self._init_configurable_subclasses()
         self.generate_new()
@@ -384,7 +384,7 @@ class MazeController:
     def reset_game(self):
         self.run_simulation = False
         self.manual_move = None
-        self.nr_started = 0
+        self._nr_started = 0
         self.nr_of_cycles = 0
         self.fastest:int = -1
         self.game = MazeGame(self.maze_gen.maze,square_width=self.square_width,wall_width=self.wall_width)
@@ -453,7 +453,7 @@ class MazeController:
             factory = self.get_factory()
             behavior = self.game.game_grid.add_manual_content(particle,factory)
             if behavior is not None:
-                self.nr_started += 1
+                self._nr_started += 1
                 self.render_changed()
 
     def get_factory(self):
@@ -472,7 +472,7 @@ class MazeController:
             self.default_factory.behavior_type = ManualMove
             self.manual_move = self.game.game_grid.add_manual_content(particle,self.default_factory)
             if self.manual_move is not None:
-                self.nr_started += 1
+                self._nr_started += 1
                 self.render_changed()
 
     def _init_auto_add_behavior(self):
@@ -489,9 +489,15 @@ class MazeController:
     def do_one_cycle(self):
         if self.run_simulation:
             self.game.game_grid.do_one_cycle()
-            if (self.nr_started -self.get_total_finished()) > 0:
+            if (self.nr_started - self.get_total_finished()) > 0:
                 self.nr_of_cycles +=1
             self.render_changed()
+
+    @property
+    def nr_started(self):
+        if self.auto_add_behavior is None:
+            return self._nr_started
+        return self._nr_started + self.auto_add_behavior.nr_started
 
     # TODO: rename this method
     def get_total_finished(self):

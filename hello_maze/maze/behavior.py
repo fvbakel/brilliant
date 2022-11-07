@@ -415,7 +415,7 @@ class GraphWeightAfterWin(GraphNavigator):
         self.start_nodes.add(self.graph.first)
         cur_pos:Position = self.graph.first.position
         while True:
-            next_pos = cur_pos.get_position_in_direction (Direction.RIGHT)
+            next_pos = cur_pos.get_position_in_direction(Direction.RIGHT)
             next_start_node = self.graph.get_node(next_pos.get_id())
             if next_start_node is None:
                 break
@@ -851,7 +851,7 @@ class SpoilCoordinator(Coordinator):
 
         self._add_win_route(mover.history)
         optimized_win = mover.history.copy()
-        #optimized_win.optimize()
+
         self.optimize_route(optimized_win)
         if not self._is_new_win_route(optimized_win):
             return
@@ -1115,6 +1115,8 @@ class AutomaticAdd(Behavior):
         super().__init__(game_grid)
         
         self.nr_started = 0
+        self.cycles_per_start = 3
+        self.cycle_nr = 0
         self.active = False
         self._move_type:type[AutomaticMove]
         self.factory:BehaviorFactory = BehaviorFactory()
@@ -1134,6 +1136,10 @@ class AutomaticAdd(Behavior):
 
     def do_one_cycle(self):
         if self.active:
+            self.cycle_nr += 1
+            if (self.cycle_nr % self.cycles_per_start) != 0:
+                return
+                
             particle = Particle()
             particle.trace_material = Material.FLOOR_HIGHLIGHTED
             behavior = self.game_grid.add_manual_content(particle,self.factory)
