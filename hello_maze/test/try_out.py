@@ -258,3 +258,10 @@ class MainClass:
 m = MainClass()
 m.shared_list.append(1)
 print(m.router.shared_list)
+
+print("Color map")
+import numpy as np
+
+
+
+    

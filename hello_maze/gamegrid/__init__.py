@@ -3,6 +3,7 @@ from gamegrid.gamegrid import (
     GameContent,
     GameGridRender,
     TextGameGridRender,
+    ColorMap,
     ImageGameGridRender,
     Wall,
     Particle,
@@ -10,5 +11,7 @@ from gamegrid.gamegrid import (
     Material,
     Behavior,
     ManualMove,
-    Color
+    Color,
+    Layer,
+    LayerManager
 )

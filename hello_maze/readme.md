@@ -135,6 +135,20 @@
     GameContent --> Material
 
 
+    class Layer {
+        name: str
+        active: bool
+        _order: int
+    }
+    
+    Layer --> Color : Position
+
+    class LayerManager {
+        get_color(Position)
+    }
+    LayerManager --> Layer
+    GameGrid --> LayerManager
+
     class Floor {
     }
     class Wall {
@@ -151,11 +165,6 @@
     ImageGameGridRender <|-- GameGridRender
     TextGameGridRender <|-- GameGridRender
     
-    class ActionControl {
-        game_grid: GameGrid
-        do_one_cycle()
-    }
- 
     Behavior <-- GameGrid : behaviors
     Behavior --> GameContent: subject
     ManualMove <|-- Behavior

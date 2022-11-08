@@ -16,6 +16,73 @@ class Color(ExtendedEnum):
     WHITE = (255,255,255)
     BLACK = (0,0,0)
 
+class ColorMap:
+    def __init__(self, 
+            start_color:tuple[int,int,int], 
+            end_color:tuple[int,int,int], 
+            start:float, 
+            end:float):
+        self.start_color = np.array(start_color)
+        self.end_color = np.array(end_color)
+        self.start = float(start)
+        self.end = float(end)
+        self.range = float(end - start)
+        self.ratios = (self.end_color - self.start_color) / self.range
+
+    def __getitem__(self, value:float):
+        color = tuple(self.start_color + (self.ratios * (value - self.start)))
+        return (int(color[0]), int(color[1]), int(color[2]))
+
+class Layer:
+    pass
+
+class Layer:
+
+    def __init__(self,name:str,order:int,default_color:tuple[int,int,int] = Color.BLACK):
+        self.name = name
+        self._order = order
+        self.active = True
+        self.positions:dict[Position,tuple[int,int,int]] = dict()
+        self.default_color = default_color 
+
+    def add_position(self,position:Position,color:tuple[int,int,int] = None):
+        if color is None:
+            self.positions[position] = self.default_color
+        else:
+            self.positions[position] = color
+
+    def __repr__(self) -> str:
+        return f"{self._order} - {self.name}"
+
+from functools import cmp_to_key
+class LayerManager:
+
+    def __init__(self):
+        self.layers:list[Layer] = []
+
+    @staticmethod
+    def compare_order(layer_1:Layer,layer_2:Layer):
+        return layer_1._order - layer_2._order
+
+    def add_layer(self,layer:Layer):
+        self.layers.append(layer)
+        if len(self.layers) > 1:
+            self.layers.sort(key=cmp_to_key(LayerManager.compare_order))
+        
+    def remove_layer(self,layer:Layer):
+        self.layers.remove(layer)
+
+    def reset(self):
+        self.layers.clear()
+
+    def get_color(self,position:Position):
+        for layer in self.layers:
+            if not layer.active:
+                continue
+            if position in layer.positions:
+                return layer.positions[position]
+        return None
+
 class GameContent:
     pass
 
@@ -83,6 +150,7 @@ class GameGrid(Grid):
     def __init__(self,size:Size):
         super().__init__(size)
         self.behaviors:dict[int,set[Behavior]] = dict()
+        self.layer_mgr = LayerManager()
 
     def get_location(self,position:(Position | tuple[int,int])) -> GameContent:
         return super().get_location(position)
@@ -290,9 +358,21 @@ class ImageGameGridRender(GameGridRender):
     def _pre_render(self):
         self._init_image()
 
+    def _render_content(self,content:GameContent):
+        if content is not None:
+            if content.guest is not None:
+                return super()._render_content(content)
+            color = self.game_grid.layer_mgr.get_color(content.position)
+            if color is None:
+                return super()._render_content(content)
+            self._set_color(content.position,color)
+            
+    def _set_color(self,position:Position,color:tuple[int,int,int]):
+        self.output[position.row,position.col] = color
+
     def _render_material(self,position:Position,material:Material):
         material_str = material.value
-        self.output[position.row,position.col] = self.material_map[material_str]
+        self._set_color(position,self.material_map[material_str])
 
 class Behavior:
 

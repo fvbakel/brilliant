@@ -52,11 +52,26 @@ class TestModel(unittest.TestCase):
         logging.debug(f"Writing image {tmp_file_name}")
         cv2.imwrite(tmp_file_name,renderer.output)
 
+        color_map = ColorMap(
+            start_color=(255,255,255),
+            end_color=(0,0,0),
+            start=0,
+            end = 10)
+        
+        l_1 = Layer('MAIN',1,default_color=color_map[5])
+        pos_1 = bg.Position(0,0)
+        l_1.add_position(pos_1)
+        grid.layer_mgr.add_layer(layer=l_1)
+
+        renderer.render()
+        tmp_file_name = TEST_TMP_DIR + '/' + self._testMethodName + "002" + ".png"
+        logging.debug(f"Writing image {tmp_file_name}")
+        cv2.imwrite(tmp_file_name,renderer.output)
+
     def test_ManualMoveControl(self):
         grid = self.make_test_grid()
         renderer = ImageGameGridRender(grid)
-        
-        
+
         particle = Particle()
         
         grid.add_to_first_free_spot(particle=particle)
@@ -76,3 +91,40 @@ class TestModel(unittest.TestCase):
         logging.debug(f"Writing image {tmp_file_name}")
         cv2.imwrite(tmp_file_name,renderer.output)
 
+    def test_colormap(self):
+        color_map = ColorMap(
+            start_color=(255,255,255),
+            end_color=(0,0,0),
+            start=0,
+            end = 10)
+        color_6 = color_map[6]
+        logging.debug(f"colormap[6] = {color_6}")
+        self.assertEqual(len(color_6),3,"Color map 6 is size 3")
+        self.assertEqual(color_6[0],102,"Color map 6 has value 102")
+        self.assertEqual(color_6[1],102,"Color map 6 has value 102")
+        self.assertEqual(color_6[2],102,"Color map 6 has value 102")
+
+
+    def test_layer_manager(self):
+        mgr = LayerManager()
+        l_1 = Layer('Main',10)
+        l_2 = Layer('Between',15)
+        l_3 = Layer('Last',99)
+        mgr.add_layer(l_1)
+        mgr.add_layer(l_3)
+        mgr.add_layer(l_2)
+        logging.debug(f"Layers: {mgr.layers}")
+        self.assertEqual(mgr.layers[0],l_1,"List of layers is sorted on the order 1")
+        self.assertEqual(mgr.layers[1],l_2,"List of layers is sorted on the order 2")
+        self.assertEqual(mgr.layers[2],l_3,"List of layers is sorted on the order 3")
+
+        pos_1 = bg.Position(1,1)
+        pos_2 = bg.Position(2,2)
+
+        self.assertIsNone(mgr.get_color(pos_1),"Position that is not on any layer returns None")
+        l_2.add_position(pos_2,color=Color.WHITE)
+        self.assertEqual(mgr.get_color(pos_2),Color.WHITE,"Pos 2 layer 2 is used")
+        l_3.add_position(pos_2,color=Color.BLACK)
+        self.assertEqual(mgr.get_color(pos_2),Color.WHITE,"Pos 2 layer 3 is not used")
+        l_1.add_position(pos_2,color=Color.BLACK)
+        self.assertEqual(mgr.get_color(pos_2),Color.BLACK,"Pos 2 layer 1 is  used")
