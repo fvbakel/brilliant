@@ -162,7 +162,9 @@ class MazeGame:
 
         self.geometry = SquareGeometryGrid(self.maze.square_size)
         self.game_grid = GameGrid(self.game_size)
-
+        self.short_path_layer = Layer('Shortest path',10,(255,0,0))
+        self.short_path_layer.active = False
+        self.game_grid.layer_mgr.add_layer(self.short_path_layer)
         self.maze.solve_shortest_path()
         self._init_geometry()
 
@@ -207,13 +209,15 @@ class MazeGame:
             if content == None:
                 content = Floor()
                 if square.is_short_part:
-                    content.material = Material.FLOOR_MARKED
+                    self.short_path_layer.add_position(pos)
+                    
                 self.game_grid.set_location(pos,content)
             if isinstance(content,Floor):
                 # if up or left square is short path but this is not 
-                # then set the floor back to normal
+                # then this position is not the shortest path
                 if not square.is_short_part:
-                    content.material = Material.FLOOR
+                    if pos in self.short_path_layer.positions:
+                        self.short_path_layer.remove_position(pos)
 
 
 class MazeGenerator:
@@ -402,10 +406,10 @@ class MazeController:
         self.reset_game()
 
     def _update_material_map(self):
-        if self.show_short_path:
-            self.renderer.material_map[Material.FLOOR_MARKED.value] = (255,0,0)
-        else:
-            self.renderer.material_map[Material.FLOOR_MARKED.value] = Color.WHITE.value
+       # if self.show_short_path:
+       #     self.renderer.material_map[Material.FLOOR_MARKED.value] = (255,0,0)
+       # else:
+       #     self.renderer.material_map[Material.FLOOR_MARKED.value] = Color.WHITE.value
         
         if self.show_trace:
             self.renderer.material_map[Material.FLOOR_HIGHLIGHTED.value] = (0,0,126)
@@ -424,7 +428,8 @@ class MazeController:
     def set_show_short_path(self,value:bool):
         if self.show_short_path != value:
             self.show_short_path = value
-            self._update_material_map()
+            self.game.short_path_layer.active = value
+            #self._update_material_map()
             self.render()
     
     def set_show_trace(self,value:bool):

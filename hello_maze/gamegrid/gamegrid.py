@@ -39,6 +39,9 @@ class Layer:
 class Layer:
 
     def __init__(self,name:str,order:int,default_color:tuple[int,int,int] = Color.BLACK):
+        if name is None or len(name) == 0:
+            raise ValueError(f'Name "{name}" is not allowed for a Layer')
+
         self.name = name
         self._order = order
         self.active = True
@@ -51,6 +54,9 @@ class Layer:
         else:
             self.positions[position] = color
 
+    def remove_position(self,position:Position):
+        self.positions.pop(position)
+
     def __repr__(self) -> str:
         return f"{self._order} - {self.name}"
 
@@ -59,21 +65,30 @@ class LayerManager:
 
     def __init__(self):
         self.layers:list[Layer] = []
+        self._layers_map:dict[str,Layer] = dict()
 
     @staticmethod
     def compare_order(layer_1:Layer,layer_2:Layer):
         return layer_1._order - layer_2._order
 
     def add_layer(self,layer:Layer):
+        if layer.name in self._layers_map:
+            raise ValueError(f'Layer with name: {layer.name} already exists!')
         self.layers.append(layer)
+        self._layers_map[layer.name] = layer
         if len(self.layers) > 1:
             self.layers.sort(key=cmp_to_key(LayerManager.compare_order))
         
     def remove_layer(self,layer:Layer):
         self.layers.remove(layer)
+        self._layers_map.pop(layer.name)
+
+    def get_layer(self,name:str):
+        return self._layers_map.get(name,None)
 
     def reset(self):
         self.layers.clear()
+        self._layers_set.clear()
 
     def get_color(self,position:Position):
         for layer in self.layers:
