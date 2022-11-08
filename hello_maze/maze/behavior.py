@@ -1103,8 +1103,8 @@ class FinishDetector(Behavior):
                 if isinstance(self._subject.guest.behavior,AutomaticMove):
                     behavior:AutomaticMove = self._subject.guest.behavior
                     self.nr_of_steps.append(behavior.history.length -1)
-            if self._subject.guest.trace_material != Material.NONE:
-                self._subject.material = self._subject.guest.trace_material
+            if self._subject.guest.trace_layer is not None:
+                self._subject.guest.trace_layer.set_position(self._subject.position)
             self._subject.guest = None
 
 class AutomaticAdd(Behavior):
@@ -1121,6 +1121,7 @@ class AutomaticAdd(Behavior):
         self.active = False
         self._move_type:type[AutomaticMove]
         self.factory:BehaviorFactory = BehaviorFactory()
+        self.trace_layer = None
 
     @property
     def move_type(self):
@@ -1142,7 +1143,7 @@ class AutomaticAdd(Behavior):
                 return
                 
             particle = Particle()
-            particle.trace_material = Material.FLOOR_HIGHLIGHTED
+            particle.trace_layer = self.trace_layer
             behavior = self.game_grid.add_manual_content(particle,self.factory)
             if behavior is not None:
                 self.nr_started += 1

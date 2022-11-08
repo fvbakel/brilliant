@@ -162,11 +162,18 @@ class MazeGame:
 
         self.geometry = SquareGeometryGrid(self.maze.square_size)
         self.game_grid = GameGrid(self.game_size)
+        self._init_layers()
+        self.maze.solve_shortest_path()
+        self._init_geometry()
+    
+    def _init_layers(self):
         self.short_path_layer = Layer('Shortest path',10,(255,0,0))
         self.short_path_layer.active = False
         self.game_grid.layer_mgr.add_layer(self.short_path_layer)
-        self.maze.solve_shortest_path()
-        self._init_geometry()
+
+        self.trace_layer = Layer('Trace',5,(0,0,126))
+        self.trace_layer.active = False
+        self.game_grid.layer_mgr.add_layer(self.trace_layer)
 
     def _calculate_game_length(self,nr_of_squares:int):
         # wall | wall   | wall | wall   | wall
@@ -208,16 +215,13 @@ class MazeGame:
             content = self.game_grid.get_location(pos)
             if content == None:
                 content = Floor()
-                if square.is_short_part:
-                    self.short_path_layer.add_position(pos)
-                    
                 self.game_grid.set_location(pos,content)
-            if isinstance(content,Floor):
-                # if up or left square is short path but this is not 
-                # then this position is not the shortest path
-                if not square.is_short_part:
-                    if pos in self.short_path_layer.positions:
-                        self.short_path_layer.remove_position(pos)
+                if square.is_short_part:
+                    self.short_path_layer.set_position(pos)
+
+            if not (square.is_short_part and isinstance(content,Floor)):
+                if pos in self.short_path_layer.positions:
+                    self.short_path_layer.remove_position(pos)
 
 
 class MazeGenerator:
@@ -398,24 +402,13 @@ class MazeController:
         self.renderer= ImageGameGridRender(self.game.game_grid,material_map=blank_map)
         self._add_finish_behavior()
         self._init_auto_add_behavior()
-        self._update_material_map()
+        self.game.short_path_layer.active = self.show_short_path
+        self.game.trace_layer.active = self.show_trace
         self.render()
 
     def generate_new(self):
         self.maze_gen =  MazeGenerator(Size(self.nr_of_cols,self.nr_of_rows))
         self.reset_game()
-
-    def _update_material_map(self):
-       # if self.show_short_path:
-       #     self.renderer.material_map[Material.FLOOR_MARKED.value] = (255,0,0)
-       # else:
-       #     self.renderer.material_map[Material.FLOOR_MARKED.value] = Color.WHITE.value
-        
-        if self.show_trace:
-            self.renderer.material_map[Material.FLOOR_HIGHLIGHTED.value] = (0,0,126)
-        else:
-            self.renderer.material_map[Material.FLOOR_HIGHLIGHTED.value] = Color.WHITE.value
-        
 
     def render(self):
         self.renderer.render()
@@ -429,13 +422,12 @@ class MazeController:
         if self.show_short_path != value:
             self.show_short_path = value
             self.game.short_path_layer.active = value
-            #self._update_material_map()
             self.render()
     
     def set_show_trace(self,value:bool):
         if self.show_trace != value:
             self.show_trace = value
-            self._update_material_map()
+            self.game.trace_layer.active = value
             self.render()
 
     def set_auto_add(self,value:bool):
@@ -454,7 +446,7 @@ class MazeController:
 
     def add_particle(self):
             particle = Particle()
-            particle.trace_material = Material.FLOOR_HIGHLIGHTED
+            particle.trace_layer =self.game.trace_layer
             factory = self.get_factory()
             behavior = self.game.game_grid.add_manual_content(particle,factory)
             if behavior is not None:
@@ -482,6 +474,7 @@ class MazeController:
 
     def _init_auto_add_behavior(self):
         self.auto_add_behavior = AutomaticAdd(self.game.game_grid)
+        self.auto_add_behavior.trace_layer = self.game.trace_layer
         self.auto_add_behavior.factory = self.get_factory()
 
     def _add_finish_behavior(self):

@@ -60,7 +60,7 @@ class TestModel(unittest.TestCase):
         
         l_1 = Layer('MAIN',1,default_color=color_map[5])
         pos_1 = bg.Position(0,0)
-        l_1.add_position(pos_1)
+        l_1.set_position(pos_1)
         grid.layer_mgr.add_layer(layer=l_1)
 
         renderer.render()
@@ -122,9 +122,9 @@ class TestModel(unittest.TestCase):
         pos_2 = bg.Position(2,2)
 
         self.assertIsNone(mgr.get_color(pos_1),"Position that is not on any layer returns None")
-        l_2.add_position(pos_2,color=Color.WHITE)
+        l_2.set_position(pos_2,color=Color.WHITE)
         self.assertEqual(mgr.get_color(pos_2),Color.WHITE,"Pos 2 layer 2 is used")
-        l_3.add_position(pos_2,color=Color.BLACK)
+        l_3.set_position(pos_2,color=Color.BLACK)
         self.assertEqual(mgr.get_color(pos_2),Color.WHITE,"Pos 2 layer 3 is not used")
-        l_1.add_position(pos_2,color=Color.BLACK)
+        l_1.set_position(pos_2,color=Color.BLACK)
         self.assertEqual(mgr.get_color(pos_2),Color.BLACK,"Pos 2 layer 1 is  used")

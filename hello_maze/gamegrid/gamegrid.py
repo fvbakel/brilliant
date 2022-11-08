@@ -48,7 +48,7 @@ class Layer:
         self.positions:dict[Position,tuple[int,int,int]] = dict()
         self.default_color = default_color 
 
-    def add_position(self,position:Position,color:tuple[int,int,int] = None):
+    def set_position(self,position:Position,color:tuple[int,int,int] = None):
         if color is None:
             self.positions[position] = self.default_color
         else:
@@ -111,7 +111,7 @@ class GameContent:
         self.mobile:bool            = False
         self._guest:GameContent     = None
         self.material               = Material.FLOOR
-        self.trace_material         = Material.NONE
+        self.trace_layer:Layer      = None
         self.changed                = False
         self.behavior:Behavior      = None
 
@@ -134,7 +134,7 @@ class GameContent:
         self.changed = True
         self._guest = guest
         if guest is not None:
-            guest.position =self.position
+            guest.position = self.position
 
 class Floor(GameContent):
     def __init__(self):
@@ -230,8 +230,8 @@ class GameGrid(Grid):
         request_content.guest = content_to_move
         source_content.guest = None
 
-        if content_to_move.trace_material != Material.NONE:
-            source_content.material = content_to_move.trace_material
+        if content_to_move.trace_layer is not None:
+            content_to_move.trace_layer.set_position(source_content.position)
 
     def get_available_hosts(self,position:Position):
         result:dict[Direction,GameContent] = dict()
