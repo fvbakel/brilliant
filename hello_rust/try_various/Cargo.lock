@@ -3,5 +3,5 @@
 version = 3
 
 [[package]]
-name = "try_graph"
+name = "try_various"
 version = "0.1.0"
