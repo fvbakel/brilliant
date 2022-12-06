@@ -11,35 +11,30 @@ pub fn try_all() {
 }
 
 fn try_vector_one() {
-    let mut v_1:Vec<i32> = Vec::new();
-    let v_2 = vec![1,2,3];
+    let mut v_1: Vec<i32> = Vec::new();
+    let v_2 = vec![1, 2, 3];
     v_1.push(1);
     let o = v_2.get(1);
-    let o_1 = if let Some(x) = o {
-        *x
-    } else {
-        i32::from(0)
-    };
+    let o_1 = if let Some(x) = o { *x } else { i32::from(0) };
     v_1.push(o_1);
 
-    println!("v1 has size {}",v_1.len());
+    println!("v1 has size {}", v_1.len());
 }
 
 fn try_string() {
     let mut s_1 = String::from("The value of string s_1");
     let s_2 = " and this is s_2";
     s_1.push_str(s_2);
-    println!("The value of s_1 is {}",s_1);
-    println!("The value of s_2 is {}",s_2);
+    println!("The value of s_1 is {}", s_1);
+    println!("The value of s_2 is {}", s_2);
 
     let s_3 = String::from("Hello, ");
     let s_4 = String::from("world!");
-    let s_5 = s_3 + &s_4; 
-    println!("The value of s_5 is {}",s_5);
+    let s_5 = s_3 + &s_4;
+    println!("The value of s_5 is {}", s_5);
     // below is not possible because s_3 is moved!
     // println!("The value of s_4 is {}",s_4);
-    println!("The value of s_4 is {}",s_4);
-
+    println!("The value of s_4 is {}", s_4);
 }
 
 fn try_string_utf8() {
@@ -60,27 +55,27 @@ fn try_string_utf8() {
 
     println!("In byte values:");
     for byte in hello.as_bytes() {
-        print!("{:#02X?} ,",byte);
+        print!("{:#02X?} ,", byte);
     }
     println!();
 
     println!("In char byte values:");
     for char in hello.chars() {
-        let mut buffer = [0;4];
+        let mut buffer = [0; 4];
         let bytes = char.encode_utf8(&mut buffer);
         print!("{char}= ");
         for byte in bytes.as_bytes() {
-            print!("{:#02X?} ,",byte);
+            print!("{:#02X?} ,", byte);
         }
         print!(" char size: {}", std::mem::size_of_val(&char));
         print!(" bytes len: {}", bytes.len());
         print!(" char.len_utf8(): {}", char.len_utf8());
-       
+
         println!();
     }
 
-    println!("{:#02X?}",hello.as_bytes());
-    
+    println!("{:#02X?}", hello.as_bytes());
+
     println!("End try_string_utf8.");
 }
 
@@ -90,26 +85,26 @@ fn try_slices_of_string() {
 
     // `first_word` works on slices of `String`s, whether partial or whole
     let word = first_word(&my_string[0..6]);
-    println!("The value of word is {}",word);
+    println!("The value of word is {}", word);
     let word = first_word(&my_string[..]);
-    println!("The value of word is {}",word);
+    println!("The value of word is {}", word);
     // `first_word` also works on references to `String`s, which are equivalent
     // to whole slices of `String`s
     let word = first_word(&my_string);
-    println!("The value of word is {}",word);
+    println!("The value of word is {}", word);
 
     let my_string_literal = "hello world";
 
     // `first_word` works on slices of string literals, whether partial or whole
     let word = first_word(&my_string_literal[0..6]);
-    println!("The value of word is {}",word);
+    println!("The value of word is {}", word);
     let word = first_word(&my_string_literal[..]);
-    println!("The value of word is {}",word);
+    println!("The value of word is {}", word);
 
     // Because string literals *are* string slices already,
     // this works too, without the slice syntax!
     let word = first_word(my_string_literal);
-    println!("The value of word is {}",word);
+    println!("The value of word is {}", word);
     println!("End try_slices_of_string.");
 }
 
@@ -149,7 +144,7 @@ fn try_slices_of_array() {
     for val in slice {
         print!("{val},");
     }
-    
+
     println!("\nSlice [2..-2]:");
     let slice = &a[2..];
     for val in slice {
@@ -174,16 +169,15 @@ fn try_hash_maps() {
 
         // add one
         let score = scores.entry(String::from("LightBlue")).or_insert(0);
-        *score +=1;
+        *score += 1;
 
-        scores.entry(String::from("LightBlue"))
-            .and_modify(|e| { *e += 1 })
-        ;
+        scores
+            .entry(String::from("LightBlue"))
+            .and_modify(|e| *e += 1);
 
-        scores.entry(String::from("Does not exist"))
-            .and_modify(|e| { *e += 1 })
-        ;
-
+        scores
+            .entry(String::from("Does not exist"))
+            .and_modify(|e| *e += 1);
 
         let key = String::from("Green");
         let value = 25;
@@ -191,32 +185,31 @@ fn try_hash_maps() {
         // below is not possible
         //println!("Key={}",key);
         // below is possible because value is int
-        println!("value={}",value);
+        println!("value={}", value);
 
         let key = String::from("Pink");
         let value = 35;
         scores.insert(key.clone(), value);
-        println!("Key={}",key);
+        println!("Key={}", key);
 
-
-        let team_name = String::from("Blue"); 
+        let team_name = String::from("Blue");
         let score = scores.get(&team_name);
         let score = if let Some(x) = score {
             *x
         } else {
             i32::from(0)
         };
-        println!("score for team [{0}] =[{1}]",team_name,score);
+        println!("score for team [{0}] =[{1}]", team_name, score);
 
-        let team_name = String::from("Blue"); 
+        let team_name = String::from("Blue");
         let score = scores.get(&team_name).copied().unwrap_or(0);
-        println!("score for team [{0}] =[{1}]",team_name,score);
+        println!("score for team [{0}] =[{1}]", team_name, score);
 
-        let team_name = String::from("Does not exist"); 
+        let team_name = String::from("Does not exist");
         let score = scores.get(&team_name).copied().unwrap_or(0);
-        println!("score for team [{0}] =[{1}]",team_name,score);
+        println!("score for team [{0}] =[{1}]", team_name, score);
 
-        println!("HashMap scores={:?}",scores);
+        println!("HashMap scores={:?}", scores);
 
         println!("Key values:");
         for (key, value) in &scores {
@@ -231,13 +224,12 @@ fn try_hash_maps() {
         let s = String::from("A|B|C|A|B|E|Q");
         for field in s.split('|') {
             map.entry(String::from(field))
-                .and_modify(|e| {*e += 1})
+                .and_modify(|e| *e += 1)
                 .or_insert(1);
         }
-        println!("Count of {0} results: {1:?}",s,map);
+        println!("Count of {0} results: {1:?}", s, map);
     }
     println!("End try_hash_maps.");
-
 }
 
 fn try_string_splitters() {
@@ -246,23 +238,23 @@ fn try_string_splitters() {
 
     println!("s.split('|')");
     let fields = s.split('|');
-    println!("Fields={:?}",fields);
-    
+    println!("Fields={:?}", fields);
+
     println!("s.split('|').collect()");
-    let fields:Vec<&str> = s.split('|').collect();
-    println!("Fields={:?}",fields);
+    let fields: Vec<&str> = s.split('|').collect();
+    println!("Fields={:?}", fields);
 
     println!("s.split(\"Q\").collect()");
-    let fields:Vec<&str> = s.split("Q").collect();
-    println!("Fields={:?}",fields);
+    let fields: Vec<&str> = s.split("Q").collect();
+    println!("Fields={:?}", fields);
 
     println!("s.split(' ').collect()");
-    let fields:Vec<&str> = s.split(' ').collect();
-    println!("Fields={:?}",fields);
+    let fields: Vec<&str> = s.split(' ').collect();
+    println!("Fields={:?}", fields);
 
     println!("s.split(' ').collect()");
-    let fields:Vec<&str> = s.split_whitespace().collect();
-    println!("Fields={:?}",fields);
+    let fields: Vec<&str> = s.split_whitespace().collect();
+    println!("Fields={:?}", fields);
 
     println!("End try_string_splitters.");
 }
