@@ -6,6 +6,7 @@ from datetime import datetime
 from PIL import Image
 from pathlib import Path
 import logging
+from enum import Enum
 
 class Configuration:
 
@@ -16,17 +17,25 @@ class Configuration:
         self.max_height = 600
         self.max_dim = (self.max_height,self.max_width)
 
+class DisplayMode(Enum):
+    DERIVED = 1
+    SUBTRACT= 2
+
 class MotionDetector:
     def __init__(self, configuration:Configuration):
         self.configuration = configuration
         self.filename:str = None
         self.frame = None
+        self.derived = None
         self.fps:float = None
         self.cap = None
         self.number_of_frames:int = 0
         self.current_frame_num:int = -1
         self.frames:list = None
+        self.derived_frames:list = None
+        self.subtract_frames:list = None
         self.cached = False
+        self.display_mode = DisplayMode.DERIVED
 
     def open_file(self,filename:str):
         self.filename = filename
@@ -36,18 +45,30 @@ class MotionDetector:
         #self.read_frame()
         self.current_frame_num = -1
         self.cache_frames()
-
+        if self.display_mode is DisplayMode.SUBTRACT:
+            self.make_subtract()
+        self.set_begin()
 
     def cache_frames(self):
         self.frames = []
+        self.derived_frames = []
         while True:
             ret = self._read_frame_from_file()
             if not ret:
                 break
             self.frames.append(self.frame)
+            self.derived_frames.append(self.derived)
         self.cached = True
-        self.set_begin()
 
+    def make_subtract(self):
+        self.subtract_frames = []
+        size = len(self.derived_frames)
+        for index,frame in enumerate(self.derived_frames,start=1):
+            if index < size:
+                diff = cv2.subtract(frame, self.derived_frames[index])
+                self.subtract_frames.append(diff)
+        last = self.subtract_frames[-1]
+        self.subtract_frames.append(last)
 
     def set_fps(self):
         (major_ver, minor_ver, subminor_ver) = (cv2.__version__).split('.')
@@ -79,6 +100,10 @@ class MotionDetector:
         if self.current_frame_num < (len(self.frames) -1):
             self.current_frame_num += 1
             self.frame = self.frames[self.current_frame_num]
+            if self.display_mode is DisplayMode.SUBTRACT:
+                self.derived = self.subtract_frames[self.current_frame_num]
+            else:
+                self.derived = self.derived_frames[self.current_frame_num]
             return True
         return False
 
@@ -86,10 +111,17 @@ class MotionDetector:
         ret = False
         if  self.cap is not None and self.cap.isOpened():
             ret, self.frame = self.cap.read()
+            if ret:
+                self.make_derived_frame()
             self.current_frame_num += 1
         return ret
     
-    def dump_curent_frame(self):
+    def make_derived_frame(self):
+        grayImage = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
+        self.derived = grayImage
+
+
+    def dump_current_frame(self):
         if self.frame is not None:
             timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
             cv2.imwrite(self.configuration.data_dir + "/frame_" +timestamp+ ".png", self.frame)
@@ -149,6 +181,7 @@ class MotionController:
         self.detector = MotionDetector(self.configuration)
         self.timeout = 20
         self.out_resized = None
+        self.out_derived = None
         self.dim_scale: DimensionScale = None
         self.img_updated = False
 
@@ -201,6 +234,7 @@ class MotionController:
 
     def make_smaller(self):
         self.out_resized= cv2.resize(self.detector.frame, self.dim_scale.result_dim, interpolation = cv2.INTER_AREA)
+        self.out_derived= cv2.resize(self.detector.derived, self.dim_scale.result_dim, interpolation = cv2.INTER_AREA)
         self.img_updated = True
 
     def update_current_images(self):
@@ -222,7 +256,10 @@ class MotionDetectDialog:
         self.controller = MotionController(self.configuration) 
         self.right_width = 200
         left_frame = [
-            [sg.Image(filename='', key='_IMAGE_')]
+            [
+                sg.Image(filename='', key='_IMAGE_',enable_events=True),
+                sg.Image(filename='', key='_DERIVED_')
+            ]
         ]
         right_frame = [        
             [
@@ -289,6 +326,8 @@ class MotionDetectDialog:
             logging.debug("Setting new image")
             imgbytes=cv2.imencode('.png', self.controller.out_resized)[1].tobytes()
             self.window.FindElement('_IMAGE_').Update(data=imgbytes)
+            imgbytes=cv2.imencode('.png', self.controller.out_derived)[1].tobytes()
+            self.window.FindElement('_DERIVED_').Update(data=imgbytes)
             self.controller.img_updated = False
 
     def run(self):
@@ -301,6 +340,13 @@ class MotionDetectDialog:
             if event == '__BEGIN__':
                 self.controller.set_begin()
                 self.update_radio_buttons()
+            if event == '_IMAGE_':
+                print("Click on image detected, values=",values)
+                #mouse = values['_IMAGE_']
+                mouse = sg.Window.mouse_location()
+                if mouse == (None, None):
+                    continue
+                print("mouse=",mouse)
 
             self.do_update_cycle()
 
