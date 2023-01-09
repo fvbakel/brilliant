@@ -36,7 +36,7 @@ Given a short video this program can be used to analyze the motion of objects in
 
 
 
-    class MotionAnalyzer {
+    class MotionAnalyzes {
 
         calculate_trajects()
         add_track_object()
@@ -71,8 +71,9 @@ Given a short video this program can be used to analyze the motion of objects in
     VideoView --> Video : result_video
 
     TrackedObject --> VideoFrame :based_on
-    MotionAnalyzer --> Video: org_video
-    MotionAnalyzer --> TrackedObject :tracked_objects
+    MotionAnalyzes --> Video: video
+    MotionAnalyzes  --> TrackedObject :tracked_objects
+    MotionAnalyzes --> PixToMeter
 
 ```
 
