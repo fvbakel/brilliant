@@ -210,22 +210,21 @@ class MotionAnalyzes:
             w_min:w_max
         ]
 
-    def make_color_filter(self):
-        Z = self.img_to_search.reshape((-1,3))
+    def make_color_filter(self,img,nr_of_clusters=2):
+        Z = img.reshape((-1,3))
 
         # convert to np.float32
         Z = np.float32(Z)
 
         # define criteria, number of clusters(K) and apply kmeans()
         criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
-        K = 8
-        ret,label,center=cv2.kmeans(Z,K,None,criteria,10,cv2.KMEANS_RANDOM_CENTERS)
+        ret,label,center=cv2.kmeans(Z,nr_of_clusters,None,criteria,10,cv2.KMEANS_RANDOM_CENTERS)
 
         # Now convert back into uint8, and make original image
         center = np.uint8(center)
         res = center[label.flatten()]
-        res2 = res.reshape((self.img_to_search.shape))
-        dump_frame(res2,name="filtered_")
+        res2 = res.reshape((img.shape))
+        return res2
 
     def detect_object_at_pos(self,frame_num:int,pos_inside_w_h:tuple[int,int],threshold = 20):
         tracked_object = TrackedObject(pos_inside_w_h,frame_num)
@@ -342,7 +341,8 @@ class MotionAnalyzes:
         self.empty = np.ones_like(self.video.frames[0]) * 255
         self.motion_mask = self.make_motion_mask(5)
         self.set_search_img_tracked_object(tracked_object)
-        self.make_color_filter()
+        img_to_search_filter = self.make_color_filter(self.img_to_search,3)
+        dump_frame(img_to_search_filter,name=f"img_to_search_filter")
         dump_frame(self.motion_mask,name=f"motion_mask")
         for cur_frame_idx in range(0,self.video.nr_of_frames):
             top_left_w_h:tuple[int,int] = tracked_object.bounding_box.up_left
@@ -356,6 +356,8 @@ class MotionAnalyzes:
             if cur_frame_idx < 5 or (cur_frame_idx % 5 == 0):
                 tmp_img = self.draw_bounding_box(tracked_object,cur_frame_idx)
                 dump_frame(tmp_img,name=f"detect_img_{cur_frame_idx}")
+                #filter_img = self.make_color_filter(self.video.frames[cur_frame_idx],3)
+                #dump_frame(filter_img,name=f"filter_img{cur_frame_idx}")
                 if False and cur_frame_idx > 1:
                     diff_img = cv2.subtract(
                         self.video.frames[cur_frame_idx-1],

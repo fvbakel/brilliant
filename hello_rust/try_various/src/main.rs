@@ -5,6 +5,9 @@ mod try_files;
 mod try_gramps;
 mod try_pointers;
 mod try_pointers_2;
+mod cars;
+mod cars2;
+
 /*
 struct Node {
     children: ve
@@ -181,4 +184,6 @@ fn main() {
     crate::try_gramps::try_gramps();
     crate::try_pointers::try_all();
     crate::try_pointers_2::try_main();
+    crate::cars::main();
+    crate::cars2::main();
 }
