@@ -7,6 +7,7 @@ import copy
 class GpxReducer:
 
     def __init__(self,filename:str):
+        self.max_name_size = 13
         self.filename=filename
         self.tree = ET.parse(filename)
         self.init_namespace()
@@ -98,7 +99,7 @@ class GpxReducer:
             tmp_root.append(tmp_trk)
 
             new_name = copy.copy(name)
-            new_name.text = f'{new_name.text} - {file_nr}'
+            new_name.text = f'{new_name.text[0:self.max_name_size-2]}{file_nr:2}'
             tmp_trk.append(new_name)
             tmp_trk.append(copy.copy(desc))
             new_seg = ET.Element('trkseg',seg.attrib)
@@ -111,14 +112,15 @@ class GpxReducer:
         new_tree, new_seg= make_new_track(file_nr)
         
         for index,point in enumerate(seg,start=1):
+            new_point = copy.copy(point)
+            new_seg.append(new_point)
             if (index % max) == 0:
                 new_tree.write(self._get_out_filename(f'_{file_nr}'),xml_declaration=True)
                 file_nr += 1
                 new_tree,new_seg = make_new_track(file_nr)
-            new_point = copy.copy(point)
-            new_seg.append(new_point)
-
-        new_tree.write(self._get_out_filename(f'_{file_nr}'),xml_declaration=True)
+            
+        if (index % max) != 0:
+            new_tree.write(self._get_out_filename(f'_{file_nr}'),xml_declaration=True)
 
     def reduce(self,max:int):
         to_reduce = self.point_count - max 

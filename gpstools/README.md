@@ -11,7 +11,8 @@ Examples:
 
 ```sh
 python3 reduce.py -a KM_2023.gpx
-python3 reduce.py -a KM_2023_seg_1.gpx
+python3 reduce.py -r -m 1000 KM_2023_seg_1.gpx
+python3 reduce.py -a KM_2023_seg_1_reduced.gpx
 ```
 
 ## How to get latest OSM map
@@ -33,5 +34,5 @@ sudo apt-get gpsbabel
 - Switch GPS on
 
 ```sh
-sudo gpsbabel -t -i gpx -f KM_2023_seg_1_1.gpx -o garmin -F usb:
+sudo gpsbabel -t -i gpx -f KM_2023_seg_1_reduced_1.gpx -o garmin -F usb:
 ```
