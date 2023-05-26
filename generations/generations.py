@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from enum import Enum
 
 import logging
@@ -17,13 +18,13 @@ class Creature:
     def __init__(self, parents:Couple,sex:Sex):
         self.parents = parents
         self.sex = sex
-        self.couples:list(Couple) = []
+        self.couples:list[Couple] = []
 
         Creature.LAST_ID += 1
         self.id = str(Creature.LAST_ID) 
 
 class Couple:
-    def __init__(self, mother:Creature, father:Creature):
+    def __init__(self, father:Creature,mother:Creature):
         if mother.sex != Sex.FEMALE:
             logging.error("Mother must be female")
             return
@@ -33,15 +34,16 @@ class Couple:
 
         for couple in mother.couples:
             if couple.father == father:
-                logging.error("Already a couple")
+                logging.error(f"Already a couple {couple.get_id()}")
                 return
 
         self.mother = mother
         self.father = father
-        self.children:list(Creature) = []
+        self.children:list[Creature] = []
 
-        mother.couples.append(self)
-        father.couples.append(self)
+    def init_members(self):
+        self.mother.couples.append(self)
+        self.father.couples.append(self)
 
     def make_child(self):
         sex = random.choice((Sex.MALE,Sex.FEMALE))
@@ -52,11 +54,96 @@ class Couple:
     def get_id(self):
         return f"{self.father.id}-{self.mother.id}"
 
+class ChildRule:
+
+    def can_have_child(self,couple:Couple) -> bool:
+        return True
+    
+class MaxChildRule:
+    def set_max(self,max:int):
+        self.max = max
+
+    def can_have_child(self,couple:Couple):
+        return len(couple.children) < self.max
+
+class CoupleRule:
+
+    def is_allowed(self,couple:Couple) -> bool:
+        return True
+
+class NoSiblingsCoupleRule:
+
+    def is_allowed(self,couple:Couple) -> bool:
+        if couple.father.parents is None:
+            return True
+        if couple.mother.parents is None:
+            return True
+        
+        if couple.mother.parents == couple.father.parents:
+            logging.debug(f"Couple {couple.get_id()} not allowed, these are siblings from {couple.mother.parents.get_id()}")
+            return False
+        
+        return True
+
+
 class Population:
 
     def __init__(self):
-        self.creatures = []
-        self.couples = []
+        self.creatures:list[Creature] = []
+        self.couples:list[Couple] = []
+
+class PopulationGenerator:
+
+    def __init__(self,child_rule:ChildRule,couple_rule:CoupleRule):
+        self.population:Population = Population()
+        self.child_rule = child_rule
+        self.couple_rule = couple_rule
+
+    def make_even_root_couples(self,nr_of_couples:int):
+        for i in range(0,nr_of_couples):
+            father = Creature(None,Sex.MALE)
+            mother = Creature(None,Sex.FEMALE)
+            self.population.creatures.append(father)
+            self.population.creatures.append(mother)
+            c = Couple(father=father,mother=mother)
+            c.init_members()
+            self.population.couples.append(c)
+
+    def make_random_root(self,nr:int):
+        for i in range(0,nr):
+            self._make_random_root_creature()
+    
+    def _make_random_root_creature(self):
+        sex = random.choice((Sex.MALE,Sex.FEMALE))
+        c = Creature(None,sex)
+        self.population.creatures.append(c)
+        return c
+    
+    def make_couples(self):
+        free_males:list[Creature] = []
+        free_females:list[Creature] = []
+
+        for creature in self.population.creatures:
+            if len(creature.couples) == 0:
+                if creature.sex == Sex.MALE:
+                    free_males.append(creature)
+                else:
+                    free_females.append(creature)
+        
+        while (len(free_males) > 0) and (len(free_females) > 0):
+            f = free_males.pop()
+            m = free_females.pop()
+            c = Couple(mother=m,father=f)
+            if self.couple_rule.is_allowed(c):
+                self.population.couples.append(c)
+                c.init_members()
+    
+    def make_children(self):
+        for couple in self.population.couples:
+            if self.child_rule.can_have_child(couple):
+                child = couple.make_child()
+                self.population.creatures.append(child)
+
 
 class Population2Dot:
 
