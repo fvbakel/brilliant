@@ -1,7 +1,7 @@
 # GPS Tools
 
 ## reduce.py
-The Garmpin GPSmap 60CSX has a limitation of 20 tracks that can be stored. each track has a maximum of 500 points. A GPX file might contain more that 500 points. With this script the number of points can be reduced by:
+The Garmpin GPSmap 60CSX has a limitation of 20 tracks that can be stored. Each track has a maximum of 500 points. A GPX file might contain more that 500 points. With this script the number of points can be reduced by:
 
 - splitting segments to separate files
 - splitting the gpx in separate files
