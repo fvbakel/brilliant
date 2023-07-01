@@ -77,9 +77,7 @@ class TestGenerations(unittest.TestCase):
 
         generator = PopulationGenerator(child_rule=max_4,couple_rule=couple_rule)
         generator.make_even_root_couples(2)
-        #generator.make_couples()
 
-        generator.make_couples()
         r = Population2Dot(generator.population)
         r.render(self._testMethodName + "001" + ".dot",TEST_TMP_DIR)
 
@@ -89,11 +87,7 @@ class TestGenerations(unittest.TestCase):
         r.render(self._testMethodName + "002" + ".dot",TEST_TMP_DIR)
 
         generator.make_children()
-        generator.make_children()
-        generator.make_children()
         generator.make_couples()
-        generator.make_children()
-        generator.make_children()
         generator.make_children()
         generator.make_children()
 

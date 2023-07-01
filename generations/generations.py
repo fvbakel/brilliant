@@ -65,6 +65,14 @@ class MaxChildRule:
 
     def can_have_child(self,couple:Couple):
         return len(couple.children) < self.max
+    
+class RandomMaxChildRule:
+    def set_max(self,max:int):
+        self.max = max
+
+    def can_have_child(self,couple:Couple):
+        if len(couple.children) < self.max:
+            return random.choice((True,False))
 
 class CoupleRule:
 
@@ -130,6 +138,9 @@ class PopulationGenerator:
                 else:
                     free_females.append(creature)
         
+        random.shuffle(free_males)
+        random.shuffle(free_females)
+
         while (len(free_males) > 0) and (len(free_females) > 0):
             f = free_males.pop()
             m = free_females.pop()
@@ -169,7 +180,7 @@ class Population2Dot:
         node_details += ' } }'
         self.dot.node(name=creature.id,label=node_details,shape='record')
 
-
+    # TODO: Keep Children in subgraph
     def _add_couple(self,couple:Couple):
         couple_id = couple.get_id()
         self.dot.node(name=couple_id,shape='circle',label='')
