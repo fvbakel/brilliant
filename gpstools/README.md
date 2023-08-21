@@ -21,7 +21,9 @@ python3 reduce.py -a KM_2023_seg_1_reduced.gpx
 ## How to copy OSM maps to GPS
 
 
-## How to copy a GPX to the Garmin GPSmap 60CSX
+## Gpsbabel
+
+### Install and connect
 
 - Install gpsbabel first:
 
@@ -33,6 +35,14 @@ sudo apt-get gpsbabel
 - Connect GPS to USB port
 - Switch GPS on
 
+***Copy a GPX to the Garmin GPSmap 60CSX***
+
 ```sh
 sudo gpsbabel -t -i gpx -f KM_2023_seg_1_reduced_1.gpx -o garmin -F usb:
+```
+
+***Get track from Garmin to disk***
+
+```sh
+sudo gpsbabel -t -i garmin -f usb: -o gpx -F track.gpx
 ```
