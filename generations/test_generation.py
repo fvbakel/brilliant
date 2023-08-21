@@ -73,14 +73,14 @@ class TestGenerations(unittest.TestCase):
         max_4 = MaxChildRule()
         max_4.set_max(4)
 
-        couple_rule = NoSiblingsCoupleRule()
-
-        generator = PopulationGenerator(child_rule=max_4,couple_rule=couple_rule)
+        generator = PopulationGenerator()
+        generator.child_rules.append(max_4)
+        generator.couple_rules.append(NoSiblingsCoupleRule())
+        generator.couple_rules.append(NotDeadRule())
         generator.make_even_root_couples(2)
 
         r = Population2Dot(generator.population)
         r.render(self._testMethodName + "001" + ".dot",TEST_TMP_DIR)
-
         
         generator.make_children()
         r = Population2Dot(generator.population)

@@ -12,6 +12,26 @@ class Sex(Enum):
     MALE = 'm'
     FEMALE = 'f'
 
+class Singleton:
+
+    instance = None
+
+    def __new__(cls):
+        if cls.instance is None:
+            cls.instance = super().__new__(cls)
+        return cls.instance
+
+class Cycle(Singleton):
+
+    def __init__(self):
+        self.cycle_nr = 1
+    
+    def increase(self):
+        self.cycle_nr += 0
+    
+    def reset(self):
+        self.cycle_nr = 0
+
 class Creature:
     LAST_ID = 0
 
@@ -19,9 +39,26 @@ class Creature:
         self.parents = parents
         self.sex = sex
         self.couples:list[Couple] = []
+        self.cycle_born = Cycle().cycle_nr
+        self.cycle_dead = None
 
         Creature.LAST_ID += 1
         self.id = str(Creature.LAST_ID) 
+
+    def die(self):
+        self.cycle_dead = Cycle().cycle_nr
+
+    def is_alive(self):
+        if not self.cycle_dead:
+            return True
+        else:
+            return False
+
+    def get_age(self):
+        if not self.cycle_dead:
+            return Cycle().cycle_nr - self.cycle_born
+        else:
+            return Cycle().cycle_dead - self.cycle_born
 
 class Couple:
     def __init__(self, father:Creature,mother:Creature):
@@ -54,6 +91,9 @@ class Couple:
     def get_id(self):
         return f"{self.father.id}-{self.mother.id}"
 
+#
+#
+# Rules
 class ChildRule:
 
     def can_have_child(self,couple:Couple) -> bool:
@@ -79,7 +119,7 @@ class CoupleRule:
     def is_allowed(self,couple:Couple) -> bool:
         return True
 
-class NoSiblingsCoupleRule:
+class NoSiblingsCoupleRule(CoupleRule):
 
     def is_allowed(self,couple:Couple) -> bool:
         if couple.father.parents is None:
@@ -94,6 +134,11 @@ class NoSiblingsCoupleRule:
         return True
 
 
+class NotDeadRule:
+    def is_allowed(self,couple:Couple) -> bool:
+        return couple.father.is_alive() and couple.mother.is_alive()
+
+
 class Population:
 
     def __init__(self):
@@ -102,10 +147,10 @@ class Population:
 
 class PopulationGenerator:
 
-    def __init__(self,child_rule:ChildRule,couple_rule:CoupleRule):
+    def __init__(self):
         self.population:Population = Population()
-        self.child_rule = child_rule
-        self.couple_rule = couple_rule
+        self.child_rules:list[ChildRule] = []
+        self.couple_rules:list[CoupleRule] = []
 
     def make_even_root_couples(self,nr_of_couples:int):
         for i in range(0,nr_of_couples):
@@ -145,13 +190,21 @@ class PopulationGenerator:
             f = free_males.pop()
             m = free_females.pop()
             c = Couple(mother=m,father=f)
-            if self.couple_rule.is_allowed(c):
+            allowed =True
+            for rule in self.couple_rules:
+                if not rule.is_allowed(c):
+                    allowed = False
+            if allowed:
                 self.population.couples.append(c)
                 c.init_members()
     
     def make_children(self):
         for couple in self.population.couples:
-            if self.child_rule.can_have_child(couple):
+            allowed =True
+            for rule in self.child_rules:
+                if not rule.can_have_child(couple):
+                    allowed = False
+            if allowed:
                 child = couple.make_child()
                 self.population.creatures.append(child)
 
