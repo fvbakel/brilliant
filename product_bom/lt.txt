@@ -1,0 +1,8 @@
+Product,Leadtime
+A,1
+B,3
+C,6
+D,2
+E,5
+F,3
+G,4
