@@ -33,7 +33,7 @@
 
 static const char *TAG = "man-monitor";
 
-static const gpio_num_t PINS[] = {GPIO_NUM_27,GPIO_NUM_4,GPIO_NUM_26,GPIO_NUM_25,GPIO_NUM_32};
+static const gpio_num_t PINS[] = {GPIO_NUM_27,GPIO_NUM_4,GPIO_NUM_2,GPIO_NUM_17,GPIO_NUM_16};
 static const int nr_of_leds = 5;
 static const int seconds_active_threshold = 90;
 static const int seconds_wait_for_refresh = 60;
@@ -334,7 +334,7 @@ void app_main(void)
      * examples/protocols/README.md for more information about this function.
      */
     configure_leds();
-    raise_alarm();
+    //raise_alarm();
     vTaskDelay((1000) / portTICK_PERIOD_MS);
     ESP_ERROR_CHECK(example_connect());
 
