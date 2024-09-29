@@ -1,4 +1,5 @@
 
+from __future__ import annotations
 from dataclasses import dataclass,field
 from hashlib import new
 from typing import SupportsIndex
@@ -726,6 +727,19 @@ class DirectionDiscoverer_RDUL(DirectionDiscoverer):
         super().__init__(mover)
         self.directions = (Direction.RIGHT,Direction.DOWN,Direction.UP,Direction.LEFT)
 
+class DirectionDiscoverer_ALTER(DirectionDiscoverer):
+    selectable = True
+    next_order = [Direction.DOWN,Direction.RIGHT,Direction.LEFT,Direction.UP]
+
+    @classmethod
+    def update_next_order(cls):
+        cls.next_order.append(cls.next_order.pop(0))
+
+    def __init__(self,mover:AutomaticMove):
+        super().__init__(mover)
+        self.directions = tuple(DirectionDiscoverer_ALTER.next_order)
+        DirectionDiscoverer_ALTER.update_next_order()
+
 
 class StandStillHandler:
     selectable = True
@@ -1020,6 +1034,23 @@ class BackOutAutomaticMove(AutomaticMove):
         self.discoverer = DirectionDiscoverer_DRLU(self)
         self.standstill = StandStillNewRoute(self)
         self.coordinator = None
+
+class MyFavoriteConfig(AutomaticMove):
+    selectable = True
+    def __init__(self,game_grid:GameGrid):
+        super().__init__(game_grid)
+        self.router = Router(self)
+        self.navigator = GraphWeightAfterWin()
+        self.todo = None
+        #self.discoverer = KeepRandomDirection(self)
+        self.discoverer = DirectionDiscoverer_ALTER(self)
+        self.standstill = ForceNewRoute(self)
+        self.coordinator = None
+        self.register_coordinator(GraphCoordinator)
+
+def reconfigure(self):
+        if self.coordinator_type is not None:
+            self.register_coordinator(self.coordinator_type)
 
 class ConfigurableMove(AutomaticMove):
     selectable = True

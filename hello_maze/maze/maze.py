@@ -350,7 +350,7 @@ class MazeController:
 
         self.nr_of_cols:int = 10
         self.nr_of_rows:int = 10
-        self.manual_move:ManualMove = None
+        self.manual_move:ManualMove | None = None
         self.move_behavior:str = 'ConfigurableMove'
         self.configure_factory = ConfigurableFactory()
         self.default_factory = BehaviorFactory()

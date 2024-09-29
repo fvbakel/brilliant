@@ -1,6 +1,6 @@
+from __future__ import annotations
 from basegrid import *
 import numpy as np
-
 
 class Material(ExtendedEnum):
     NONE                  = '_'
@@ -106,14 +106,14 @@ class Behavior:
 
 class GameContent:
     def __init__(self):
-        self.position:Position   = None
-        self.solid:bool             = False
-        self.mobile:bool            = False
-        self._guest:GameContent     = None
-        self.material               = Material.FLOOR
-        self.trace_layer:Layer      = None
-        self.changed                = False
-        self.behavior:Behavior      = None
+        self.position:Position | None   = None
+        self.solid:bool                 = False
+        self.mobile:bool                = False
+        self._guest:GameContent | None  = None
+        self.material                   = Material.FLOOR
+        self.trace_layer:Layer | None   = None
+        self.changed                    = False
+        self.behavior:Behavior | None   = None
 
     def can_host_guest(self):
         if self.solid == False and self._guest is None:
@@ -130,7 +130,7 @@ class GameContent:
         return self._guest
 
     @guest.setter
-    def guest(self,guest:GameContent):
+    def guest(self,guest:GameContent | None):
         self.changed = True
         self._guest = guest
         if guest is not None:
