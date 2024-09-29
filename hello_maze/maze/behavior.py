@@ -61,7 +61,7 @@ class MoveInfo:
     def get_random_new_available(self):
         return self._get_random(self.new_available_positions)
     
-    def get_first_available_direction(self,search_order:tuple(Direction)):
+    def get_first_available_direction(self,search_order:tuple[Direction]):
         for direction in search_order:
             if direction in self.all_hosts:
                 host = self.all_hosts[direction]
@@ -296,7 +296,7 @@ class GraphNavigator(Navigator):
     def notify_cur_pos(self,moveInfo:MoveInfo):
         cur_node = self.graph.get_or_create(moveInfo.start_pos.get_id(),self.start_weight)
         cur_node.position = moveInfo.start_pos
-        cur_node.discoverd = True
+        cur_node.discovered = True
         cur_node.visit_pending = False
         cur_node.route_target = 0
         cur_node.occupied = True
@@ -304,7 +304,7 @@ class GraphNavigator(Navigator):
             child_node = self.graph.get_or_create(child_pos.get_id(),self.start_weight)
             if not hasattr(child_node,'position'):
                 child_node.position = child_pos
-                child_node.discoverd = False
+                child_node.discovered = False
                 child_node.visit_pending = False
                 child_node.route_target = 0
                 child_node.occupied = False
@@ -428,7 +428,7 @@ class GraphWeightAfterWin(GraphNavigator):
         
         if self.win_pos is None:
             for node in self.graph.nodes.values():
-                if node.discoverd == False:
+                if node.discovered == False:
                     self.end_nodes.add(node)
         else:
             win_node = self.graph.get_node(self.win_pos)
@@ -710,7 +710,7 @@ class DirectionDiscoverer(Discoverer):
     selectable = False
     def __init__(self,mover:AutomaticMove):
         super().__init__(mover)
-        self.directions:tuple(Direction)
+        self.directions:tuple[Direction]
 
     def get_move(self):
         return self.mover.moveInfo.get_first_available_direction(self.directions)
@@ -740,6 +740,23 @@ class DirectionDiscoverer_ALTER(DirectionDiscoverer):
         self.directions = tuple(DirectionDiscoverer_ALTER.next_order)
         DirectionDiscoverer_ALTER.update_next_order()
 
+class DirectionDiscoverer_ALTER_2(DirectionDiscoverer):
+    selectable = True
+    drlu_order = [Direction.DOWN, Direction.RIGHT, Direction.LEFT, Direction.UP]
+    rdul_order = [Direction.RIGHT, Direction.DOWN, Direction.UP, Direction.LEFT]
+    next_order = drlu_order
+
+    @classmethod
+    def update_next_order(cls):
+        if cls.next_order == cls.drlu_order:
+            cls.next_order = cls.rdul_order
+        else:
+            cls.next_order = cls.drlu_order
+
+    def __init__(self,mover:AutomaticMove):
+        super().__init__(mover)
+        self.directions = tuple(DirectionDiscoverer_ALTER_2.next_order)
+        DirectionDiscoverer_ALTER_2.update_next_order()
 
 class StandStillHandler:
     selectable = True
@@ -933,7 +950,7 @@ class NewNode(SearchCondition):
 
     def check(self,current:Node) -> bool:
         return current is not None and \
-                    current.discoverd == False and \
+                    current.discovered == False and \
                     current.visit_pending == False 
 
     def __repr__(self):
@@ -946,7 +963,7 @@ class NewNotTarget(SearchCondition):
 
     def check(self,current:Node) -> bool:
         return current is not None and \
-                    current.discoverd == False and \
+                    current.discovered == False and \
                     current.visit_pending == False and \
                     current.route_target < self.max_target
 
@@ -959,7 +976,7 @@ class GraphCoordinator(Coordinator):
     def __init__(self):
         super().__init__()
         # TODO: Make configurable!
-        self.navigator = GraphWeightAfterWin() #GraphPurgeNavigator() # GraphNewRoute_3()#GraphBalanceWeight() #GraphNavigator()
+        self.navigator = GraphNewRoute_3() #GraphWeightAfterWin() #GraphPurgeNavigator() # GraphNewRoute_3()#GraphBalanceWeight() #GraphNavigator()
 
     def notify_cur_pos(self,moveInfo:MoveInfo):
         self.navigator.notify_cur_pos(moveInfo)
@@ -1040,17 +1057,11 @@ class MyFavoriteConfig(AutomaticMove):
     def __init__(self,game_grid:GameGrid):
         super().__init__(game_grid)
         self.router = Router(self)
-        self.navigator = GraphWeightAfterWin()
+        self.navigator = None #GraphWeightAfterWin()
         self.todo = None
-        #self.discoverer = KeepRandomDirection(self)
-        self.discoverer = DirectionDiscoverer_ALTER(self)
+        self.discoverer = DirectionDiscoverer_ALTER_2(self)
         self.standstill = ForceNewRoute(self)
-        self.coordinator = None
         self.register_coordinator(GraphCoordinator)
-
-def reconfigure(self):
-        if self.coordinator_type is not None:
-            self.register_coordinator(self.coordinator_type)
 
 class ConfigurableMove(AutomaticMove):
     selectable = True
