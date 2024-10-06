@@ -37,6 +37,12 @@ def main():
     buffer = bytes.fromhex('FFFF FFFF')
     dump_bytes(buffer)
 
+    print("Start count")
+    for i in range(0,255):
+        as_bytes = i.to_bytes(length=2,byteorder=sys.byteorder)
+        bin_value = bin(i)
+        print(f"i : {i} hex: {as_bytes.hex(sep=' ', bytes_per_sep=2)} bin {bin_value}")
+
     print('Ready')
 
 
