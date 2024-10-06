@@ -1,0 +1,6 @@
+tmp
+*.code-workspace
+.vscode
+graph
+basegrid
+gamegrid
