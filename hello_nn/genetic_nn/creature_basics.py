@@ -1,5 +1,4 @@
 from minimal_nn import *
-from genetic_nn.simulation import *
 from graph import *
 from basegrid import *
 import sys
@@ -104,13 +103,13 @@ class Creature:
 
     def _init_dna(self):
         self._init_gens()
-        self._init_sensor_and_actions()
+        self._init_sensors_actions_network()
 
     def _init_gens(self):
         for gen_code in self.dna:
             self.gens.append(Gen(gen_code))
 
-    def _init_sensor_and_actions(self):
+    def _init_sensors_actions_network(self):
         sensor_types:set[SensorType] = set()
         hidden_neurons:set[int] = set()
         action_types:set[ActionType] = set()
@@ -122,7 +121,7 @@ class Creature:
             if valid_gen.to_neuron.type == NeuronType.HIDDEN:
                 hidden_neurons.add(valid_gen.to_neuron.index)
             if valid_gen.to_neuron.type == NeuronType.OUTPUT:
-                action_types.add(ALL_SENSOR_TYPES[valid_gen.to_neuron.index])
+                action_types.add(ALL_ACTION_TYPES[valid_gen.to_neuron.index])
         
         for sensor_type in sensor_types:
             self.sensors.append(Sensor(sensor_type))
@@ -148,7 +147,6 @@ class Creature:
         hidden_neurons_list = list(hidden_neurons)
         hidden_neurons_map:dict[int,int] = dict()
         for index,neuron in enumerate(hidden_neurons_list):
-            print(f"hidden_neurons_map: {neuron} -> {index}")
             hidden_neurons_map[neuron] = index
         
         # set weight on network    
@@ -165,7 +163,6 @@ class Creature:
                 to_index = hidden_neurons_map[valid_gen.to_neuron.index]
             if valid_gen.from_neuron.type == NeuronType.HIDDEN:
                 from_layer_index = 1
-                print(f"valid_gen.from_neuron.index {valid_gen.from_neuron.index}")
                 from_index = hidden_neurons_map[valid_gen.from_neuron.index]
                 for index,action in enumerate(self.actions):
                     action_type = ALL_ACTION_TYPES[valid_gen.to_neuron.index]
@@ -173,4 +170,8 @@ class Creature:
                         to_index = index
 
             self.network.layers[from_layer_index].weights[from_index,to_index] = valid_gen.weight
+    
+    @property
+    def valid_gens(self):
+        return [gen for gen in self.gens if gen.is_valid_connection()]
 
