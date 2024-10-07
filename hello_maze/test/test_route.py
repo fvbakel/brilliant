@@ -246,7 +246,7 @@ class TestRoute(unittest.TestCase):
             "New route can be found"
         )
         if not new_route is None:
-            self.assertEquals(
+            self.assertEqual(
                 new_route.length,
                 6,
                 "New route is expected 6 long"
@@ -262,7 +262,7 @@ class TestRoute(unittest.TestCase):
             "New route can be found backwards"
         )
         if not new_route is None:
-            self.assertEquals(
+            self.assertEqual(
                 new_route.length,
                 7,
                 "New route is expected 7 long"
