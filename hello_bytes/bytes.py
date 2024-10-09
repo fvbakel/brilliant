@@ -1,6 +1,6 @@
 #
 # Just some examples on how to work with bytes in python
-from random import randbytes
+from random import randbytes, randrange
 import sys
 
 def bytes_to_string(buffer: bytes) ->str:
@@ -42,6 +42,17 @@ def main():
         as_bytes = i.to_bytes(length=2,byteorder=sys.byteorder)
         bin_value = bin(i)
         print(f"i : {i} hex: {as_bytes.hex(sep=' ', bytes_per_sep=2)} bin {bin_value}")
+
+    i = 0
+    print(bin(i))
+    i ^= 1 << 3
+    print(bin(i))
+
+    buffer = bytes.fromhex('FF FF FF FF')
+    int_value = int.from_bytes(buffer,byteorder=sys.byteorder)
+    dump_bytes(buffer)
+    int_value ^= 1 << randrange(31)
+    dump_bytes(int_value.to_bytes(4,byteorder=sys.byteorder))
 
     print('Ready')
 
