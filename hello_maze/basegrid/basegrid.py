@@ -144,8 +144,8 @@ class Grid:
         return list(range(0,self.size.nr_of_cols * self.size.nr_of_rows))
 
     def get_position(self,flat_id:int):
-        col_index = flat_id // self.size.nr_of_cols
-        row_index = flat_id %  self.size.nr_of_cols
+        row_index = flat_id // self.size.nr_of_cols
+        col_index = flat_id %  self.size.nr_of_cols
         return Position(col=col_index,row=row_index)
 
 @dataclass
