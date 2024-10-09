@@ -63,3 +63,16 @@ class TestBasegrid(unittest.TestCase):
         self.assertTrue(Position(0,0) in positions,"0-0 is in rectangle 0-0,2-4")
         self.assertTrue(Position(2,4) in positions,"2-4 is in rectangle 0-0,2-4")
         self.assertTrue(len(positions) == 15,"rectangle 0-0,2-4 has 3 * 5 = 15 positions")
+
+    def test_flat_id(self):
+        size = Size(nr_of_cols=5,nr_of_rows=2)
+        grid = Grid(size = size)
+        self.assertEqual(len(grid.flat_ids),10)
+        pos = grid.get_position(0)
+        self.assertEqual(Position(0,0),pos)
+        pos = grid.get_position(4)
+        self.assertEqual(Position(0,4),pos)
+        pos = grid.get_position(5)
+        self.assertEqual(Position(1,0),pos)
+        pos = grid.get_position(6)
+        self.assertEqual(Position(1,1),pos)
