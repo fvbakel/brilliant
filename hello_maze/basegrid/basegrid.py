@@ -122,8 +122,8 @@ class Grid:
         return None
 
     def has_location(self,position:(Position | tuple[int,int])):
-        if  self.size.nr_of_cols > position.col and \
-            self.size.nr_of_rows > position.row:
+        if  0 <= position.col < self.size.nr_of_cols and \
+            0 <= position.row < self.size.nr_of_rows:
                 return True
         return False
 

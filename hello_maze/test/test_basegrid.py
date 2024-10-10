@@ -92,3 +92,20 @@ class TestBasegrid(unittest.TestCase):
         self.assertEqual(Position(0,3),pos)
         pos = grid.get_position(7)
         self.assertEqual(Position(1,3),pos)
+
+    def test_has_location(self):
+        size = Size(10,15)
+        grid = Grid(size)
+
+        pos = Position(0,0)
+        self.assertTrue(grid.has_location(pos))
+        pos = Position(9,14)
+        self.assertTrue(grid.has_location(pos))
+        pos = Position(10,0)
+        self.assertFalse(grid.has_location(pos))
+        pos = Position(0,16)
+        self.assertFalse(grid.has_location(pos))
+        pos = Position(-1,1)
+        self.assertFalse(grid.has_location(pos))
+        pos = Position(1,-1)
+        self.assertFalse(grid.has_location(pos))
