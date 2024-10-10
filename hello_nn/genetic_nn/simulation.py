@@ -144,8 +144,6 @@ class DNA2NetworkSimulation:
     
     def set_creature_position(self,new_pos:Position,creature:Creature):
         if      new_pos is None or \
-                new_pos.col < 0 or \
-                new_pos.row < 0 or \
             not self.grid.has_location(new_pos) or \
                 self.grid.get_location(new_pos) is not None:
                 return
@@ -168,10 +166,13 @@ class DNA2NetworkSimulation:
         new_dna, mutated = copy_dna(creature.dna,self.mutation_probability)
         if mutated:
             self.nr_mutated += 1
-            return Creature(dna=new_dna)
-        else:
-            creature.reset()
-            return creature
+        return Creature(dna=new_dna)
+        """ 
+            Below is a possible performance gain
+            copy_creature = copy.deepcopy(creature)
+            copy_creature.reset()
+            return copy_creature
+        """
 
     def reproduce_population(self):
         survivors = self.survivors
