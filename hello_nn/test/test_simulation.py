@@ -8,16 +8,8 @@ class TestDNA2NetworkSimulation(unittest.TestCase):
         sim = DNA2NetworkSimulation()
         sim.make_random_population()
         print('')
-        print(sim.statistics())
+        print(sim.report())
 
-        sim.do_one_cycle()
-        print(sim.statistics())
-        for i in range(0,100):
-            sim.do_one_cycle()
-        print(sim.statistics())
-
-        for i in range(0,1000):
-            sim.do_one_cycle()
-        print(sim.statistics())
-        
+        sim.max_nr_of_cycles = 110
+        sim.run_simulation()
 

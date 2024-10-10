@@ -1,8 +1,22 @@
 from random import randbytes, random, randrange, sample, randint
-from genetic_nn.creature_basics import Creature, ALL_SENSOR_TYPES, ALL_ACTION_TYPES, NR_OF_HIDDEN_NEURONS, TOTAL_NR_OF_NEURONS,Gen
 import copy
 import sys
 import statistics
+from typing import Any
+import numpy as np
+import cv2
+
+from genetic_nn.creature_basics import (
+    Creature, 
+    ALL_SENSOR_TYPES, ALL_ACTION_TYPES, NR_OF_HIDDEN_NEURONS, TOTAL_NR_OF_NEURONS,
+    Gen,
+    SensorType,ActionType
+)
+
+from basegrid import (
+    Grid,Size,Position, ExtendedEnum,
+    Direction
+)
 
 def copy_dna(dna:list[bytes],mutation_probability:float):
     if random() < mutation_probability:
@@ -34,19 +48,50 @@ def random_gen_code(valid_only:bool = False):
     else:
         return randbytes(4)
 
-
+def median(input):
+    if len(input) == 0:
+        return 0
+    return statistics.median(input)
 
 class DNA2NetworkSimulation:
 
     def __init__(self):
-        self.nr_of_cycles           = 1000
-        self.population_size        = 3000
-        self.nr_of_initial_gens     = 16
-        self.mutation_probability   = 0.03
+        self.max_nr_of_cycles       = 100
+        self.nr_of_steps_per_cycle  = 200
+        self.population_size        = 800
+        self.nr_of_initial_gens     = 3
+        self.mutation_probability   = 0.01
+        self.report_initial_cycles  = 10
+        self.report_interval_cycles = 10
         self.initial_valid_gens     = True
+
         self.current_creatures:list[Creature]  = []
-        self.current_cycle          = 1
+        self.current_cycle          = 0
         self.nr_mutated             = 0
+        self.grid_size              = Size(150,200)
+        self.grid                   = Grid(self.grid_size)
+        self.render                 = GridRender(self.grid)
+
+    def run_simulation(self):
+        while self.current_cycle < self.max_nr_of_cycles and self.nr_of_survivors > 0:
+            self.do_one_cycle(False)
+            if  self.current_cycle <= self.report_initial_cycles or \
+                self.current_cycle % self.report_interval_cycles == 0:
+                    self.report()
+        self.report()
+
+    def report(self):
+        print('*** Statistics report ***')
+        stats = self.statistics()
+        for stat in stats:
+            print(stat)
+        self.render.render()
+        self.render.save_output(f'./tmp/sim_stat_gen_{self.current_cycle:04d}.png')
+
+    def reset_grid(self):
+        for row in range(0,self.grid.size.nr_of_rows):
+            for col in range(self.grid.size.nr_of_cols):
+                self.grid.set_location(position=Position(col=col,row=row), content=None)
 
     def make_random_population(self):
         for i in range(0,self.population_size):
@@ -55,9 +100,69 @@ class DNA2NetworkSimulation:
                 dna.append(random_gen_code(self.initial_valid_gens))
             self.current_creatures.append(Creature(dna=dna))
 
-    def do_one_cycle(self):
+    def do_one_cycle(self,report_details:False):
         self.current_cycle += 1
-        self.reproduce_population()
+        if self.current_cycle > 1:
+            self.reset_grid()
+            self.reproduce_population()
+        self.assign_random_positions()
+        for i in range(0, self.nr_of_steps_per_cycle):
+            if report_details:
+                self.render.render()
+                self.render.save_output(f'./tmp/sim_details_{self.current_cycle:04d}_step_{i}.png')
+            self.do_one_step(i)
+        self.select_survivors()
+
+    def assign_random_positions(self):
+        flat_position_ids = sample(population=self.grid.flat_ids,k=self.nr_of_valid_creatures)
+        for index,creature in enumerate(self.valid_creatures):
+            pos = self.grid.get_position(flat_position_ids[index])
+            self.set_creature_position(new_pos=pos,creature=creature)
+    
+    def do_one_step(self,step_nr:int):
+        creatures = sample(population=self.valid_creatures ,k=self.nr_of_valid_creatures)
+        for creature in creatures:
+            self.assign_sensor_values(creature)
+            action = creature.decide_action()
+            self.do_action_on_creature(action,creature)
+
+    def assign_sensor_values(self,creature:Creature):
+        # TODO build actual implementation
+        for sensor in creature.sensors:
+            if sensor.type == SensorType.LEFT.value:
+                sensor.current_value = 1
+            else:
+                sensor.current_value = 5
+
+    def do_action_on_creature(self,action:ActionType,creature:Creature):
+        # TODO build actual implementation
+        # TODO Store actual enumeration object instead of value on action type
+        new_pos:Position | None = None
+        if action == ActionType.MOVE_LEFT.value:
+            new_pos =  creature.current_position.get_position_in_direction(Direction.LEFT)
+        self.set_creature_position(new_pos=new_pos,creature=creature)
+    
+    def set_creature_position(self,new_pos:Position,creature:Creature):
+        if      new_pos is None or \
+                new_pos.col < 0 or \
+                new_pos.row < 0 or \
+            not self.grid.has_location(new_pos) or \
+                self.grid.get_location(new_pos) is not None:
+                return
+        
+        self.grid.set_location(position=new_pos,content=creature)
+        if creature.current_position is not None:
+            self.grid.set_location(position=creature.current_position,content=None)
+        creature.current_position = new_pos
+
+    def select_survivors(self):
+        # TODO build actual implementation
+        survive_width =  round(self.grid.size.nr_of_cols * 0.2)
+        print(f'survive_width={survive_width}')
+        for creature in self.current_creatures:
+            if  not creature.has_valid_network or \
+                    creature.current_position.col > survive_width :
+                        creature.alive = False
 
     def reproduce_one(self,creature:Creature):
         new_dna, mutated = copy_dna(creature.dna,self.mutation_probability)
@@ -65,10 +170,11 @@ class DNA2NetworkSimulation:
             self.nr_mutated += 1
             return Creature(dna=new_dna)
         else:
+            creature.reset()
             return creature
 
     def reproduce_population(self):
-        survivors = [y for y in self.current_creatures if y.has_valid_network]
+        survivors = self.survivors
         nr_of_survivors = len(survivors)
         if nr_of_survivors == 0:
             return
@@ -91,11 +197,19 @@ class DNA2NetworkSimulation:
 
     @property
     def nr_of_valid_creatures(self):
-        return len([y for y in self.current_creatures if y.has_valid_network])
+        return len(self.valid_creatures)
+
+    @property
+    def valid_creatures(self):
+        return [y for y in self.current_creatures if y.has_valid_network]
     
     @property
+    def nr_of_survivors(self):
+        return len(self.survivors)
+
+    @property
     def survivors(self):
-        return [y for y in self.current_creatures if y.has_valid_network]
+        return [y for y in self.current_creatures if y.alive]
 
     def statistics(self):
         output = []
@@ -103,6 +217,7 @@ class DNA2NetworkSimulation:
         output.append(("population_size",self.population_size))
         output.append(("nr_of_initial_gens",self.nr_of_initial_gens))
         output.append(("nr_of_valid_creatures",self.nr_of_valid_creatures))
+        output.append(("nr_of_survivors",self.nr_of_survivors))
         output.append(("nr_mutated",self.nr_mutated))
         nr_of_valid_gens = []
         nr_of_sensors = []
@@ -123,14 +238,15 @@ class DNA2NetworkSimulation:
                     count_actions_map[action.type] += 1
                 else:
                     count_actions_map[action.type] = 1
-        output.append(("average_nr_valid_gens_per_creatures",sum(nr_of_valid_gens) / self.nr_of_valid_creatures))
-        output.append(("median_nr_valid_gens_per_creatures",statistics.median(nr_of_valid_gens)))
+        if self.nr_of_survivors > 0:
+            output.append(("average_nr_valid_gens_per_creatures",sum(nr_of_valid_gens) / self.nr_of_survivors))
+            output.append(("median_nr_valid_gens_per_creatures",median(nr_of_valid_gens)))
 
-        output.append(("average_nr_sensors_per_creatures",sum(nr_of_sensors) / self.nr_of_valid_creatures))
-        output.append(("median_nr_sensors_per_creatures",statistics.median(nr_of_sensors)))
+            output.append(("average_nr_sensors_per_creatures",sum(nr_of_sensors) / self.nr_of_survivors))
+            output.append(("median_nr_sensors_per_creatures",median(nr_of_sensors)))
 
-        output.append(("average_nr_actions_per_creatures",sum(nr_of_actions) / self.nr_of_valid_creatures))
-        output.append(("median_nr_actions_per_creatures",statistics.median(nr_of_actions)))
+            output.append(("average_nr_actions_per_creatures",sum(nr_of_actions) / self.nr_of_survivors))
+            output.append(("median_nr_actions_per_creatures",median(nr_of_actions)))
 
         for key,value in count_sensors_map.items():
             output.append((f"sensor {key} ",value))
@@ -139,3 +255,47 @@ class DNA2NetworkSimulation:
             output.append((f"action {key} ",value))
         
         return output
+
+
+
+class Color(ExtendedEnum):
+    WHITE = (255,255,255)
+    BLACK = (0,0,0)
+    BLUE  = (255,0,0)
+    GREEN = (0,255,0)
+    RED   = (0,0,255)
+
+class GridRender:
+
+    def __init__(self,grid:Grid):
+        self.grid = grid    
+        self._init_image()
+    
+    def _init_image(self):
+        self.output = np.full   (  (self.grid.size.nr_of_rows,self.grid.size.nr_of_cols,3),
+                                    fill_value = Color.WHITE.value,
+                                    dtype=np.uint8
+        )
+
+    def render(self):
+        row:list[Any]
+        for row_index,row in enumerate(self.grid.locations):
+            self._render_row(row_index,row)
+
+    def _render_row(self,row_index:int,row:list[Any]):
+        content:Creature | None
+        for col_index,content in enumerate(row):
+            if content is None:
+                self.output[col_index,row_index] = Color.WHITE.value
+            elif isinstance(content,Creature):
+                if content.alive:
+                    self.output[col_index,row_index] = Color.BLACK.value
+                else:
+                    self.output[col_index,row_index] = Color.RED.value
+            else:
+                self.output[col_index,row_index] = Color.BLUE.value
+            
+
+    def save_output(self,filename:str):
+        if self.output is not None:
+            cv2.imwrite(filename,self.output)

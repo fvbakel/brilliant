@@ -1,7 +1,9 @@
 from minimal_nn import *
 from graph import *
 from basegrid import *
+
 import sys
+import numpy as np
 
 class SensorType(ExtendedEnum):
     LEFT    = 'left free'
@@ -92,14 +94,20 @@ class Gen:
 
 class Creature:
     def __init__(self,dna:list[bytes]):
-        self.dna:list[bytes] = dna
-        self.gens:list[Gen] = []
-        self.network:Network = Network()
-        self.sensors:list[Sensor] = []
-        self.actions:list[Action] = []
-        self.has_valid_network = True
+        self.dna:list[bytes]            = dna
+        self.gens:list[Gen]             = []
+        self.network:Network            = Network()
+        self.sensors:list[Sensor]       = []
+        self.actions:list[Action]       = []
+        self.has_valid_network          = True
+        self.current_position:Position | None  = None
+        self.alive                      = True
 
         self._init_dna()
+
+    def reset(self):
+        self.current_position:Position | None  = None
+        self.alive                      = True
 
     def _init_dna(self):
         self._init_gens()
@@ -171,6 +179,12 @@ class Creature:
 
             self.network.layers[from_layer_index].weights[from_index,to_index] = valid_gen.weight
     
+    def decide_action(self):
+        input_values = [sensor.current_value for sensor in self.sensors]
+        output = self.network.calculate(input_data=input_values)
+        action_index = np.argmax(output)
+        return self.actions[action_index].type
+
     @property
     def valid_gens(self):
         return [gen for gen in self.gens if gen.is_valid_connection()]
