@@ -53,16 +53,20 @@ def median(input):
         return 0
     return statistics.median(input)
 
+class TileType:
+    WALL = 1
+
 class DNA2NetworkSimulation:
 
     def __init__(self):
-        self.max_nr_of_cycles       = 100
+        self.max_nr_of_cycles       = 10
         self.nr_of_steps_per_cycle  = 200
         self.population_size        = 800
-        self.nr_of_initial_gens     = 3
+        self.nr_of_initial_gens     = 8
         self.mutation_probability   = 0.01
         self.report_initial_cycles  = 10
         self.report_interval_cycles = 10
+        self.max_vision             = 3
         self.initial_valid_gens     = True
 
         self.current_creatures:list[Creature]  = []
@@ -71,14 +75,28 @@ class DNA2NetworkSimulation:
         self.grid_size              = Size(150,200)
         self.grid                   = Grid(self.grid_size)
         self.render                 = GridRender(self.grid)
+        self.wall_positions         = set()
 
     def run_simulation(self):
+
+        import cProfile, pstats, io
+        from pstats import SortKey
+        pr = cProfile.Profile()
+        pr.enable()
+
         while self.current_cycle < self.max_nr_of_cycles and self.nr_of_survivors > 0:
             self.do_one_cycle(False)
             if  self.current_cycle <= self.report_initial_cycles or \
                 self.current_cycle % self.report_interval_cycles == 0:
                     self.report()
         self.report()
+
+        pr.disable()
+        s = io.StringIO()
+        sortby = SortKey.CUMULATIVE
+        ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+        ps.print_stats()
+        print(s.getvalue())
 
     def report(self):
         print('*** Statistics report ***')
@@ -89,9 +107,19 @@ class DNA2NetworkSimulation:
         self.render.save_output(f'./tmp/sim_stat_gen_{self.current_cycle:04d}.png')
 
     def reset_grid(self):
+        wall_col        = round(self.grid.size.nr_of_cols * 0.2) + 1
+        wall_size       = self.grid.size.nr_of_rows // 2
+        wall_row_start  = randrange(0,self.grid.size.nr_of_rows - wall_size )
+        wall_row_end    = wall_row_start + wall_size
         for row in range(0,self.grid.size.nr_of_rows):
             for col in range(self.grid.size.nr_of_cols):
-                self.grid.set_location(position=Position(col=col,row=row), content=None)
+                pos = Position(col=col,row=row)
+                if  col == wall_col and \
+                    wall_row_start <= row <= wall_row_end:
+                        self.grid.set_location(position=pos, content=TileType.WALL)
+                        self.wall_positions.add(pos)
+                else:
+                    self.grid.set_location(position=pos, content=None)
 
     def make_random_population(self):
         for i in range(0,self.population_size):
@@ -114,7 +142,9 @@ class DNA2NetworkSimulation:
         self.select_survivors()
 
     def assign_random_positions(self):
-        flat_position_ids = sample(population=self.grid.flat_ids,k=self.nr_of_valid_creatures)
+        wall_positions_flat_ids = set([self.grid.get_flat_id(pos) for pos in self.wall_positions])
+        flat_ids = set(self.grid.flat_ids) - wall_positions_flat_ids
+        flat_position_ids = sample(population=list(flat_ids),k=self.nr_of_valid_creatures)
         for index,creature in enumerate(self.valid_creatures):
             pos = self.grid.get_position(flat_position_ids[index])
             self.set_creature_position(new_pos=pos,creature=creature)
@@ -127,21 +157,55 @@ class DNA2NetworkSimulation:
             self.do_action_on_creature(action,creature)
 
     def assign_sensor_values(self,creature:Creature):
-        # TODO build actual implementation
+        # TODO Improve performance?!
         for sensor in creature.sensors:
-            if sensor.type == SensorType.LEFT.value:
-                sensor.current_value = 1
-            else:
-                sensor.current_value = 5
+            if sensor.type == SensorType.LEFT:
+                sensor.current_value = self.nr_neighbor_free_in_direction(pos=creature.current_position,direction=Direction.LEFT)
+            elif sensor.type == SensorType.RIGHT:
+                sensor.current_value = self.nr_neighbor_free_in_direction(pos=creature.current_position,direction=Direction.RIGHT)
+            elif sensor.type == SensorType.UP:
+                sensor.current_value = self.nr_neighbor_free_in_direction(pos=creature.current_position,direction=Direction.UP)
+            elif sensor.type == SensorType.DOWN:
+                sensor.current_value = self.nr_neighbor_free_in_direction(pos=creature.current_position,direction=Direction.DOWN)
+    
+    def nr_neighbor_free_in_direction(self,pos:Position,direction:Direction):
+        nr_free = 0
+        next_pos = pos.get_position_in_direction(direction)
+        is_free = True
+        while is_free and nr_free < self.max_vision: 
+            is_free = self.is_position_free(pos=next_pos)
+            if is_free:
+                nr_free +=1
+                next_pos =  next_pos.get_position_in_direction(direction)
+        return nr_free
+
+    def is_neighbor_free_in_direction(self,pos:Position,direction:Direction):
+        new_pos =  pos.get_position_in_direction(direction)
+        return self.is_position_free(new_pos)
+    
+    def is_position_free(self,pos:Position):
+        if      pos is None or \
+            not self.grid.has_location(pos) or \
+                self.grid.get_location(pos) is not None:
+                return False
+        else:
+            return True
 
     def do_action_on_creature(self,action:ActionType,creature:Creature):
-        # TODO build actual implementation
-        # TODO Store actual enumeration object instead of value on action type
         new_pos:Position | None = None
-        if action == ActionType.MOVE_LEFT.value:
+        if action == ActionType.MOVE_LEFT:
             new_pos =  creature.current_position.get_position_in_direction(Direction.LEFT)
-        self.set_creature_position(new_pos=new_pos,creature=creature)
+        elif action == ActionType.MOVE_RIGHT:
+            new_pos =  creature.current_position.get_position_in_direction(Direction.RIGHT)
+        elif action == ActionType.MOVE_UP:
+            new_pos =  creature.current_position.get_position_in_direction(Direction.UP)
+        elif action == ActionType.MOVE_DOWN:
+            new_pos =  creature.current_position.get_position_in_direction(Direction.DOWN)
+
+        if new_pos is not None:
+            self.set_creature_position(new_pos=new_pos,creature=creature)
     
+
     def set_creature_position(self,new_pos:Position,creature:Creature):
         if      new_pos is None or \
             not self.grid.has_location(new_pos) or \
@@ -293,6 +357,8 @@ class GridRender:
                     self.output[col_index,row_index] = Color.BLACK.value
                 else:
                     self.output[col_index,row_index] = Color.RED.value
+            elif content == TileType.WALL:
+                self.output[col_index,row_index] = (255,0,255)
             else:
                 self.output[col_index,row_index] = Color.BLUE.value
             

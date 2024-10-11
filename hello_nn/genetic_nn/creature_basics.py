@@ -23,8 +23,8 @@ class NeuronType(ExtendedEnum):
     HIDDEN  = 'H'
     OUTPUT  = 'O'
 
-ALL_SENSOR_TYPES = SensorType.list()
-ALL_ACTION_TYPES = ActionType.list()
+ALL_SENSOR_TYPES = [sensor_type for sensor_type in SensorType]
+ALL_ACTION_TYPES = [action_type for action_type in ActionType]
 NR_OF_HIDDEN_NEURONS = len(ALL_SENSOR_TYPES) + len(ALL_ACTION_TYPES)
 TOTAL_NR_OF_NEURONS = len(ALL_SENSOR_TYPES) + len(ALL_ACTION_TYPES) + NR_OF_HIDDEN_NEURONS
 MAX_WEIGHT = 1024

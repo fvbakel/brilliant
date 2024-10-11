@@ -10,6 +10,6 @@ class TestDNA2NetworkSimulation(unittest.TestCase):
         print('')
         print(sim.report())
 
-        sim.max_nr_of_cycles = 110
+        sim.max_nr_of_cycles = 100
         sim.run_simulation()
 
