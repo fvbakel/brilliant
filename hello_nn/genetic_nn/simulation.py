@@ -131,8 +131,8 @@ class DNA2NetworkSimulation:
     def do_one_cycle(self,report_details:False):
         self.current_cycle += 1
         if self.current_cycle > 1:
-            self.reset_grid()
             self.reproduce_population()
+        self.reset_grid()
         self.assign_random_positions()
         for i in range(0, self.nr_of_steps_per_cycle):
             if report_details:
@@ -157,7 +157,7 @@ class DNA2NetworkSimulation:
             self.do_action_on_creature(action,creature)
 
     def assign_sensor_values(self,creature:Creature):
-        # TODO Improve performance?!
+
         for sensor in creature.sensors:
             if sensor.type == SensorType.LEFT:
                 sensor.current_value = self.nr_neighbor_free_in_direction(pos=creature.current_position,direction=Direction.LEFT)
@@ -167,6 +167,29 @@ class DNA2NetworkSimulation:
                 sensor.current_value = self.nr_neighbor_free_in_direction(pos=creature.current_position,direction=Direction.UP)
             elif sensor.type == SensorType.DOWN:
                 sensor.current_value = self.nr_neighbor_free_in_direction(pos=creature.current_position,direction=Direction.DOWN)
+            elif sensor.type == SensorType.ROW_POS:
+                sensor.current_value = creature.current_position.row / self.grid.size.nr_of_rows
+            elif sensor.type == SensorType.COL_POS:
+                sensor.current_value = creature.current_position.col / self.grid.size.nr_of_cols
+            elif sensor.type == SensorType.OSIL_4:
+                remain = self.current_cycle % 4
+                if remain > 1:
+                    sensor.current_value = 1
+                else:
+                    sensor.current_value = 0
+            elif sensor.type == SensorType.OSIL_16:
+                remain = self.current_cycle % 16
+                if remain > 7:
+                    sensor.current_value = 1
+                else:
+                    sensor.current_value = 0
+            elif sensor.type == SensorType.OSIL_64:
+                remain = self.current_cycle % 64
+                if remain > 31:
+                    sensor.current_value = 1
+                else:
+                    sensor.current_value = 0
+
     
     def nr_neighbor_free_in_direction(self,pos:Position,direction:Direction):
         nr_free = 0

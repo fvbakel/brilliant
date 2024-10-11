@@ -10,6 +10,11 @@ class SensorType(ExtendedEnum):
     RIGHT   = 'right free'
     UP      = 'up free'
     DOWN    = 'down free'
+    ROW_POS = 'row pos'
+    COL_POS = 'col pos'
+    OSIL_4  = 'osil 4'
+    OSIL_16 = 'osil 16'
+    OSIL_64 = 'osil 64'
 
 class ActionType(ExtendedEnum):
     MOVE_LEFT    = 'l'
