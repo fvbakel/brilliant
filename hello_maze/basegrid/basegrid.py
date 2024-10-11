@@ -101,7 +101,7 @@ class Position:
 
     def get_id(self):
         return f"{self.col}-{self.row}"
-
+    
     def __repr__(self) -> str:
         return self.get_id()
 
@@ -147,6 +147,9 @@ class Grid:
         row_index = flat_id // self.size.nr_of_cols
         col_index = flat_id %  self.size.nr_of_cols
         return Position(col=col_index,row=row_index)
+    
+    def get_flat_id(self, pos:Position):
+        return  pos.row * self.size.nr_of_cols + pos.col 
 
 @dataclass
 class Rectangle:
