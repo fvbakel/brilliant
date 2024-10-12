@@ -68,12 +68,14 @@ class DNA2NetworkSimulation:
         self.report_interval_cycles = 10
         self.max_vision             = 3
         self.initial_valid_gens     = True
+        self.nr_of_cols             = 150
+        self.nr_of_rows             = 200
+        
 
         self.current_creatures:list[Creature]  = []
         self.current_cycle          = 0
         self.nr_mutated             = 0
-        self.grid_size              = Size(150,200)
-        self.grid                   = Grid(self.grid_size)
+        self.grid                   = Grid(Size(self.nr_of_cols,self.nr_of_rows))
         self.render                 = GridRender(self.grid)
         self.wall_positions         = set()
 

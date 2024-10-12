@@ -1,0 +1,29 @@
+import json
+from dataclasses import dataclass
+
+@dataclass
+class SimParameters:
+    max_nr_of_cycles       : int  = 10
+    nr_of_steps_per_cycle  : int  = 200
+    population_size        : int  = 800
+    nr_of_initial_gens     : int  = 8
+    mutation_probability   : int  = 0.01
+    report_initial_cycles  : int  = 10
+    report_interval_cycles : int  = 10
+    max_vision             : int  = 3
+    initial_valid_gens     : bool = True
+    nr_of_cols             : int  = 150
+    nr_of_rows             : int  = 200
+
+    @classmethod
+    def load_parameters(cls,configFilename):
+        with open(configFilename, 'r') as f:
+            config = json.load(f)
+        return SimParameters(**config)
+
+    @classmethod
+    def write_sample_parameters(cls):
+        param = SimParameters()
+        #write it back to the file
+        with open('example_config.json', 'w') as f:
+            json.dump(param.__dict__, fp=f, indent=4)

@@ -5,3 +5,7 @@ from genetic_nn.simulation import (
     DNA2NetworkSimulation,
     GridRender
 )
+
+from genetic_nn.sim_parameters import (
+    SimParameters
+)
