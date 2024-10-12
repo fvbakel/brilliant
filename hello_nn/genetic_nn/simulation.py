@@ -79,24 +79,30 @@ class DNA2NetworkSimulation:
 
     def run_simulation(self):
 
-        import cProfile, pstats, io
+        """     import cProfile, pstats, io
         from pstats import SortKey
         pr = cProfile.Profile()
         pr.enable()
-
+        """
+        
         while self.current_cycle < self.max_nr_of_cycles and self.nr_of_survivors > 0:
-            self.do_one_cycle(False)
+            report = False
             if  self.current_cycle <= self.report_initial_cycles or \
                 self.current_cycle % self.report_interval_cycles == 0:
-                    self.report()
-        self.report()
+                    report = True
 
+            self.do_one_cycle(make_video=report)
+            if report:
+                self.report()
+        self.report()
+        """
         pr.disable()
         s = io.StringIO()
         sortby = SortKey.CUMULATIVE
         ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
         ps.print_stats()
         print(s.getvalue())
+        """
 
     def report(self):
         print('*** Statistics report ***')
@@ -128,18 +134,30 @@ class DNA2NetworkSimulation:
                 dna.append(random_gen_code(self.initial_valid_gens))
             self.current_creatures.append(Creature(dna=dna))
 
-    def do_one_cycle(self,report_details:False):
+    def do_one_cycle(self,make_video:False):
         self.current_cycle += 1
+        print(f"Start cycle {self.current_cycle:04d}")
         if self.current_cycle > 1:
             self.reproduce_population()
         self.reset_grid()
         self.assign_random_positions()
+
+        if make_video:
+            codec = 'avc1' #'H264'
+            out = cv2.VideoWriter(filename=f'./tmp/sim_details_{self.current_cycle:04d}.mp4',fourcc=cv2.VideoWriter_fourcc(*codec), fps=30, frameSize=(self.grid.size.nr_of_cols,self.grid.size.nr_of_rows))
+
         for i in range(0, self.nr_of_steps_per_cycle):
-            if report_details:
+            if make_video:
                 self.render.render()
-                self.render.save_output(f'./tmp/sim_details_{self.current_cycle:04d}_step_{i}.png')
+                #out.write(self.render.output.astype('uint8'))
+                out.write(self.render.output)
+                #self.render.save_output(f'./tmp/sim_details_{self.current_cycle:04d}_step_{i}.png')
             self.do_one_step(i)
         self.select_survivors()
+        if make_video:
+            self.render.render()
+            out.write(self.render.output)
+            out.release()
 
     def assign_random_positions(self):
         wall_positions_flat_ids = set([self.grid.get_flat_id(pos) for pos in self.wall_positions])
@@ -189,6 +207,8 @@ class DNA2NetworkSimulation:
                     sensor.current_value = 1
                 else:
                     sensor.current_value = 0
+            elif sensor.type == SensorType.TIME:
+                    sensor.current_value = self.current_cycle / self.nr_of_steps_per_cycle
 
     
     def nr_neighbor_free_in_direction(self,pos:Position,direction:Direction):
@@ -243,7 +263,6 @@ class DNA2NetworkSimulation:
     def select_survivors(self):
         # TODO build actual implementation
         survive_width =  round(self.grid.size.nr_of_cols * 0.2)
-        print(f'survive_width={survive_width}')
         for creature in self.current_creatures:
             if  not creature.has_valid_network or \
                     creature.current_position.col > survive_width :

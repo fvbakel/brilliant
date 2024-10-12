@@ -15,6 +15,7 @@ class SensorType(ExtendedEnum):
     OSIL_4  = 'osil 4'
     OSIL_16 = 'osil 16'
     OSIL_64 = 'osil 64'
+    TIME    = 'time'
 
 class ActionType(ExtendedEnum):
     MOVE_LEFT    = 'l'
