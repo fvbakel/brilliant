@@ -13,6 +13,10 @@ from genetic_nn.creature_basics import (
     SensorType,ActionType
 )
 
+from genetic_nn.sim_parameters import (
+    SimParameters
+)
+
 from basegrid import (
     Grid,Size,Position, ExtendedEnum,
     Direction
@@ -58,24 +62,25 @@ class TileType:
 
 class DNA2NetworkSimulation:
 
-    def __init__(self):
-        self.max_nr_of_cycles       = 10
-        self.nr_of_steps_per_cycle  = 200
-        self.population_size        = 800
-        self.nr_of_initial_gens     = 8
-        self.mutation_probability   = 0.01
-        self.report_initial_cycles  = 10
-        self.report_interval_cycles = 10
-        self.max_vision             = 3
-        self.initial_valid_gens     = True
-        self.nr_of_cols             = 150
-        self.nr_of_rows             = 200
+    def __init__(self,parameters:SimParameters = SimParameters()):
+        self.parameters:SimParameters = parameters
+        self.parameters.max_nr_of_cycles       = 10
+        self.parameters.nr_of_steps_per_cycle  = 200
+        self.parameters.population_size        = 800
+        self.parameters.nr_of_initial_gens     = 8
+        self.parameters.mutation_probability   = 0.01
+        self.parameters.report_initial_cycles  = 10
+        self.parameters.report_interval_cycles = 10
+        self.parameters.max_vision             = 3
+        self.parameters.initial_valid_gens     = True
+        self.parameters.nr_of_cols             = 150
+        self.parameters.nr_of_rows             = 200
         
 
         self.current_creatures:list[Creature]  = []
         self.current_cycle          = 0
         self.nr_mutated             = 0
-        self.grid                   = Grid(Size(self.nr_of_cols,self.nr_of_rows))
+        self.grid                   = Grid(Size(self.parameters.nr_of_cols,self.parameters.nr_of_rows))
         self.render                 = GridRender(self.grid)
         self.wall_positions         = set()
 
@@ -87,10 +92,10 @@ class DNA2NetworkSimulation:
         pr.enable()
         """
         
-        while self.current_cycle < self.max_nr_of_cycles and self.nr_of_survivors > 0:
+        while self.current_cycle < self.parameters.max_nr_of_cycles and self.nr_of_survivors > 0:
             report = False
-            if  self.current_cycle <= self.report_initial_cycles or \
-                self.current_cycle % self.report_interval_cycles == 0:
+            if  self.current_cycle <= self.parameters.report_initial_cycles or \
+                self.current_cycle % self.parameters.report_interval_cycles == 0:
                     report = True
 
             self.do_one_cycle(make_video=report)
@@ -130,10 +135,10 @@ class DNA2NetworkSimulation:
                     self.grid.set_location(position=pos, content=None)
 
     def make_random_population(self):
-        for i in range(0,self.population_size):
+        for i in range(0,self.parameters.population_size):
             dna = []
-            for j in range(0,self.nr_of_initial_gens):
-                dna.append(random_gen_code(self.initial_valid_gens))
+            for j in range(0,self.parameters.nr_of_initial_gens):
+                dna.append(random_gen_code(self.parameters.initial_valid_gens))
             self.current_creatures.append(Creature(dna=dna))
 
     def do_one_cycle(self,make_video:False):
@@ -148,7 +153,7 @@ class DNA2NetworkSimulation:
             codec = 'avc1' #'H264'
             out = cv2.VideoWriter(filename=f'./tmp/sim_details_{self.current_cycle:04d}.mp4',fourcc=cv2.VideoWriter_fourcc(*codec), fps=30, frameSize=(self.grid.size.nr_of_cols,self.grid.size.nr_of_rows))
 
-        for i in range(0, self.nr_of_steps_per_cycle):
+        for i in range(0, self.parameters.nr_of_steps_per_cycle):
             if make_video:
                 self.render.render()
                 #out.write(self.render.output.astype('uint8'))
@@ -210,14 +215,14 @@ class DNA2NetworkSimulation:
                 else:
                     sensor.current_value = 0
             elif sensor.type == SensorType.TIME:
-                    sensor.current_value = self.current_cycle / self.nr_of_steps_per_cycle
+                    sensor.current_value = self.current_cycle / self.parameters.nr_of_steps_per_cycle
 
     
     def nr_neighbor_free_in_direction(self,pos:Position,direction:Direction):
         nr_free = 0
         next_pos = pos.get_position_in_direction(direction)
         is_free = True
-        while is_free and nr_free < self.max_vision: 
+        while is_free and nr_free < self.parameters.max_vision: 
             is_free = self.is_position_free(pos=next_pos)
             if is_free:
                 nr_free +=1
@@ -271,7 +276,7 @@ class DNA2NetworkSimulation:
                         creature.alive = False
 
     def reproduce_one(self,creature:Creature):
-        new_dna, mutated = copy_dna(creature.dna,self.mutation_probability)
+        new_dna, mutated = copy_dna(creature.dna,self.parameters.mutation_probability)
         if mutated:
             self.nr_mutated += 1
         return Creature(dna=new_dna)
@@ -288,7 +293,7 @@ class DNA2NetworkSimulation:
         if nr_of_survivors == 0:
             return
         
-        nr_new_to_create = self.population_size
+        nr_new_to_create = self.parameters.population_size
         new_creatures:list[Creature] = []
 
         # first just recreate all survivors
@@ -323,8 +328,8 @@ class DNA2NetworkSimulation:
     def statistics(self):
         output = []
         output.append(("current_cycle",self.current_cycle))
-        output.append(("population_size",self.population_size))
-        output.append(("nr_of_initial_gens",self.nr_of_initial_gens))
+        output.append(("population_size",self.parameters.population_size))
+        output.append(("nr_of_initial_gens",self.parameters.nr_of_initial_gens))
         output.append(("nr_of_valid_creatures",self.nr_of_valid_creatures))
         output.append(("nr_of_survivors",self.nr_of_survivors))
         output.append(("nr_mutated",self.nr_mutated))
