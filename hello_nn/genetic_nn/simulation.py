@@ -293,7 +293,6 @@ class DNA2NetworkSimulation:
         creature.current_position = new_pos
 
     def select_survivors(self):
-        # TODO build actual implementation
         survive_width =  round(self.grid.size.nr_of_cols * 0.2)
         for creature in self.current_creatures:
             if  not creature.has_valid_network or \

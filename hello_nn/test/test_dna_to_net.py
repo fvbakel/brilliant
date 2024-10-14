@@ -25,3 +25,9 @@ class TestDNA(unittest.TestCase):
         graph.reset()
         graph.makeSimpleClusterGraph()
         graph.render(filename='cluster',directory='./tmp')
+
+        print('Network weights')
+        print('Network weights layer 0')
+        print(creature.network.layers[0].weights)
+        print('Network weights layer 1')
+        print(creature.network.layers[1].weights)

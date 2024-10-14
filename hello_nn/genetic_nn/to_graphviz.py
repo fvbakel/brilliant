@@ -19,7 +19,7 @@ class Gen2Graphviz:
         self.dot = graphviz.Digraph()
 
     def makePlainGraph(self):
-        self.dot.attr(rankdir='LT')
+        self.dot.attr(rankdir='LR')
         neuron_ids:set[int] = set()
         for gen in self.creature.gens:
             neuron_ids.add(gen.from_neuron.id)
@@ -36,7 +36,7 @@ class Gen2Graphviz:
         self._addChildRelations()
     
     def _addNodeForNeuron(self,graph:graphviz.Digraph,neuron:Neuron):
-        graph.node(name=str(neuron.id),label=f'{neuron.type.value} {neuron.index}')
+        graph.node(name=str(neuron.id),label=f'{neuron.type.value} {neuron.type_index}')
     
     def _addNodeForSensor(self,graph:graphviz.Digraph,index:int,sensor:Sensor):
         graph.node(name=f'sensor_{index}',label=f'sensor_{index} {sensor.type.name}')
@@ -57,6 +57,15 @@ class Gen2Graphviz:
 
         for index,sensor in enumerate(self.creature.sensors):
             self._addNodeForSensor(self._sub_graphs[f'cluster_sensors'],index,sensor)
+        
+        """
+        # force order with a hidden edge
+        # does not work :-(
+        for index,sensor in enumerate(self.creature.sensors[:-1]):
+            from_node_id = f'sensor_{index}'
+            to_node_id = f'sensor_{index +1 }'
+            self._sub_graphs[f'cluster_sensors'].edge(from_node_id,to_node_id) #,style='invis')
+        """
 
         neurons:dict[int,Neuron] = dict()
         for gen in self.creature.gens:
