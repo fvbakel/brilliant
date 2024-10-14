@@ -158,12 +158,9 @@ class DNA2NetworkSimulation:
     def load_population(self,filename:str):
         with open(filename, "r") as f:
             for line in f:
-                dna:list[bytes] = []
                 dna_string = line.strip()
-                gen_hex_codes = dna_string.split(' ')
-                for gen_hex_code in gen_hex_codes:
-                    dna.append(bytes.fromhex(gen_hex_code))
-                self.current_creatures.append(Creature(dna=dna))
+                creature = Creature.from_hex_string(dna_string=dna_string)
+                self.current_creatures.append(creature)
                 if len(self.current_creatures) == self.parameters.population_size:
                     break
         if len(self.current_creatures) < self.parameters.population_size:

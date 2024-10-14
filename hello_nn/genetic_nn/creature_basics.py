@@ -194,4 +194,12 @@ class Creature:
     @property
     def valid_gens(self):
         return [gen for gen in self.gens if gen.is_valid_connection()]
+    
+    @classmethod
+    def from_hex_string(cls,dna_string:str):
+        dna:list[bytes] = []
+        gen_hex_codes = dna_string.split(' ')
+        for gen_hex_code in gen_hex_codes:
+            dna.append(bytes.fromhex(gen_hex_code))
+        return Creature(dna=dna)
 

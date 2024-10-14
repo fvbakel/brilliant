@@ -9,3 +9,6 @@ from genetic_nn.simulation import (
 from genetic_nn.sim_parameters import (
     SimParameters
 )
+from genetic_nn.to_graphviz import (
+    Gen2Graphviz
+)
