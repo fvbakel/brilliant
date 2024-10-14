@@ -13,13 +13,10 @@ class TestDNA2NetworkSimulation(unittest.TestCase):
         param.nr_of_initial_gens        = 8
         param.population_size           = 500
         param.nr_of_steps_per_cycle     = 150
+        param.nr_of_cols                = 100
+        param.nr_of_rows                = 150
 
-        sim = DNA2NetworkSimulation(param)
-
-        sim.make_random_population()
         print('')
-        print(sim.report())
-
-
+        sim = DNA2NetworkSimulation(param)
         sim.run_simulation()
 

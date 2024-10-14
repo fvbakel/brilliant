@@ -5,6 +5,7 @@ import statistics
 from typing import Any
 import numpy as np
 import cv2
+import os.path
 
 from genetic_nn.creature_basics import (
     Creature, 
@@ -64,18 +65,6 @@ class DNA2NetworkSimulation:
 
     def __init__(self,parameters:SimParameters = SimParameters()):
         self.parameters:SimParameters = parameters
-        self.parameters.max_nr_of_cycles       = 10
-        self.parameters.nr_of_steps_per_cycle  = 200
-        self.parameters.population_size        = 800
-        self.parameters.nr_of_initial_gens     = 8
-        self.parameters.mutation_probability   = 0.01
-        self.parameters.report_initial_cycles  = 10
-        self.parameters.report_interval_cycles = 10
-        self.parameters.max_vision             = 3
-        self.parameters.initial_valid_gens     = True
-        self.parameters.nr_of_cols             = 150
-        self.parameters.nr_of_rows             = 200
-        
 
         self.current_creatures:list[Creature]  = []
         self.current_cycle          = 0
@@ -91,7 +80,9 @@ class DNA2NetworkSimulation:
         pr = cProfile.Profile()
         pr.enable()
         """
-        
+        if len(self.current_creatures) == 0:
+            self.make_initial_population()
+        self.save_population()
         while self.current_cycle < self.parameters.max_nr_of_cycles and self.nr_of_survivors > 0:
             report = False
             if  self.current_cycle <= self.parameters.report_initial_cycles or \
@@ -101,6 +92,7 @@ class DNA2NetworkSimulation:
             self.do_one_cycle(make_video=report)
             if report:
                 self.report()
+                self.save_population(alive_only=True)
         self.report()
         """
         pr.disable()
@@ -122,7 +114,8 @@ class DNA2NetworkSimulation:
     def reset_grid(self):
         wall_col        = round(self.grid.size.nr_of_cols * 0.2) + 1
         wall_size       = self.grid.size.nr_of_rows // 2
-        wall_row_start  = randrange(0,self.grid.size.nr_of_rows - wall_size )
+        wall_edge_free  = self.grid.size.nr_of_rows // 8
+        wall_row_start  = randrange(wall_edge_free,self.grid.size.nr_of_rows - wall_size - wall_edge_free)
         wall_row_end    = wall_row_start + wall_size
         for row in range(0,self.grid.size.nr_of_rows):
             for col in range(self.grid.size.nr_of_cols):
@@ -134,12 +127,47 @@ class DNA2NetworkSimulation:
                 else:
                     self.grid.set_location(position=pos, content=None)
 
+    def make_initial_population(self):
+        filename = f"{self.parameters.sim_dir}/dna_start.txt"
+        if os.path.isfile(filename):
+            print(f"Loading initial population from file: {filename}")
+            self.load_population(filename)
+        else:
+            self.make_random_population()
+
+
     def make_random_population(self):
         for i in range(0,self.parameters.population_size):
             dna = []
             for j in range(0,self.parameters.nr_of_initial_gens):
                 dna.append(random_gen_code(self.parameters.initial_valid_gens))
             self.current_creatures.append(Creature(dna=dna))
+
+    def save_population(self,alive_only=False):
+        filename = f"{self.parameters.sim_dir}/dna_{self.current_cycle:04d}.txt"
+        with open(filename, "w") as f:
+            for creature in self.current_creatures:
+                if alive_only and not creature.alive:
+                    continue
+                hex_dna:list[str] = []
+                for gen_code in creature.dna:
+                    hex_dna.append(gen_code.hex())
+                dna_string = ' '.join(hex_dna)
+                f.write(f"{dna_string}\n")
+
+    def load_population(self,filename:str):
+        with open(filename, "r") as f:
+            for line in f:
+                dna:list[bytes] = []
+                dna_string = line.strip()
+                gen_hex_codes = dna_string.split(' ')
+                for gen_hex_code in gen_hex_codes:
+                    dna.append(bytes.fromhex(gen_hex_code))
+                self.current_creatures.append(Creature(dna=dna))
+                if len(self.current_creatures) == self.parameters.population_size:
+                    break
+        if len(self.current_creatures) < self.parameters.population_size:
+            self.reproduce_population()
 
     def do_one_cycle(self,make_video:False):
         self.current_cycle += 1

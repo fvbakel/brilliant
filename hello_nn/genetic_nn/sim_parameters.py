@@ -3,17 +3,18 @@ from dataclasses import dataclass
 
 @dataclass
 class SimParameters:
-    max_nr_of_cycles       : int  = 10
-    nr_of_steps_per_cycle  : int  = 200
-    population_size        : int  = 800
-    nr_of_initial_gens     : int  = 8
-    mutation_probability   : int  = 0.01
-    report_initial_cycles  : int  = 10
-    report_interval_cycles : int  = 10
-    max_vision             : int  = 3
-    initial_valid_gens     : bool = True
-    nr_of_cols             : int  = 150
-    nr_of_rows             : int  = 200
+    max_nr_of_cycles        : int  = 10
+    nr_of_steps_per_cycle   : int  = 200
+    population_size         : int  = 800
+    nr_of_initial_gens      : int  = 8
+    mutation_probability    : int  = 0.01
+    report_initial_cycles   : int  = 10
+    report_interval_cycles  : int  = 10
+    max_vision              : int  = 3
+    initial_valid_gens      : bool = True
+    nr_of_cols              : int  = 150
+    nr_of_rows              : int  = 200
+    sim_dir                 : str  = './tmp'
 
     @classmethod
     def load_parameters(cls,configFilename):
