@@ -4,6 +4,7 @@ import sys
 import statistics
 from typing import Any
 import numpy as np
+import pandas as pd
 import cv2
 import os.path
 
@@ -73,6 +74,8 @@ class DNA2NetworkSimulation:
         self.render                 = GridRender(self.grid)
         self.wall_positions         = set()
 
+        self.stats_df:pd.DataFrame | None = None
+
     def run_simulation(self):
 
         """     import cProfile, pstats, io
@@ -92,7 +95,6 @@ class DNA2NetworkSimulation:
             self.do_one_cycle(make_video=report)
             if report:
                 self.report()
-                self.save_population(alive_only=True)
         self.report()
         """
         pr.disable()
@@ -104,12 +106,9 @@ class DNA2NetworkSimulation:
         """
 
     def report(self):
-        print('*** Statistics report ***')
-        stats = self.statistics()
-        for stat in stats:
-            print(stat)
+        self.save_population(alive_only=True)
         self.render.render()
-        self.render.save_output(f'./tmp/sim_stat_gen_{self.current_cycle:04d}.png')
+        self.render.save_output(f'./{self.parameters.sim_dir}/sim_stat_gen_{self.current_cycle:04d}.png')
 
     def reset_grid(self):
         wall_col        = round(self.grid.size.nr_of_cols * 0.2) + 1
@@ -137,11 +136,19 @@ class DNA2NetworkSimulation:
 
 
     def make_random_population(self):
-        for i in range(0,self.parameters.population_size):
+
+        def make_random_creature():
             dna = []
             for j in range(0,self.parameters.nr_of_initial_gens):
                 dna.append(random_gen_code(self.parameters.initial_valid_gens))
-            self.current_creatures.append(Creature(dna=dna))
+            creature = Creature(dna=dna)
+            if not creature.has_valid_network:
+                creature = make_random_creature()
+            return creature
+
+        for i in range(0,self.parameters.population_size):
+            creature = make_random_creature()
+            self.current_creatures.append(creature)
 
     def save_population(self,alive_only=False):
         filename = f"{self.parameters.sim_dir}/dna_{self.current_cycle:04d}.txt"
@@ -176,16 +183,17 @@ class DNA2NetworkSimulation:
 
         if make_video:
             codec = 'avc1' #'H264'
-            out = cv2.VideoWriter(filename=f'./tmp/sim_details_{self.current_cycle:04d}.mp4',fourcc=cv2.VideoWriter_fourcc(*codec), fps=30, frameSize=(self.grid.size.nr_of_cols,self.grid.size.nr_of_rows))
+            out = cv2.VideoWriter(filename=f'./{self.parameters.sim_dir}/sim_details_{self.current_cycle:04d}.mp4',fourcc=cv2.VideoWriter_fourcc(*codec), fps=30, frameSize=(self.grid.size.nr_of_cols,self.grid.size.nr_of_rows))
 
         for i in range(0, self.parameters.nr_of_steps_per_cycle):
             if make_video:
                 self.render.render()
-                #out.write(self.render.output.astype('uint8'))
                 out.write(self.render.output)
-                #self.render.save_output(f'./tmp/sim_details_{self.current_cycle:04d}_step_{i}.png')
             self.do_one_step(i)
         self.select_survivors()
+
+        self.append_statistics()
+        self.save_statistics()
         if make_video:
             self.render.render()
             out.write(self.render.output)
@@ -349,14 +357,32 @@ class DNA2NetworkSimulation:
     def survivors(self):
         return [y for y in self.current_creatures if y.alive]
 
-    def statistics(self):
-        output = []
-        output.append(("current_cycle",self.current_cycle))
-        output.append(("population_size",self.parameters.population_size))
-        output.append(("nr_of_initial_gens",self.parameters.nr_of_initial_gens))
-        output.append(("nr_of_valid_creatures",self.nr_of_valid_creatures))
-        output.append(("nr_of_survivors",self.nr_of_survivors))
-        output.append(("nr_mutated",self.nr_mutated))
+    def save_statistics(self):
+        self.stats_df.to_csv(f'./{self.parameters.sim_dir}/statistics.csv')
+
+    def append_statistics(self):
+        stats_current_cycle = self.stats_current_cycle()
+        stats_current_cycle_row = dict()
+        for key,value in  stats_current_cycle.items():
+            stats_current_cycle_row[key] = [value]
+        df_new_row = pd.DataFrame(stats_current_cycle_row)
+
+        if self.stats_df is None:
+            self.stats_df = df_new_row
+        else:
+            self.stats_df = pd.concat([self.stats_df, df_new_row], ignore_index = True)
+            self.stats_df.reset_index()
+
+
+    def stats_current_cycle(self) -> dict[str,int | float]:
+        output:dict[str,int | float] = dict()
+        output["cycle"] = self.current_cycle
+        output["population_size"] = self.parameters.population_size
+        output["nr_of_initial_gens"] = self.parameters.nr_of_initial_gens
+        output["nr_of_valid_creatures"] = self.nr_of_valid_creatures
+        output["nr_of_survivors"] = self.nr_of_survivors
+        output["nr_mutated"] = self.nr_mutated
+
         nr_of_valid_gens = []
         nr_of_sensors = []
         nr_of_actions = []
@@ -377,20 +403,20 @@ class DNA2NetworkSimulation:
                 else:
                     count_actions_map[action.type] = 1
         if self.nr_of_survivors > 0:
-            output.append(("average_nr_valid_gens_per_creatures",sum(nr_of_valid_gens) / self.nr_of_survivors))
-            output.append(("median_nr_valid_gens_per_creatures",median(nr_of_valid_gens)))
+            output["average_nr_valid_gens_per_creatures"] = sum(nr_of_valid_gens) / self.nr_of_survivors
+            output["median_nr_valid_gens_per_creatures"] = median(nr_of_valid_gens)
 
-            output.append(("average_nr_sensors_per_creatures",sum(nr_of_sensors) / self.nr_of_survivors))
-            output.append(("median_nr_sensors_per_creatures",median(nr_of_sensors)))
+            output["average_nr_sensors_per_creatures"] = sum(nr_of_sensors) / self.nr_of_survivors
+            output["median_nr_sensors_per_creatures"] = median(nr_of_sensors)
 
-            output.append(("average_nr_actions_per_creatures",sum(nr_of_actions) / self.nr_of_survivors))
-            output.append(("median_nr_actions_per_creatures",median(nr_of_actions)))
+            output["average_nr_actions_per_creatures"] = sum(nr_of_actions) / self.nr_of_survivors
+            output["median_nr_actions_per_creatures"] = median(nr_of_actions)
 
         for key,value in count_sensors_map.items():
-            output.append((f"sensor {key} ",value))
+            output[f"sensor {key}"] = value
 
         for key,value in count_actions_map.items():
-            output.append((f"action {key} ",value))
+            output[f"action {key}"] = value
         
         return output
 

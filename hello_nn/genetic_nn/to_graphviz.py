@@ -12,6 +12,7 @@ class Gen2Graphviz:
 
     def __init__(self,creature:Creature):
         self.creature:Creature = creature
+        self.use_full_only     = False
         self.reset()        
  
     def reset(self):

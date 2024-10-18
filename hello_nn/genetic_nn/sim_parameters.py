@@ -16,6 +16,10 @@ class SimParameters:
     nr_of_rows              : int  = 200
     sim_dir                 : str  = './tmp'
 
+    def save_parameters(self,filename:str):
+        with open(filename, 'w') as f:
+            json.dump(self.__dict__, fp=f, indent=4)
+
     @classmethod
     def load_parameters(cls,configFilename):
         with open(configFilename, 'r') as f:
@@ -25,6 +29,4 @@ class SimParameters:
     @classmethod
     def write_sample_parameters(cls):
         param = SimParameters()
-        #write it back to the file
-        with open('example_config.json', 'w') as f:
-            json.dump(param.__dict__, fp=f, indent=4)
+        param.save_parameters('example_config.json')
