@@ -7,7 +7,7 @@ class SimParameters:
     nr_of_steps_per_cycle   : int  = 200
     population_size         : int  = 800
     nr_of_initial_gens      : int  = 8
-    mutation_probability    : int  = 0.01
+    mutation_probability    : float = 0.01
     report_initial_cycles   : int  = 10
     report_interval_cycles  : int  = 10
     max_vision              : int  = 3

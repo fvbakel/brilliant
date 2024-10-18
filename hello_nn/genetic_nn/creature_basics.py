@@ -31,7 +31,7 @@ class NeuronType(ExtendedEnum):
 
 ALL_SENSOR_TYPES = [sensor_type for sensor_type in SensorType]
 ALL_ACTION_TYPES = [action_type for action_type in ActionType]
-NR_OF_HIDDEN_NEURONS = 3  #len(ALL_SENSOR_TYPES) #+ len(ALL_ACTION_TYPES)
+NR_OF_HIDDEN_NEURONS =  6 # len(ALL_SENSOR_TYPES) #+ len(ALL_ACTION_TYPES)
 TOTAL_NR_OF_NEURONS = len(ALL_SENSOR_TYPES) + len(ALL_ACTION_TYPES) + NR_OF_HIDDEN_NEURONS
 MAX_WEIGHT = 1024
 
@@ -291,6 +291,9 @@ class Creature:
     def decide_action(self):
         input_values = [sensor.current_value for sensor in self.sensors]
         output = self.network.calculate(input_data=input_values)
+        if sum(output) == 0:
+            return ActionType.STOP
+        
         action_index = np.argmax(output)
         return self.actions[action_index].type
 
