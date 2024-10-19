@@ -33,7 +33,7 @@ ALL_SENSOR_TYPES = [sensor_type for sensor_type in SensorType]
 ALL_ACTION_TYPES = [action_type for action_type in ActionType]
 NR_OF_HIDDEN_NEURONS =  6 # len(ALL_SENSOR_TYPES) #+ len(ALL_ACTION_TYPES)
 TOTAL_NR_OF_NEURONS = len(ALL_SENSOR_TYPES) + len(ALL_ACTION_TYPES) + NR_OF_HIDDEN_NEURONS
-MAX_WEIGHT = 1024
+MAX_WEIGHT = 24
 
 #
 # ID of neurons
@@ -103,7 +103,8 @@ class Gen:
         self.gen_code       = gen_code
         self.from_neuron    = Neuron.from_byte(gen_code[0])
         self.to_neuron      = Neuron.from_byte(gen_code[1])
-        self.weight         = int.from_bytes(gen_code[2:],byteorder=sys.byteorder) % MAX_WEIGHT
+        self.weight_int     = int.from_bytes(gen_code[2:],byteorder=sys.byteorder) % MAX_WEIGHT
+        self.weight         = self.weight_int - (0.5 * MAX_WEIGHT)
         self.use_full       = False
 
     def is_valid_connection(self):
@@ -221,7 +222,7 @@ class Creature:
                 from_layer_index = 1
                 from_index = hidden_neurons_map[valid_gen.from_neuron.type_index]
                 for index,action in enumerate(self.actions):
-                      if action.neuron == valid_gen.from_neuron:
+                      if action.neuron == valid_gen.to_neuron:
                         to_index = index
 
             self.network.layers[from_layer_index].weights[from_index,to_index] = valid_gen.weight
@@ -290,10 +291,9 @@ class Creature:
     
     def decide_action(self):
         input_values = [sensor.current_value for sensor in self.sensors]
-        output = self.network.calculate(input_data=input_values)
+        output = relu(self.network.calculate(input_data=input_values))
         if sum(output) == 0:
             return ActionType.STOP
-        
         action_index = np.argmax(output)
         return self.actions[action_index].type
 

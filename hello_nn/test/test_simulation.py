@@ -15,8 +15,9 @@ class TestDNA2NetworkSimulation(unittest.TestCase):
         param.nr_of_steps_per_cycle     = 150
         param.nr_of_cols                = 100
         param.nr_of_rows                = 150
-        param.mutation_probability      = 0.05
+        param.mutation_probability      = 0.02
 
+        param.save_parameters(f'{param.sim_dir}/sim_parmams.txt')
         print('')
         sim = DNA2NetworkSimulation(param)
         sim.run_simulation()

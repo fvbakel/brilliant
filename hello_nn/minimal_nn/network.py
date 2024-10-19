@@ -20,12 +20,14 @@ class Network:
         output = input_data
         for layer in self.layers:
             output = layer.forward_propagation(output)
-            output = output
 
         return output
     
-def activation(input):
+def tanh(input):
     return np.tanh(input)
+
+def relu(input):
+    return np.maximum(input, 0)
 
 def convert_to_chance(input):
     return input / sum(input)

@@ -76,3 +76,9 @@ class TestNeuralNet(unittest.TestCase):
         self.assertEqual(0.0,output[1])
         self.assertEqual(0.0,output[2])
         self.assertEqual(0.0,output[3])
+
+    def test_relu(self):
+        input_data = [-1,0,1,5]
+        output = relu(input_data)
+        print(output)
+        self.assertListEqual(list(output),[0,0,1,5])

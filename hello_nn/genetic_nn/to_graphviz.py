@@ -37,7 +37,12 @@ class Gen2Graphviz:
         self._addChildRelations()
     
     def _addNodeForNeuron(self,graph:graphviz.Digraph,neuron:Neuron):
-        graph.node(name=str(neuron.id),label=f'{neuron.type.value} {neuron.type_index}')
+        if neuron in self.creature.use_full_neurons:
+            color='black'
+        else:
+            color='lightgrey'
+        graph.node(name=str(neuron.id),label=f'{neuron.type.value} {neuron.type_index}',color=color,fontcolor=color)
+
     
     def _addNodeForSensor(self,graph:graphviz.Digraph,index:int,sensor:Sensor):
         graph.node(name=f'sensor_{index}',label=f'sensor_{index} {sensor.type.name}')
@@ -90,7 +95,11 @@ class Gen2Graphviz:
             self.dot.edge(from_node_id,to_node_id)
 
         for gen in self.creature.gens:
-            self.dot.edge(str(gen.from_neuron.id),str(gen.to_neuron.id))
+            if gen.use_full:
+                color = 'black'
+            else:
+                color = 'lightgrey'
+            self.dot.edge(str(gen.from_neuron.id),str(gen.to_neuron.id),label=f'{gen.weight}',color=color,fontcolor=color)
 
         for index,action in enumerate(self.creature.actions):
             from_node_id = f'{ALL_ACTION_TYPES.index(action.type) + NR_OF_HIDDEN_NEURONS + len(ALL_SENSOR_TYPES)}'
