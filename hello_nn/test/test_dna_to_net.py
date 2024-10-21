@@ -27,7 +27,9 @@ class TestDNA(unittest.TestCase):
         # dna_string = '000a0400 0a100420 020b0300 0b320300 030c0200 0c130200 050d0100 0d110110' # 151
         # below is a symbiose of two
         #dna_string = '0b110b60 070ec37c 020dc945 0e1698f3 050a2dfd 0c102530 000c0a7a 002da6a8 0a134d0e 0e132e79'
-        dna_string = '0a13e422 050e55ac 000a6862 180df66e 0d106b47 0f175932 030a9e37 050d0d9e 0b126b3e 4f13fc03'
+        # dna_string = '0a13e422 050e55ac 000a6862 180df66e 0d106b47 0f175932 030a9e37 050d0d9e 0b126b3e 4f13fc03'
+        # left top
+        dna_string = '464d2ff8 000cf796 050a4e16 0a115b87 0c108980 010aa74f 024dae7b 0e123dee 010bc178 0e14ac97'
         creature = Creature.from_hex_string(dna_string=dna_string)
         graph = Gen2Graphviz(creature=creature)
         graph.makePlainGraph()

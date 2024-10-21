@@ -23,6 +23,7 @@ from basegrid import (
     Grid,Size,Position, ExtendedEnum,
     Direction
 )
+from genetic_nn.to_graphviz import Gen2Graphviz
 
 def copy_dna(dna:list[bytes],mutation_probability:float):
     if random() < mutation_probability:
@@ -74,6 +75,9 @@ class DNA2NetworkSimulation:
         self.render                 = GridRender(self.grid)
         self.wall_positions         = set()
 
+        self.nr_top_for_nn_details = 3
+        self.record                = 0
+
         self.stats_df:pd.DataFrame | None = None
 
     def run_simulation(self):
@@ -93,6 +97,9 @@ class DNA2NetworkSimulation:
                     report = True
 
             self.do_one_cycle(make_video=report)
+            if self.nr_of_survivors > self.record:
+                report = True
+                self.record = self.nr_of_survivors
             if report:
                 self.report()
         self.report()
@@ -108,7 +115,7 @@ class DNA2NetworkSimulation:
     def report(self):
         self.save_population(alive_only=True)
         self.render.render()
-        self.render.save_output(f'./{self.parameters.sim_dir}/sim_stat_gen_{self.current_cycle:04d}.png')
+        self.render.save_output(f'./{self.parameters.sim_dir}/{self.current_cycle:04d}_end_situation.png')
 
     def reset_grid(self):
         wall_col        = round(self.grid.size.nr_of_cols * 0.2) + 1
@@ -151,16 +158,12 @@ class DNA2NetworkSimulation:
             self.current_creatures.append(creature)
 
     def save_population(self,alive_only=False):
-        filename = f"{self.parameters.sim_dir}/dna_{self.current_cycle:04d}.txt"
+        filename = f"{self.parameters.sim_dir}/{self.current_cycle:04d}_dna.txt"
+        dna_strings = self.dna_as_str_list(alive_only)
         with open(filename, "w") as f:
-            for creature in self.current_creatures:
-                if alive_only and not creature.alive:
-                    continue
-                hex_dna:list[str] = []
-                for gen_code in creature.dna:
-                    hex_dna.append(gen_code.hex())
-                dna_string = ' '.join(hex_dna)
+            for dna_string in dna_strings:
                 f.write(f"{dna_string}\n")
+        self.dna_stats(dna_strings)
 
     def load_population(self,filename:str):
         with open(filename, "r") as f:
@@ -183,7 +186,7 @@ class DNA2NetworkSimulation:
 
         if make_video:
             codec = 'avc1' #'H264'
-            out = cv2.VideoWriter(filename=f'./{self.parameters.sim_dir}/sim_details_{self.current_cycle:04d}.mp4',fourcc=cv2.VideoWriter_fourcc(*codec), fps=30, frameSize=(self.grid.size.nr_of_cols,self.grid.size.nr_of_rows))
+            out = cv2.VideoWriter(filename=f'./{self.parameters.sim_dir}/{self.current_cycle:04d}.mp4',fourcc=cv2.VideoWriter_fourcc(*codec), fps=30, frameSize=(self.grid.size.nr_of_cols,self.grid.size.nr_of_rows))
 
         for i in range(0, self.parameters.nr_of_steps_per_cycle):
             if make_video:
@@ -419,6 +422,29 @@ class DNA2NetworkSimulation:
             output[f"action {key}"] = value
         
         return output
+
+    def dna_stats(self,dna_strings):
+        df = pd.DataFrame(columns=['DNA'],data = dna_strings )
+        dna_common = df.groupby('DNA')['DNA'].count().sort_values(ascending=False).head(self.nr_top_for_nn_details)
+        for nr,data in enumerate(dna_common.items()):
+            dna_string = data[0]
+            count = data[1]
+            creature = Creature.from_hex_string(dna_string=dna_string)
+            graph = Gen2Graphviz(creature=creature) 
+            graph.makeSimpleClusterGraph()
+            graph.render(filename=f"{self.current_cycle:04d}_nn_{nr+1}_{count}.dot",directory=self.parameters.sim_dir)
+
+    def dna_as_str_list(self,alive_only:bool = True):
+        dna_strings:list[str] = []
+        for creature in self.current_creatures:
+            if alive_only and not creature.alive:
+                continue
+            hex_dna:list[str] = []
+            for gen_code in creature.dna:
+                hex_dna.append(gen_code.hex())
+            dna_string = ' '.join(hex_dna)
+            dna_strings.append(dna_string)
+        return dna_strings
 
 
 
