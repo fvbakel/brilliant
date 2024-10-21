@@ -16,6 +16,10 @@ class SensorType(ExtendedEnum):
     OSIL_16 = 'osil 16'
     OSIL_64 = 'osil 64'
     TIME    = 'time'
+    TIME_INV = 'time_inv'
+    ROW_POS_INV = 'row pos inv'
+    COL_POS_INV = 'col pos inv'
+    RANDOM      = 'random'
 
 class ActionType(ExtendedEnum):
     MOVE_LEFT    = 'l'
@@ -30,6 +34,7 @@ class NeuronType(ExtendedEnum):
     OUTPUT  = 'O'
 
 ALL_SENSOR_TYPES = [sensor_type for sensor_type in SensorType]
+#ALL_SENSOR_TYPES = [SensorType.OSIL_16]
 ALL_ACTION_TYPES = [action_type for action_type in ActionType]
 NR_OF_HIDDEN_NEURONS =  6 # len(ALL_SENSOR_TYPES) #+ len(ALL_ACTION_TYPES)
 TOTAL_NR_OF_NEURONS = len(ALL_SENSOR_TYPES) + len(ALL_ACTION_TYPES) + NR_OF_HIDDEN_NEURONS

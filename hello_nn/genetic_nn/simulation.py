@@ -70,6 +70,7 @@ class DNA2NetworkSimulation:
 
         self.current_creatures:list[Creature]  = []
         self.current_cycle          = 0
+        self.current_step           = 0
         self.nr_mutated             = 0
         self.grid                   = Grid(Size(self.parameters.nr_of_cols,self.parameters.nr_of_rows))
         self.render                 = GridRender(self.grid)
@@ -118,16 +119,21 @@ class DNA2NetworkSimulation:
         self.render.save_output(f'./{self.parameters.sim_dir}/{self.current_cycle:04d}_end_situation.png')
 
     def reset_grid(self):
-        wall_col        = round(self.grid.size.nr_of_cols * 0.2) + 1
-        wall_size       = self.grid.size.nr_of_rows // 2
-        wall_edge_free  = self.grid.size.nr_of_rows // 8
-        wall_row_start  = randrange(wall_edge_free,self.grid.size.nr_of_rows - wall_size - wall_edge_free)
-        wall_row_end    = wall_row_start + wall_size
+        wall_col            = round(self.grid.size.nr_of_cols * 0.2) + 1
+        wall_size           = (self.grid.size.nr_of_rows // 4) * 3
+        wall_edge_free      = self.grid.size.nr_of_rows // 16
+        wall_hole_size      = self.grid.size.nr_of_rows // 8
+        wall_row_start      = randrange(wall_edge_free,self.grid.size.nr_of_rows - wall_size - wall_edge_free)
+        wall_row_end        = wall_row_start + wall_size
+        wall_row_hole_start = wall_row_start + (wall_size // 2) - (wall_hole_size //2)
+        wall_row_hole_end   = wall_row_hole_start + wall_hole_size
         for row in range(0,self.grid.size.nr_of_rows):
             for col in range(self.grid.size.nr_of_cols):
                 pos = Position(col=col,row=row)
                 if  col == wall_col and \
-                    wall_row_start <= row <= wall_row_end:
+                    ( wall_row_start <= row <= wall_row_hole_start or
+                      wall_row_hole_end <= row <= wall_row_end
+                    ):
                         self.grid.set_location(position=pos, content=TileType.WALL)
                         self.wall_positions.add(pos)
                 else:
@@ -188,11 +194,11 @@ class DNA2NetworkSimulation:
             codec = 'avc1' #'H264'
             out = cv2.VideoWriter(filename=f'./{self.parameters.sim_dir}/{self.current_cycle:04d}.mp4',fourcc=cv2.VideoWriter_fourcc(*codec), fps=30, frameSize=(self.grid.size.nr_of_cols,self.grid.size.nr_of_rows))
 
-        for i in range(0, self.parameters.nr_of_steps_per_cycle):
+        for self.current_step in range(1, self.parameters.nr_of_steps_per_cycle + 1):
             if make_video:
                 self.render.render()
                 out.write(self.render.output)
-            self.do_one_step(i)
+            self.do_one_step()
         self.select_survivors()
 
         self.append_statistics()
@@ -210,7 +216,7 @@ class DNA2NetworkSimulation:
             pos = self.grid.get_position(flat_position_ids[index])
             self.set_creature_position(new_pos=pos,creature=creature)
     
-    def do_one_step(self,step_nr:int):
+    def do_one_step(self):
         creatures = sample(population=self.valid_creatures ,k=self.nr_of_valid_creatures)
         for creature in creatures:
             self.assign_sensor_values(creature)
@@ -218,41 +224,49 @@ class DNA2NetworkSimulation:
             self.do_action_on_creature(action,creature)
 
     def assign_sensor_values(self,creature:Creature):
-
         for sensor in creature.sensors:
             if sensor.type == SensorType.LEFT:
-                sensor.current_value = self.nr_neighbor_free_in_direction(pos=creature.current_position,direction=Direction.LEFT)
+                sensor.current_value = self.ratio_neighbor_free_in_direction(pos=creature.current_position,direction=Direction.LEFT)
             elif sensor.type == SensorType.RIGHT:
-                sensor.current_value = self.nr_neighbor_free_in_direction(pos=creature.current_position,direction=Direction.RIGHT)
+                sensor.current_value = self.ratio_neighbor_free_in_direction(pos=creature.current_position,direction=Direction.RIGHT)
             elif sensor.type == SensorType.UP:
-                sensor.current_value = self.nr_neighbor_free_in_direction(pos=creature.current_position,direction=Direction.UP)
+                sensor.current_value = self.ratio_neighbor_free_in_direction(pos=creature.current_position,direction=Direction.UP)
             elif sensor.type == SensorType.DOWN:
-                sensor.current_value = self.nr_neighbor_free_in_direction(pos=creature.current_position,direction=Direction.DOWN)
+                sensor.current_value = self.ratio_neighbor_free_in_direction(pos=creature.current_position,direction=Direction.DOWN)
             elif sensor.type == SensorType.ROW_POS:
                 sensor.current_value = creature.current_position.row / self.grid.size.nr_of_rows
             elif sensor.type == SensorType.COL_POS:
                 sensor.current_value = creature.current_position.col / self.grid.size.nr_of_cols
+            elif sensor.type == SensorType.ROW_POS_INV:
+                sensor.current_value = (self.grid.size.nr_of_rows - creature.current_position.row) / self.grid.size.nr_of_rows
+            elif sensor.type == SensorType.COL_POS_INV:
+                sensor.current_value = (self.grid.size.nr_of_cols - creature.current_position.col) / self.grid.size.nr_of_cols
             elif sensor.type == SensorType.OSIL_4:
-                remain = self.current_cycle % 4
-                if remain > 1:
-                    sensor.current_value = 1
-                else:
-                    sensor.current_value = 0
+                sensor.current_value = self.osil(4)
             elif sensor.type == SensorType.OSIL_16:
-                remain = self.current_cycle % 16
-                if remain > 7:
-                    sensor.current_value = 1
-                else:
-                    sensor.current_value = 0
+                sensor.current_value = self.osil(16)
             elif sensor.type == SensorType.OSIL_64:
-                remain = self.current_cycle % 64
-                if remain > 31:
-                    sensor.current_value = 1
-                else:
-                    sensor.current_value = 0
+                sensor.current_value = self.osil(64)
             elif sensor.type == SensorType.TIME:
-                    sensor.current_value = self.current_cycle / self.parameters.nr_of_steps_per_cycle
+                sensor.current_value = self.current_step / self.parameters.nr_of_steps_per_cycle
+            elif sensor.type == SensorType.TIME_INV:
+                sensor.current_value = (self.parameters.nr_of_steps_per_cycle - self.current_step) / self.parameters.nr_of_steps_per_cycle
+            elif sensor.type == SensorType.RANDOM:
+                sensor.current_value = random()
 
+    def osil(self,fase:int):
+        remain = self.current_step % fase
+        if remain > ((fase/2) -1):
+            return 1
+        else:
+            return 0
+        
+    def ratio_neighbor_free_in_direction(self,pos:Position,direction:Direction):
+        if self.parameters.max_vision == 0:
+            return 0
+        nr_free = self.nr_neighbor_free_in_direction(pos,direction)
+        return  nr_free / self.parameters.max_vision
+        
     
     def nr_neighbor_free_in_direction(self,pos:Position,direction:Direction):
         nr_free = 0
@@ -462,8 +476,8 @@ class DnaColorMap:
         self.used_color: set[tuple[int,int,int]] =set(list(Color))
         
 
-    def get_color(self,dna:list[Gen]):
-        dna_key = tuple(dna)
+    def get_color(self,gens:list[Gen]):
+        dna_key = tuple(gen for gen in gens if gen.use_full)
         if dna_key in self.dna_vs_color:
             return self.dna_vs_color[dna_key]
         else:
@@ -507,7 +521,7 @@ class GridRender:
                 self.output[col_index,row_index] = Color.WHITE.value
             elif isinstance(content,Creature):
                 if content.alive:
-                    color = self.colormap.get_color(content.dna)
+                    color = self.colormap.get_color(content.gens)
                     self.output[col_index,row_index] = color  #Color.BLACK.value
                 else:
                     self.output[col_index,row_index] = Color.RED.value
