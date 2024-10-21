@@ -455,11 +455,39 @@ class Color(ExtendedEnum):
     GREEN = (0,255,0)
     RED   = (0,0,255)
 
+class DnaColorMap:
+
+    def __init__(self):
+        self.dna_vs_color:dict[list[Gen],tuple[int,int,int]] = dict()
+        self.used_color: set[tuple[int,int,int]] =set(list(Color))
+        
+
+    def get_color(self,dna:list[Gen]):
+        dna_key = tuple(dna)
+        if dna_key in self.dna_vs_color:
+            return self.dna_vs_color[dna_key]
+        else:
+            color = self._make_new_color()
+            self.dna_vs_color[dna_key] = color
+            return color
+
+    def _make_new_color(self):
+        blue = randrange(1,254)
+        green = randrange(1,254)
+        red = randrange(1,254)
+        color = (blue,green,red)
+        if color in self.used_color:
+            return self._make_new_color()
+        self.used_color.add(color)
+        return color
+        
+
 class GridRender:
 
     def __init__(self,grid:Grid):
         self.grid = grid    
         self._init_image()
+        self.colormap = DnaColorMap()
     
     def _init_image(self):
         self.output = np.full   (  (self.grid.size.nr_of_rows,self.grid.size.nr_of_cols,3),
@@ -479,7 +507,8 @@ class GridRender:
                 self.output[col_index,row_index] = Color.WHITE.value
             elif isinstance(content,Creature):
                 if content.alive:
-                    self.output[col_index,row_index] = Color.BLACK.value
+                    color = self.colormap.get_color(content.dna)
+                    self.output[col_index,row_index] = color  #Color.BLACK.value
                 else:
                     self.output[col_index,row_index] = Color.RED.value
             elif content == TileType.WALL:
