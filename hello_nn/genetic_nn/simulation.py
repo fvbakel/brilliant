@@ -41,6 +41,19 @@ def copy_dna(dna:list[bytes],mutation_probability:float):
     else:
         return dna, False
 
+def mix_dna(dna_1:list[bytes],dna_2:list[bytes]):
+    dna_list = [dna_1,dna_2]
+    new_dna:list[bytes] = []
+    for i in range(0,len(dna_1)):
+        dna_index = randint(0,1)
+        new_dna.append(dna_list[dna_index][i])
+    return new_dna
+
+def sometimes_mix_dna(dna_1:list[bytes],dna_2:list[bytes],probability:float):
+    if random() < probability:
+        return mix_dna(dna_1,dna_2)
+    return dna_1
+
 def flip_random_bit(gen_code:bytes):
     nr_of_bytes = len(gen_code)
     int_value = int.from_bytes(gen_code,byteorder=sys.byteorder)
@@ -319,17 +332,22 @@ class DNA2NetworkSimulation:
                     creature.current_position.col > survive_width :
                         creature.alive = False
 
-    def reproduce_one(self,creature:Creature):
+    def a_sexual_reproduce_one(self,creature:Creature):
         new_dna, mutated = copy_dna(creature.dna,self.parameters.mutation_probability)
         if mutated:
             self.nr_mutated += 1
         return Creature(dna=new_dna)
-        """ 
-            Below is a possible performance gain
-            copy_creature = copy.deepcopy(creature)
-            copy_creature.reset()
-            return copy_creature
-        """
+    
+    def sexual_reproduce_one(self,creature_1:Creature, creature_2:Creature):
+        new_dna_1, mutated = copy_dna(creature_1.dna,self.parameters.mutation_probability)
+        if mutated:
+            self.nr_mutated += 1
+        new_dna_2, mutated = copy_dna(creature_2.dna,self.parameters.mutation_probability)
+        if mutated:
+            self.nr_mutated += 1
+
+        new_dna = sometimes_mix_dna(new_dna_1,new_dna_2,probability=self.parameters.mix_probability)
+        return Creature(dna=new_dna)
 
     def reproduce_population(self):
         survivors = self.survivors
@@ -349,13 +367,21 @@ class DNA2NetworkSimulation:
         # first just recreate all survivors
         while nr_new_to_create > nr_of_survivors:
             for creature in survivors:
-                new_creatures.append(self.reproduce_one(creature))
+                if self.parameters.sexual_reproduce:
+                    partner_index = randrange(0,nr_of_survivors)
+                    new_creatures.append(self.sexual_reproduce_one(creature,survivors[partner_index]))
+                else:
+                    new_creatures.append(self.a_sexual_reproduce_one(creature))
                 nr_new_to_create -= 1
 
         # random select survivors that are allowed to create one more copy
         extra = sample(survivors,nr_new_to_create)
         for creature in extra:
-            new_creatures.append(self.reproduce_one(creature))
+            if self.parameters.sexual_reproduce:
+                partner_index = randrange(0,nr_of_survivors)
+                new_creatures.append(self.sexual_reproduce_one(creature,survivors[partner_index]))
+            else:
+                new_creatures.append(self.a_sexual_reproduce_one(creature))
 
         self.current_creatures = new_creatures
 

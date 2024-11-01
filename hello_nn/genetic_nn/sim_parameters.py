@@ -15,7 +15,9 @@ class SimParameters:
     nr_of_cols              : int  = 150
     nr_of_rows              : int  = 200
     survivor_threshold      : int  = 200
+    mix_probability         : float = 0.3
     wall_mode               : str  = 'two'
+    sexual_reproduce        : bool = False
     sim_dir                 : str  = './tmp'
 
     def save_parameters(self,filename:str):
