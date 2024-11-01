@@ -14,6 +14,8 @@ class SimParameters:
     initial_valid_gens      : bool = True
     nr_of_cols              : int  = 150
     nr_of_rows              : int  = 200
+    survivor_threshold      : int  = 200
+    wall_mode               : str  = 'two'
     sim_dir                 : str  = './tmp'
 
     def save_parameters(self,filename:str):

@@ -16,9 +16,18 @@ class TestDNA2NetworkSimulation(unittest.TestCase):
         param.nr_of_cols                = 100
         param.nr_of_rows                = 75
         param.mutation_probability      = 0.01
+        param.wall_mode                 = 'random'
 
         param.save_parameters(f'{param.sim_dir}/sim_parmams.txt')
         print('')
         sim = DNA2NetworkSimulation(param)
         sim.run_simulation()
+
+    def test_wrong_wall_mode(self):
+        param = SimParameters()
+        param.wall_mode = 'does not exists'
+        sim = DNA2NetworkSimulation(param)
+        with self.assertRaises(ValueError):
+            sim.run_simulation()
+
 

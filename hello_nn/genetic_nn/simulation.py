@@ -8,6 +8,12 @@ import pandas as pd
 import cv2
 import os.path
 
+from basegrid import (
+    Grid,Size,Position, ExtendedEnum,
+    Direction
+)
+
+
 from genetic_nn.creature_basics import (
     Creature, 
     ALL_SENSOR_TYPES, ALL_ACTION_TYPES, NR_OF_HIDDEN_NEURONS, TOTAL_NR_OF_NEURONS,
@@ -19,10 +25,10 @@ from genetic_nn.sim_parameters import (
     SimParameters
 )
 
-from basegrid import (
-    Grid,Size,Position, ExtendedEnum,
-    Direction
+from genetic_nn.wall_build import (
+    generate_wall_positions,WallMode
 )
+
 from genetic_nn.to_graphviz import Gen2Graphviz
 
 def copy_dna(dna:list[bytes],mutation_probability:float):
@@ -119,25 +125,16 @@ class DNA2NetworkSimulation:
         self.render.save_output(f'./{self.parameters.sim_dir}/{self.current_cycle:04d}_end_situation.png')
 
     def reset_grid(self):
-        wall_col            = round(self.grid.size.nr_of_cols * 0.2) + 1
-        wall_size           = (self.grid.size.nr_of_rows // 4) * 3
-        wall_edge_free      = self.grid.size.nr_of_rows // 16
-        wall_hole_size      = self.grid.size.nr_of_rows // 8
-        wall_row_start      = randrange(wall_edge_free,self.grid.size.nr_of_rows - wall_size - wall_edge_free)
-        wall_row_end        = wall_row_start + wall_size
-        wall_row_hole_start = wall_row_start + (wall_size // 2) - (wall_hole_size //2)
-        wall_row_hole_end   = wall_row_hole_start + wall_hole_size
+        self.wall_positions = generate_wall_positions(self.parameters.wall_mode,self.grid.size)
+        
         for row in range(0,self.grid.size.nr_of_rows):
             for col in range(self.grid.size.nr_of_cols):
                 pos = Position(col=col,row=row)
-                if  col == wall_col and \
-                    ( wall_row_start <= row <= wall_row_hole_start or
-                      wall_row_hole_end <= row <= wall_row_end
-                    ):
-                        self.grid.set_location(position=pos, content=TileType.WALL)
-                        self.wall_positions.add(pos)
+                if  pos in self.wall_positions:
+                    self.grid.set_location(position=pos, content=TileType.WALL)
                 else:
                     self.grid.set_location(position=pos, content=None)
+        
 
     def make_initial_population(self):
         filename = f"{self.parameters.sim_dir}/dna_start.txt"
@@ -147,20 +144,18 @@ class DNA2NetworkSimulation:
         else:
             self.make_random_population()
 
+    def make_random_creature(self):
+        dna = []
+        for j in range(0,self.parameters.nr_of_initial_gens):
+            dna.append(random_gen_code(self.parameters.initial_valid_gens))
+        creature = Creature(dna=dna)
+        if not creature.has_valid_network:
+            creature = self.make_random_creature()
+        return creature
 
     def make_random_population(self):
-
-        def make_random_creature():
-            dna = []
-            for j in range(0,self.parameters.nr_of_initial_gens):
-                dna.append(random_gen_code(self.parameters.initial_valid_gens))
-            creature = Creature(dna=dna)
-            if not creature.has_valid_network:
-                creature = make_random_creature()
-            return creature
-
         for i in range(0,self.parameters.population_size):
-            creature = make_random_creature()
+            creature = self.make_random_creature()
             self.current_creatures.append(creature)
 
     def save_population(self,alive_only=False):
@@ -341,9 +336,15 @@ class DNA2NetworkSimulation:
         nr_of_survivors = len(survivors)
         if nr_of_survivors == 0:
             return
-        
+
         nr_new_to_create = self.parameters.population_size
         new_creatures:list[Creature] = []
+
+        if nr_of_survivors < self.parameters.survivor_threshold:
+            for i in range(0,self.parameters.population_size - (2 * nr_of_survivors)):
+                creature = self.make_random_creature()
+                new_creatures.append(creature)
+                nr_new_to_create -= 1
 
         # first just recreate all survivors
         while nr_new_to_create > nr_of_survivors:

@@ -12,3 +12,8 @@ from genetic_nn.sim_parameters import (
 from genetic_nn.to_graphviz import (
     Gen2Graphviz
 )
+
+from genetic_nn.wall_build import (
+    generate_wall_positions,
+    WallMode
+)
