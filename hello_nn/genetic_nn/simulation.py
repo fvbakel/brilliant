@@ -36,7 +36,14 @@ def copy_dna(dna:list[bytes],mutation_probability:float):
         new_dna = copy.deepcopy(dna)
         nr_of_gens = len(new_dna)
         index = randrange(nr_of_gens)
-        new_dna[index] = flip_random_bit(new_dna[index])
+        what_mutation = randint(0,2)
+        if what_mutation == 0:
+            new_dna[index] = flip_random_bit(new_dna[index])
+        elif what_mutation == 1:
+            gen_code = new_dna[index]
+            dna.append(flip_random_bit(gen_code))
+        else:
+            new_dna.pop(index)
         return new_dna, True
     else:
         return dna, False
@@ -45,8 +52,11 @@ def mix_dna(dna_1:list[bytes],dna_2:list[bytes]):
     dna_list = [dna_1,dna_2]
     new_dna:list[bytes] = []
     for i in range(0,len(dna_1)):
-        dna_index = randint(0,1)
-        new_dna.append(dna_list[dna_index][i])
+        if i < len(dna_2):
+            dna_index = randint(0,1)
+            new_dna.append(dna_list[dna_index][i])
+        else:
+            new_dna.append(dna_1[i])
     return new_dna
 
 def sometimes_mix_dna(dna_1:list[bytes],dna_2:list[bytes],probability:float):
