@@ -40,8 +40,8 @@ def copy_dna(dna:list[bytes],mutation_probability:float):
         if what_mutation == 0:
             new_dna[index] = flip_random_bit(new_dna[index])
         elif what_mutation == 1:
-            gen_code = new_dna[index]
-            dna.append(flip_random_bit(gen_code))
+            new_dna.append(flip_random_bit(new_dna[index]))
+            # new_dna.insert(index,flip_random_bit(new_dna[index]))
         else:
             new_dna.pop(index)
         return new_dna, True
@@ -51,12 +51,14 @@ def copy_dna(dna:list[bytes],mutation_probability:float):
 def mix_dna(dna_1:list[bytes],dna_2:list[bytes]):
     dna_list = [dna_1,dna_2]
     new_dna:list[bytes] = []
-    for i in range(0,len(dna_1)):
-        if i < len(dna_2):
+    
+    if len(dna_1) == len(dna_2):
+        for i in range(0,len(dna_1)):
             dna_index = randint(0,1)
             new_dna.append(dna_list[dna_index][i])
-        else:
-            new_dna.append(dna_1[i])
+    else:
+        return dna_1
+
     return new_dna
 
 def sometimes_mix_dna(dna_1:list[bytes],dna_2:list[bytes],probability:float):
@@ -369,7 +371,7 @@ class DNA2NetworkSimulation:
         new_creatures:list[Creature] = []
 
         if nr_of_survivors < self.parameters.survivor_threshold:
-            for i in range(0,self.parameters.population_size - (2 * nr_of_survivors)):
+            for i in range(0, self.parameters.survivor_threshold - nr_of_survivors ):
                 creature = self.make_random_creature()
                 new_creatures.append(creature)
                 nr_new_to_create -= 1
@@ -442,6 +444,7 @@ class DNA2NetworkSimulation:
         nr_of_actions = []
         count_sensors_map = dict()
         count_actions_map = dict()
+
         for creature in self.survivors:
             nr_of_valid_gens.append(len(creature.valid_gens))
             nr_of_sensors.append(len(creature.sensors))
@@ -474,7 +477,7 @@ class DNA2NetworkSimulation:
         
         return output
 
-    def dna_stats(self,dna_strings):
+    def dna_stats(self,dna_strings:list[str]):
         df = pd.DataFrame(columns=['DNA'],data = dna_strings )
         dna_common = df.groupby('DNA')['DNA'].count().sort_values(ascending=False).head(self.nr_top_for_nn_details)
         for nr,data in enumerate(dna_common.items()):
@@ -484,6 +487,20 @@ class DNA2NetworkSimulation:
             graph = Gen2Graphviz(creature=creature) 
             graph.makeSimpleClusterGraph()
             graph.render(filename=f"{self.current_cycle:04d}_nn_{nr+1}_{count}.dot",directory=self.parameters.sim_dir)
+        
+        gen_map:dict[str,int] = dict()
+        for dna_string in dna_strings:
+            gen_codes = dna_string.split(sep=' ')
+            for gen_code in gen_codes:
+                if gen_code not in gen_map:
+                    gen_map[gen_code] = 0
+                gen_map[gen_code] += 1
+        
+        sorted_gen_map = sorted(gen_map.items(), key=lambda item: item[1], reverse=True)
+        with open(f"{self.parameters.sim_dir}/{self.current_cycle:04d}_gen_stats.txt", "w") as file:
+            for gen_code, value in sorted_gen_map:
+                file.write(f"{gen_code},{value}\n")
+
 
     def dna_as_str_list(self,alive_only:bool = True):
         dna_strings:list[str] = []

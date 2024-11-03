@@ -1,4 +1,6 @@
-from random import randrange
+from random import randrange,choice
+
+from typing import Callable
 
 from basegrid import (
     Size,Position, ExtendedEnum
@@ -13,7 +15,27 @@ class WallMode(ExtendedEnum):
     BUCKET_HOLE = 'bucket_hole'
     RANDOM      = 'random'
 
-def generate_wall_positions(wall_mode:str, size: Size):
+def generate_wall_positions(wall_mode: str, size: Size):
+
+    wall_functions: dict[str, Callable[[Size]]] = {
+        WallMode.TWO.value: two_walls,
+        WallMode.SMALL.value: small_walls,
+        WallMode.DIAG.value: diag_walls,
+        WallMode.ARROW.value: arrow_walls,
+        WallMode.BUCKET.value: bucket_walls,
+        WallMode.BUCKET_HOLE.value: lambda s: bucket_hole_walls(s, 1)
+    }
+
+    if wall_mode == WallMode.RANDOM.value:
+        random_mode = choice([mode.value for mode in WallMode if mode != WallMode.RANDOM])
+        return generate_wall_positions(random_mode, size)
+
+    if wall_mode in wall_functions:
+        return wall_functions[wall_mode](size)
+    else:
+        raise ValueError(f'Unexpected wall mode {wall_mode}. Please use one of {list(wall_functions.keys())}')
+
+def generate_wall_positions_old(wall_mode:str, size: Size):
     if wall_mode == WallMode.TWO.value:
         return two_walls(size)
     elif wall_mode == WallMode.SMALL.value:

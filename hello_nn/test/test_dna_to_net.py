@@ -67,3 +67,26 @@ class TestDNA(unittest.TestCase):
         creature.sensors[3].current_value = 2
         action = creature.decide_action()
         print(action)
+
+    def test_flip_random_bit(self):
+        import sys
+        from random import randrange
+
+        def flip_random_bit(gen_code:bytes):
+            nr_of_bytes = len(gen_code)
+            int_value = int.from_bytes(gen_code,byteorder=sys.byteorder)
+            int_value ^= 1 << randrange((nr_of_bytes * 8) -1)
+            return int_value.to_bytes(nr_of_bytes,byteorder=sys.byteorder)
+        
+        value = 0
+        gen_code = value.to_bytes(4,byteorder=sys.byteorder)
+        
+        for i in range(0,10000000):
+            mutated_gen_code = flip_random_bit(gen_code)
+            if mutated_gen_code == gen_code:
+                print(f"value did not change in cycle {i}")
+
+    def test_creature_from_empty_dna(self):
+
+        creature = Creature(dna=[])
+        self.assertIsNotNone(creature)
