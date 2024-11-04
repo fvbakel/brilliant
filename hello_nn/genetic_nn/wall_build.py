@@ -31,29 +31,9 @@ def generate_wall_positions(wall_mode: str, size: Size):
         return generate_wall_positions(random_mode, size)
 
     if wall_mode in wall_functions:
-        return wall_functions[wall_mode](size)
+        return wall_functions[wall_mode](size), wall_mode
     else:
         raise ValueError(f'Unexpected wall mode {wall_mode}. Please use one of {list(wall_functions.keys())}')
-
-def generate_wall_positions_old(wall_mode:str, size: Size):
-    if wall_mode == WallMode.TWO.value:
-        return two_walls(size)
-    elif wall_mode == WallMode.SMALL.value:
-        return small_walls(size)
-    elif wall_mode == WallMode.DIAG.value:
-        return diag_walls(size) 
-    elif wall_mode == WallMode.ARROW.value:
-        return arrow_walls(size) 
-    elif wall_mode == WallMode.BUCKET.value:
-        return bucket_walls(size) 
-    elif wall_mode == WallMode.BUCKET_HOLE.value:
-        return bucket_hole_walls(size,1) 
-    elif wall_mode == WallMode.RANDOM.value:
-        modes = WallMode.list()
-        index = randrange(0,len(modes) -1)
-        return generate_wall_positions(modes[index],size) 
-    else:
-        raise ValueError(f'Unexpected wall mode {wall_mode} please use one of {WallMode.list()}')
 
 """
     wall_edge_free   1/10

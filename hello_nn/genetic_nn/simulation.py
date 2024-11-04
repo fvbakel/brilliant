@@ -1,4 +1,4 @@
-from random import randbytes, random, randrange, sample, randint
+from random import randbytes, random, randrange, sample, randint, choice
 import copy
 import sys
 import statistics
@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 import cv2
 import os.path
+from typing import Callable
 
 from basegrid import (
     Grid,Size,Position, ExtendedEnum,
@@ -107,8 +108,11 @@ class DNA2NetworkSimulation:
         self.render                 = GridRender(self.grid)
         self.wall_positions         = set()
 
-        self.nr_top_for_nn_details = 3
-        self.record                = 0
+        self.nr_top_for_nn_details  = 3
+        self.record                 = 0
+        self.current_wall_mode      = WallMode.RANDOM.value
+
+        Creature.START_ENERGY       = self.parameters.start_energy
 
         self.stats_df:pd.DataFrame | None = None
 
@@ -150,7 +154,7 @@ class DNA2NetworkSimulation:
         self.render.save_output(f'./{self.parameters.sim_dir}/{self.current_cycle:04d}_end_situation.png')
 
     def reset_grid(self):
-        self.wall_positions = generate_wall_positions(self.parameters.wall_mode,self.grid.size)
+        self.wall_positions, self.current_wall_mode = generate_wall_positions(self.parameters.wall_mode,self.grid.size)
         
         for row in range(0,self.grid.size.nr_of_rows):
             for col in range(self.grid.size.nr_of_cols):
@@ -240,8 +244,9 @@ class DNA2NetworkSimulation:
         creatures = sample(population=self.valid_creatures ,k=self.nr_of_valid_creatures)
         for creature in creatures:
             self.assign_sensor_values(creature)
-            action = creature.decide_action()
-            self.do_action_on_creature(action,creature)
+            if creature.energy > 0:
+                action = creature.decide_action()
+                self.do_action_on_creature(action,creature)
 
     def assign_sensor_values(self,creature:Creature):
         for sensor in creature.sensors:
@@ -311,7 +316,7 @@ class DNA2NetworkSimulation:
         else:
             return True
 
-    def do_action_on_creature(self,action:ActionType,creature:Creature):
+    def do_action_on_creature(self,action:ActionType | None,creature:Creature):
         new_pos:Position | None = None
         if action == ActionType.MOVE_LEFT:
             new_pos =  creature.current_position.get_position_in_direction(Direction.LEFT)
@@ -321,9 +326,14 @@ class DNA2NetworkSimulation:
             new_pos =  creature.current_position.get_position_in_direction(Direction.UP)
         elif action == ActionType.MOVE_DOWN:
             new_pos =  creature.current_position.get_position_in_direction(Direction.DOWN)
+        elif action == ActionType.SLEEP:
+            creature.energy += 1
+        else:
+            creature.energy -= 2
 
-        if new_pos is not None:
+        if new_pos is not None and creature.energy > 0:
             self.set_creature_position(new_pos=new_pos,creature=creature)
+            creature.energy -= 1
     
 
     def set_creature_position(self,new_pos:Position,creature:Creature):
@@ -362,40 +372,49 @@ class DNA2NetworkSimulation:
         return Creature(dna=new_dna)
 
     def reproduce_population(self):
-        survivors = self.survivors
-        nr_of_survivors = len(survivors)
-        if nr_of_survivors == 0:
+        if self.nr_of_survivors == 0:
             return
 
         nr_new_to_create = self.parameters.population_size
         new_creatures:list[Creature] = []
 
-        if nr_of_survivors < self.parameters.survivor_threshold:
-            for i in range(0, self.parameters.survivor_threshold - nr_of_survivors ):
+        # add random creatures if needed
+        for i in range(0, self.parameters.nr_of_always_random ):
+            creature = self.make_random_creature()
+            new_creatures.append(creature)
+            nr_new_to_create -= 1
+
+        if self.nr_of_survivors < self.parameters.survivor_threshold:
+            for i in range(0, self.parameters.survivor_threshold - self.nr_of_survivors ):
                 creature = self.make_random_creature()
                 new_creatures.append(creature)
                 nr_new_to_create -= 1
 
-        # first just recreate all survivors
-        while nr_new_to_create > nr_of_survivors:
-            for creature in survivors:
-                if self.parameters.sexual_reproduce:
-                    partner_index = randrange(0,nr_of_survivors)
-                    new_creatures.append(self.sexual_reproduce_one(creature,survivors[partner_index]))
-                else:
-                    new_creatures.append(self.a_sexual_reproduce_one(creature))
+        # recreate all survivors
+        while nr_new_to_create > self.nr_of_survivors:
+            for creature in self.survivors:
+                new_creatures.append(self.reproduce_one(creature))
                 nr_new_to_create -= 1
 
         # random select survivors that are allowed to create one more copy
-        extra = sample(survivors,nr_new_to_create)
+        extra = sample(self.survivors,nr_new_to_create)
         for creature in extra:
-            if self.parameters.sexual_reproduce:
-                partner_index = randrange(0,nr_of_survivors)
-                new_creatures.append(self.sexual_reproduce_one(creature,survivors[partner_index]))
-            else:
-                new_creatures.append(self.a_sexual_reproduce_one(creature))
+            new_creatures.append(self.reproduce_one(creature))
 
         self.current_creatures = new_creatures
+
+    def reproduce_one(self, creature:Creature):
+        if self.parameters.sexual_reproduce:
+            partner = choice(self.survivors)
+            return self.sexual_reproduce_one(creature,partner)
+        elif self.parameters.competition_reproduce:
+            competition = choice(self.survivors)
+            if creature.energy >= competition.energy:
+                return self.a_sexual_reproduce_one(creature)
+            else:
+                return self.a_sexual_reproduce_one(competition)
+        else:
+            return self.a_sexual_reproduce_one(creature)
 
     @property
     def nr_of_valid_creatures(self):
@@ -438,6 +457,7 @@ class DNA2NetworkSimulation:
         output["nr_of_valid_creatures"] = self.nr_of_valid_creatures
         output["nr_of_survivors"] = self.nr_of_survivors
         output["nr_mutated"] = self.nr_mutated
+        output["wall_mode"] = self.current_wall_mode
 
         nr_of_valid_gens = []
         nr_of_sensors = []
@@ -523,15 +543,33 @@ class Color(ExtendedEnum):
     GREEN = (0,255,0)
     RED   = (0,0,255)
 
+class ColorScheme(ExtendedEnum):
+    SIMPLE  = 0
+    NEURON  = 1
+
 class DnaColorMap:
 
-    def __init__(self):
+    def __init__(self,color_scheme:ColorScheme):
         self.dna_vs_color:dict[list[Gen],tuple[int,int,int]] = dict()
         self.used_color: set[tuple[int,int,int]] =set(list(Color))
-        
+        self.color_scheme = color_scheme
+
+    def _simple_key(self,gens:list[Gen]):
+        return tuple(gen for gen in gens if gen.use_full)
+    
+    def _neuron_key(self,gens:list[Gen]):
+        return tuple(sorted(set((gen.from_neuron.id,gen.to_neuron.id) for gen in gens if gen.use_full)))
+
+    def _get_key(self,gens:list[Gen]):
+        get_key_functions: dict[str, Callable[[list[Gen]]]] = {
+            ColorScheme.SIMPLE.value: self._simple_key,
+            ColorScheme.NEURON.value: self._neuron_key
+        }
+
+        return get_key_functions[self.color_scheme.value](gens)
 
     def get_color(self,gens:list[Gen]):
-        dna_key = tuple(gen for gen in gens if gen.use_full)
+        dna_key = self._get_key(gens)
         if dna_key in self.dna_vs_color:
             return self.dna_vs_color[dna_key]
         else:
@@ -555,7 +593,7 @@ class GridRender:
     def __init__(self,grid:Grid):
         self.grid = grid    
         self._init_image()
-        self.colormap = DnaColorMap()
+        self.colormap = DnaColorMap(color_scheme=ColorScheme.NEURON)
     
     def _init_image(self):
         self.output = np.full   (  (self.grid.size.nr_of_rows,self.grid.size.nr_of_cols,3),

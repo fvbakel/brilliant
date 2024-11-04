@@ -5,9 +5,11 @@ from dataclasses import dataclass
 class SimParameters:
     max_nr_of_cycles        : int  = 10
     nr_of_steps_per_cycle   : int  = 200
+    start_energy            : int  = 200
     population_size         : int  = 800
     nr_of_initial_gens      : int  = 8
     mutation_probability    : float = 0.01
+    nr_of_always_random     : int   = 1
     report_initial_cycles   : int  = 10
     report_interval_cycles  : int  = 10
     max_vision              : int  = 3
@@ -18,6 +20,7 @@ class SimParameters:
     mix_probability         : float = 0.3
     wall_mode               : str  = 'two'
     sexual_reproduce        : bool = False
+    competition_reproduce   : bool = True
     sim_dir                 : str  = './tmp'
 
     def save_parameters(self,filename:str):

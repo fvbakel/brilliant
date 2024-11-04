@@ -26,7 +26,7 @@ class ActionType(ExtendedEnum):
     MOVE_RIGHT   = 'r'
     MOVE_UP      = 'u'
     MOVE_DOWN    = 'd'
-    STOP         = 's'
+    SLEEP        = 's'
 
 class NeuronType(ExtendedEnum):
     INPUT   = 'I'
@@ -122,6 +122,8 @@ class Gen:
         return False
 
 class Creature:
+    START_ENERGY = 100
+
     def __init__(self,dna:list[bytes]):
         self.dna:list[bytes]            = dna
         self.gens:list[Gen]             = []
@@ -134,6 +136,7 @@ class Creature:
         self.has_valid_network          = True
         self.current_position:Position | None  = None
         self.alive                      = True
+        self.energy                     = self.START_ENERGY
 
         self._init_dna()
 
@@ -298,7 +301,7 @@ class Creature:
         input_values = [sensor.current_value for sensor in self.sensors]
         output = relu(self.network.calculate(input_data=input_values))
         if sum(output) == 0:
-            return ActionType.STOP
+            return None
         action_index = np.argmax(output)
         return self.actions[action_index].type
 

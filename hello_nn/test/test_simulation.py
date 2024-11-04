@@ -10,16 +10,19 @@ class TestDNA2NetworkSimulation(unittest.TestCase):
         param.max_nr_of_cycles          = 5002
         param.report_initial_cycles     = 5
         param.report_interval_cycles    = 100
-        param.nr_of_initial_gens        = 6
+        param.nr_of_initial_gens        = 10
         param.population_size           = 500
-        param.nr_of_steps_per_cycle     = 150
+        param.nr_of_always_random       = 20
+        param.nr_of_steps_per_cycle     = 200
+        param.start_energy              = 150
         param.nr_of_cols                = 100
         param.nr_of_rows                = 75
         param.mutation_probability      = 0.01
-        param.survivor_threshold        = 200
-        param.mix_probability           = 0.3
-        param.sexual_reproduce          = True
-        param.wall_mode                 = 'random'
+        param.survivor_threshold        = 180
+        param.mix_probability           = 0.8
+        param.sexual_reproduce          = False
+        param.competition_reproduce     = False
+        param.wall_mode                 = 'bucket'
 
         param.save_parameters(f'{param.sim_dir}/sim_parmams.txt')
         print('')
