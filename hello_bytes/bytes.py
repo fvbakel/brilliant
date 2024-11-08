@@ -54,6 +54,9 @@ def main():
     int_value ^= 1 << randrange(31)
     dump_bytes(int_value.to_bytes(4,byteorder=sys.byteorder))
 
+    buffer = bytes.fromhex('FF FF FF FF')
+    
+
     print('Ready')
 
 
