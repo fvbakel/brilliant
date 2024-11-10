@@ -3,4 +3,8 @@ clowns
 prison-problem
 prison-problem-alt-1
 size-of-types
-
+bit-array
+prison-problem-bit-array
+prison-problem-file-based
+random-file-access
+*.bin

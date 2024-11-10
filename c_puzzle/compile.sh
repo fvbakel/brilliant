@@ -13,6 +13,7 @@ if [ -z "$1" ]
     compile prison-problem
     compile size-of-types
     compile prison-problem-alt-1
+    compile bit-array
 else
     compile $1
 fi

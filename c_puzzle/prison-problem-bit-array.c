@@ -12,7 +12,7 @@
 
     Can we do more? 
 
-    This is the alternative code in C, not so easy to read but better scale
+    This is the solution based on and array of unsigned ints and a bit array.
 
     It can do:
     Prisoners        Nr simulations   Survived       Duration
@@ -21,7 +21,7 @@
     500.000.000      1                              ~ one minute
 
     1.000.000.000    1                Killed, why? requires 8 Gb of Mem and I only have 6...
-      268.435.456
+    
 */
 
 
@@ -30,6 +30,58 @@
 #include <stdbool.h>
 #include <locale.h>
 #include <time.h>
+#include <stdint.h>
+
+#define MASK 31U // this are all one's in 32 bit
+#define SHIFT 5U // 2^5 = 32 bits
+
+#define OFF 0U // Bit is Off
+#define ON  1U // Bit is On
+
+// the const below is to reduce the multiplications
+const unsigned int BITS_IN_WORD=8*sizeof(uint32_t);
+
+// the constant below is a cache of all the possible bit masks
+const uint32_t offset_mask[] = {1,2,4,8,16,32,64,128,256,512,1024,2048,4096,8192,16384,32768,65536,131072,262144,524288,1048576,2097152,4194304,8388608,16777216,33554432,67108864,134217728,268435456,536870912,1073741824,2147483648};
+
+struct bits_state {
+  uint32_t *bit_array;
+  unsigned int limit;
+  unsigned int nr_of_words;
+};
+
+static inline struct bits_state *create_bits(int limit) {
+  struct bits_state *bits_state=malloc(sizeof *bits_state);
+
+  bits_state->nr_of_words=(limit >> SHIFT) + 1;
+  bits_state->bit_array=calloc(bits_state->nr_of_words,sizeof(uint32_t));
+  bits_state->limit=limit;
+  return bits_state;
+}
+
+static inline void delete_bits(struct bits_state *bits_state) {
+  free(bits_state->bit_array);
+  free(bits_state);
+}
+
+static inline void setBit(struct bits_state *bits_state,unsigned int index) {
+    unsigned int word_offset = index >> SHIFT;                // 1 word = 2ˆ5 = 32 bit, so shift 5, much faster than /32
+    unsigned int offset  = index & MASK;                      // use & (and) for remainder, faster than modulus of /32
+    bits_state->bit_array[word_offset] |=  offset_mask[offset];
+}
+
+static inline uint32_t getBit (struct bits_state *bits_state,unsigned int index) {
+    unsigned int word_offset = index >> SHIFT;  
+    unsigned int offset  = index & MASK;
+    return ((bits_state->bit_array[word_offset] & offset_mask[offset]) >> offset);     // use a mask to only get the bit at position bitOffset.
+}
+
+static void printBits(struct bits_state *bits_state) {
+    for (unsigned int i = 0; i < bits_state->limit;i++) {
+        printf("%u",getBit(bits_state,i));
+    }
+    printf("\n");
+}
 
 struct simulation {
     unsigned int nr_of_prisoners;
@@ -40,7 +92,7 @@ struct simulation {
     unsigned int max_loop_size;
     bool verbose;
     unsigned int *boxes;
-    bool         *visited;
+    struct bits_state *visited;
 };
 
 void print_boxes(struct simulation* sim,bool details) {
@@ -51,7 +103,7 @@ void print_boxes(struct simulation* sim,bool details) {
     printf("\n");
     if (details) {
         for (unsigned int i = 0; i < sim->nr_of_prisoners; i++) {
-            printf("Box %d prisoner %d visited %d\n", i,sim->boxes[i],sim->visited[i]);
+            printf("Box %d prisoner %d visited %u\n", i,sim->boxes[i],getBit(sim->visited,i));
         }
         
         printf("\n");
@@ -64,9 +116,9 @@ unsigned int random_box_num(struct simulation* sim) {
 
 unsigned int next_not_visited(struct simulation* sim) {
     for (unsigned int i = 0; i < sim->nr_of_prisoners; i++) {
-        if (sim->visited[i] == false) {
-            return sim->boxes[i];
-        }
+        if (getBit(sim->visited,i) == OFF) {
+           return sim->boxes[i];
+       }
     }
     return -1;
 }
@@ -80,17 +132,21 @@ void shuffle_boxes(struct simulation* sim) {
         old                          = sim->boxes[i];
         sim->boxes[i]                = sim->boxes[swap_box_index];
         sim->boxes[swap_box_index]   = old;
-        sim->visited[i]              = false;
     }
+
+    if (sim->visited != NULL) {
+        delete_bits(sim->visited);
+    }
+    sim->visited = create_bits(sim->nr_of_prisoners);
 }
 
 unsigned int find_loop_size(struct simulation* sim,unsigned int next_start) {
     unsigned int loop_size = 0;
     while (true) {
-        if (sim->visited[next_start]) {
+        if (getBit(sim->visited,next_start)) {
             break;
         }
-        sim->visited[next_start] = true;
+        setBit(sim->visited,next_start);
 
         loop_size ++;
         next_start = sim->boxes[next_start];
@@ -174,7 +230,7 @@ struct simulation* make_sim_from_cmd_parameters (int argc, char **argv) {
     sim->verbose           = (argc > 3) ? true : false;
 
     sim->boxes = (unsigned int*) malloc(sim->nr_of_prisoners * sizeof(unsigned int));
-    sim->visited = (bool*) malloc(sim->nr_of_prisoners * sizeof(bool));
+    sim->visited = NULL;
 
     for (unsigned int i = 0; i < sim->nr_of_prisoners; i++) {
         sim->boxes[i] = i;
