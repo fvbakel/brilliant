@@ -32,6 +32,11 @@ from genetic_nn.wall_build import (
 
 from genetic_nn.to_graphviz import Gen2Graphviz
 
+def range_minus_one_to_one(n:float):
+    if n < 0 or n> 1:
+        raise ValueError(f"Expected value between 0 and 1 but got {n}")
+    return (n * 2) -1
+
 def copy_dna(dna:list[bytes],mutation_probability:float):
     if random() < mutation_probability:
         new_dna = copy.deepcopy(dna)
@@ -278,6 +283,8 @@ class DNA2NetworkSimulation:
                 sensor.current_value = (self.parameters.nr_of_steps_per_cycle - self.current_step) / self.parameters.nr_of_steps_per_cycle
             elif sensor.type == SensorType.RANDOM:
                 sensor.current_value = random()
+            if self.parameters.negative_sensors:
+                sensor.current_value = range_minus_one_to_one(sensor.current_value)
 
     def osil(self,fase:int):
         remain = self.current_step % fase
@@ -333,8 +340,8 @@ class DNA2NetworkSimulation:
 
         if new_pos is not None and creature.energy > 0:
             self.set_creature_position(new_pos=new_pos,creature=creature)
-            creature.energy -= 1
-    
+            energy_cost = self.parameters.gen_energy_cost * len(creature.gens)
+            creature.energy -= energy_cost
 
     def set_creature_position(self,new_pos:Position,creature:Creature):
         if      new_pos is None or \
