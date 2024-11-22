@@ -79,10 +79,10 @@ class PrisonSimulation:
                 raise Exception('This should not never happen, some program error maybe?')
 
             loop_size = self.find_loop_size(next_start)
-            if loop_size >= self.max_loop_size:
+            if loop_size > self.max_loop_size:
                 return True
             total_checked += loop_size
-            if total_checked > self.max_loop_size:
+            if total_checked >= self.max_loop_size:
                 return False
 
 
@@ -98,8 +98,8 @@ class PrisonSimulation:
 
 
 def main():
-    sim = PrisonSimulation(1_000_000)
-    sim.run_sim(nr_of_times=1)
+    sim = PrisonSimulation(10)
+    sim.run_sim(nr_of_times=1_000_000)
 
 if __name__ == '__main__':
     main()
