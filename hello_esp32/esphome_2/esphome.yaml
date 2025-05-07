@@ -1,0 +1,44 @@
+# Basic configuration for an ESP32 device
+esphome:
+  name: makepico1
+  friendly_name: makepico1
+
+# Hardware configuration
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+
+# Enable Home Assistant API
+api:
+
+# Enable over-the-air updates
+ota:
+  platform: esphome
+  password: "Qwerdsatedirdsw32"
+
+# Connect to WiFi
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+  # Enable fallback hotspot if WiFi connection fails
+  ap:
+    ssid: "makepico1 Fallback Hotspot"
+    password: "qsR3P9t0zmoE"
+
+# Enable web server
+web_server:
+
+status_led:
+  pin: GPIO2
+
+switch:
+  - platform: gpio
+    name: "LED 21"
+    pin: GPIO21
+
+  
+
+captive_portal:
+    
