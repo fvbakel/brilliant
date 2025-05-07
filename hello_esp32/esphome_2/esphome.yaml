@@ -9,6 +9,9 @@ esp32:
   framework:
     type: esp-idf
 
+# Enable logging
+logger:
+
 # Enable Home Assistant API
 api:
 
@@ -31,14 +34,40 @@ wifi:
 web_server:
 
 status_led:
-  pin: GPIO2
+  pin: GPIO22
 
 switch:
   - platform: gpio
     name: "LED 21"
     pin: GPIO21
 
-  
+  - platform: template
+    name: "LCD Backlight"
+    id: backlight_switch
+    lambda: return id(backlight_switch).state;
+    turn_on_action:
+      - lambda: |-
+          id(mydisplay).backlight();
+          id(backlight_switch).state = true;
+    turn_off_action:
+      - lambda: |-
+            id(mydisplay).no_backlight();
+            id(backlight_switch).state = false;
+
+i2c:
+  - id: bus_a
+    sda: GPIO26
+    scl: GPIO25
+    scan: true
+
+display:
+  - id: mydisplay
+    platform: lcd_pcf8574
+    dimensions: 20x4
+    address: 0x27
+    lambda: |-
+      it.print("Hello World!");
+
 
 captive_portal:
     
