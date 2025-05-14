@@ -14,6 +14,14 @@ logger:
 
 # Enable Home Assistant API
 api:
+  services:
+    - service: set_incoming_message
+      variables:
+        message: string
+      then:
+        - text_sensor.template.publish:
+            id: incoming_message
+            state: !lambda 'return message;'
 
 # Enable over-the-air updates
 ota:
@@ -66,7 +74,17 @@ display:
     dimensions: 20x4
     address: 0x27
     lambda: |-
-      it.print("Hello World!");
+      it.printf(0, 0, "%s", id(lcd_message).state.c_str());
+
+text_sensor:
+  - platform: template
+    name: "Incoming Message"
+    id: incoming_message
+
+  - platform: homeassistant
+    entity_id: input_text.lcd_message
+    name: "lcd_message"
+    id: lcd_message
 
 
 captive_portal:
