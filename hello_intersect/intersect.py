@@ -38,7 +38,7 @@ def bisection_method(f,start_a:float,start_b:float,precision=0.001,max_step=10):
         # end conditions
         if f_c == 0:
             print(f"Stopped at condition 0 in step {current_step} a = {a} b = {b} mid_point_c = {mid_point_c} f_c = {f_c}")
-        elif abs(start_a - mid_point_c) < precision:
+        elif abs(a - mid_point_c) < precision:
             print(f"Stopped at condition 1 in step {current_step} a = {a} b = {b} mid_point_c = {mid_point_c} f_c = {f_c}")
             return mid_point_c
         elif abs(f_a - f_c) < precision:
