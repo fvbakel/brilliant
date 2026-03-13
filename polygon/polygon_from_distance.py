@@ -116,7 +116,8 @@ def calculate_polygon(distances_input,max_loop=100,tolerance = 0.000001):
             else:
                 min_angle = angle
 
-        #make_picture(center, radius, points[:-1],id=f"_{loop}_{angle}")
+        if logging.getLogger().isEnabledFor(logging.DEBUG):
+            make_picture(center, radius, points[:-1],id=f"_debug_{loop}_{angle}")
     
     return solution_found, center, radius, points[:-1]
     
@@ -157,25 +158,32 @@ def polygon_for_file(filename,stop_at=None,make_pictures=False,simple_output=Fal
         if simple_output:
             f.write('id,prediction\n')
         df = df.astype({"id": "Int32"})
+        is_train_file = False
         if "CE" in df.columns:
+            is_train_file = True
             df = df.astype({"CE": bool})
         df = df.fillna(0)
         nr_found = 0
         for index, row in df.iterrows():
-            distances = row.values.flatten().tolist()[1:-2]
+            if is_train_file:
+                distances = row.values.flatten().tolist()[1:-2]
+            else:
+                distances = row.values.flatten().tolist()[1:]
             #             .8801807054043796
             tolerance =  0.0000000001
             found, center, radius, points = calculate_polygon(distances,max_loop=1000,tolerance = tolerance)
             area = None
-            while not found and tolerance < 1:
-                tolerance = tolerance * 100
-                logging.debug(f'Special case for {row['id']}, now checking with tolerance {tolerance}')
-                # try again with more loops and less tolerance
-                found, center, radius, points = calculate_polygon(distances,max_loop=10000,tolerance = tolerance)
+            while not found and tolerance < 10:
+                tolerance = tolerance * 10
+                logging.error(f'Special case for {row['id']}, now checking with tolerance {tolerance}')
+                # try again with less tolerance
+                found, center, radius, points = calculate_polygon(distances,max_loop=1000,tolerance = tolerance)
 
             if found:
                 nr_found +=1
                 area = get_area(points)
+            else:
+                logging.error(f'Points not found for {row['id']}')
             
             if simple_output:
                 f.write(f'{row['id']},{area}\n')
@@ -185,8 +193,8 @@ def polygon_for_file(filename,stop_at=None,make_pictures=False,simple_output=Fal
 
             if ((index+1) % 50) == 0:
                 print(f'lines processed: {index +1}, nr_found: {nr_found}, success rate: {(nr_found/(index+1)) * 100:.2f} %')
-                if make_pictures:
-                    make_picture(center,radius,points,id=f'_{index}')
+            if make_pictures:
+                make_picture(center,radius,points,id=f'_{index}')
             if stop_at is not None and index +1 == stop_at:
                 print(f'Stopping at {stop_at}')
                 break
@@ -195,9 +203,14 @@ def polygon_for_file(filename,stop_at=None,make_pictures=False,simple_output=Fal
 TEST_TMP_DIR = "./tmp"
 if __name__ == "__main__":
     logging.basicConfig(level=logging.ERROR,filename=f"{TEST_TMP_DIR}/error.log",filemode='w')
+    #logging.basicConfig(level=logging.DEBUG,filename=f"{TEST_TMP_DIR}/debug.log",filemode='w')
+
     #found, center, radius, points = calculate_polygon([2,4,1,3,2])
     #make_picture(center, radius, points)
 
     #polygon_for_file('data/kaggle_train_9_fences.csv',stop_at=10,make_pictures=True)
+    #polygon_for_file('data/problem_cases.csv',stop_at=None,make_pictures=False,simple_output=True)
+    #polygon_for_file('data/worst_cases.csv',stop_at=10,make_pictures=True,simple_output=False)
     polygon_for_file('data/kaggle_hidden_test_fences.csv',stop_at=None,make_pictures=False,simple_output=True)
-    #polygon_for_file('data/problem_cases.csv',stop_at=10,make_pictures=True,simple_output=True)
+    
+    
