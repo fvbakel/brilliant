@@ -2,6 +2,7 @@
     Basic 2D geometry methods
 """
 import math
+import logging
 
 def distance(p1,p2):
     delta_x = p1[0] - p2[0]
@@ -167,7 +168,7 @@ def get_angle_counter_clockwise(p):
             return 180
         else:
             base_angle = math.degrees(math.atan(y/x))
-            print(f'base_angle = {base_angle}')
+            logging.debug(f'base_angle = {base_angle}')
 
         if x > 0 and y > 0:
             return base_angle
@@ -192,13 +193,13 @@ def caculate_angle_counter_clockwise(p1,p2,p3):
     p1_a = move(p1,delta)
     p3_a = move(p3,delta)
 
-    print(f"p1= {p1} , p2 = {p2} , p3={p3}")
-    print(f"p1_a= {p1_a} , p3_a={p3_a}")
+    logging.debug(f"p1= {p1} , p2 = {p2} , p3={p3}")
+    logging.debug(f"p1_a= {p1_a} , p3_a={p3_a}")
     
     angle_1 = get_angle_counter_clockwise(p1_a)
     angle_2 = get_angle_counter_clockwise(p3_a)
 
-    print(f"angle_1= {angle_1} , angle_2 = {angle_2}")
+    logging.debug(f"angle_1= {angle_1} , angle_2 = {angle_2}")
     diff_angle = angle_2 - angle_1
     if diff_angle < 0:
         return diff_angle + 360
