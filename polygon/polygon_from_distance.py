@@ -52,6 +52,8 @@ def rotate_distances(distances):
     max_index = distances.index(max(distances))
     return distances[max_index:] + distances[:max_index]
 
+def trim_zero_values(distances):
+    return [d for d in distances if d != 0.0]
 
 def calculate_polygon(distances_input,max_loop=100,tolerance = 0.000001):
     """
@@ -59,7 +61,8 @@ def calculate_polygon(distances_input,max_loop=100,tolerance = 0.000001):
     reconstruct the maximum polygon.
     given is that all points are on the same circle
     """
-    distances=rotate_distances(distances_input)
+    distances = trim_zero_values(distances_input)
+    distances=rotate_distances(distances)
     d_1 = distances[0]
     d_2 = distances[1]
     p1 = (0,0)
@@ -146,36 +149,55 @@ def make_picture(center,radius,points,id=""):
 def get_area(points):
     return Polygon(points).area
 
-def polygon_for_file(filename,stop_at=None):
+def polygon_for_file(filename,stop_at=None,make_pictures=False,simple_output=False):
     df = pd.read_csv(filename)
 
-    output_file = f"{TEST_TMP_DIR}/{Path(filename).stem}_output.csv" 
+    output_file = f"output/{Path(filename).stem}_output.csv" 
     with open(output_file, "w", encoding="utf-8") as f:
-        df = df.astype({"id": int, "CE":bool})
+        if simple_output:
+            f.write('id,prediction\n')
+        df = df.astype({"id": "Int32"})
+        if "CE" in df.columns:
+            df = df.astype({"CE": bool})
+        df = df.fillna(0)
         nr_found = 0
         for index, row in df.iterrows():
             distances = row.values.flatten().tolist()[1:-2]
-            #                                                                                      .8801807054043796
-            found, center, radius, points = calculate_polygon(distances,max_loop=1000,tolerance = 0.000000001 )
+            #             .8801807054043796
+            tolerance =  0.0000000001
+            found, center, radius, points = calculate_polygon(distances,max_loop=1000,tolerance = tolerance)
             area = None
+            while not found and tolerance < 1:
+                tolerance = tolerance * 100
+                logging.debug(f'Special case for {row['id']}, now checking with tolerance {tolerance}')
+                # try again with more loops and less tolerance
+                found, center, radius, points = calculate_polygon(distances,max_loop=10000,tolerance = tolerance)
+
             if found:
                 nr_found +=1
                 area = get_area(points)
-            row_str = ",".join(str(val) for val in row.values.flatten().tolist())
-            f.write(f'{row_str}, {found},{center[0]},{center[1]},{radius},{area}\n')
+            
+            if simple_output:
+                f.write(f'{row['id']},{area}\n')
+            else:
+                row_str = ",".join(str(val) for val in row.values.flatten().tolist())
+                f.write(f'{row_str}, {found},{center[0]},{center[1]},{radius},{area}\n')
 
             if ((index+1) % 50) == 0:
-                print(f'lines processed: {index +1}, nr_found: {nr_found}, success rate: {((index+1) / nr_found) * 100:.2f} %')
-                make_picture(center,radius,points,id=f'_{index}')
+                print(f'lines processed: {index +1}, nr_found: {nr_found}, success rate: {(nr_found/(index+1)) * 100:.2f} %')
+                if make_pictures:
+                    make_picture(center,radius,points,id=f'_{index}')
             if stop_at is not None and index +1 == stop_at:
-                print(f'Stopping at {index}')
+                print(f'Stopping at {stop_at}')
                 break
         print(f'nr_found = {nr_found}')        
 
 TEST_TMP_DIR = "./tmp"
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG,filename=f"{TEST_TMP_DIR}/test_debug.log",filemode='w')
+    logging.basicConfig(level=logging.ERROR,filename=f"{TEST_TMP_DIR}/error.log",filemode='w')
     #found, center, radius, points = calculate_polygon([2,4,1,3,2])
     #make_picture(center, radius, points)
 
-    polygon_for_file('data/kaggle_train_5_fences.csv',stop_at=None)
+    #polygon_for_file('data/kaggle_train_9_fences.csv',stop_at=10,make_pictures=True)
+    polygon_for_file('data/kaggle_hidden_test_fences.csv',stop_at=None,make_pictures=False,simple_output=True)
+    #polygon_for_file('data/problem_cases.csv',stop_at=10,make_pictures=True,simple_output=True)
