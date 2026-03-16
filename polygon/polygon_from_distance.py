@@ -55,6 +55,7 @@ def rotate_distances(distances):
 def trim_zero_values(distances):
     return [d for d in distances if d != 0.0]
 
+
 def calculate_polygon(distances_input,max_loop=100,tolerance = 0.000001):
     """
     Given the lenght of the edges of a polygon,
@@ -63,6 +64,11 @@ def calculate_polygon(distances_input,max_loop=100,tolerance = 0.000001):
     """
     distances = trim_zero_values(distances_input)
     distances=rotate_distances(distances)
+
+    if distances[0] < sum(distances[1:]):
+        remain = sum(distances[1:])
+        logging.error(f'Largest distance is {distances[0]} while sum of other distances is smaller: {remain} ')
+
     d_1 = distances[0]
     d_2 = distances[1]
     p1 = (0,0)
@@ -170,7 +176,7 @@ def polygon_for_file(filename,stop_at=None,make_pictures=False,simple_output=Fal
             else:
                 distances = row.values.flatten().tolist()[1:]
             #             .8801807054043796
-            tolerance =  0.0000000001
+            tolerance =  0.0000000000000001
             found, center, radius, points = calculate_polygon(distances,max_loop=1000,tolerance = tolerance)
             area = None
             while not found and tolerance < 10:
@@ -205,12 +211,13 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.ERROR,filename=f"{TEST_TMP_DIR}/error.log",filemode='w')
     #logging.basicConfig(level=logging.DEBUG,filename=f"{TEST_TMP_DIR}/debug.log",filemode='w')
 
-    #found, center, radius, points = calculate_polygon([2,4,1,3,2])
-    #make_picture(center, radius, points)
 
-    #polygon_for_file('data/kaggle_train_9_fences.csv',stop_at=10,make_pictures=True)
+    polygon_for_file('data/kaggle_train_5_fences.csv',stop_at=None,make_pictures=False,simple_output=True)
+    polygon_for_file('data/kaggle_train_7_fences.csv',stop_at=None,make_pictures=False,simple_output=True)
+    polygon_for_file('data/kaggle_train_9_fences.csv',stop_at=None,make_pictures=False,simple_output=True)
+
     #polygon_for_file('data/problem_cases.csv',stop_at=None,make_pictures=False,simple_output=True)
     #polygon_for_file('data/worst_cases.csv',stop_at=10,make_pictures=True,simple_output=False)
-    polygon_for_file('data/kaggle_hidden_test_fences.csv',stop_at=None,make_pictures=False,simple_output=True)
+    #polygon_for_file('data/kaggle_hidden_test_fences.csv',stop_at=None,make_pictures=False,simple_output=True)
     
     

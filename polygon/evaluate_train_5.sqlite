@@ -1,0 +1,30 @@
+. separator ,
+.header on
+.import ./data/kaggle_train_5_fences.csv train_5
+.import ./output/kaggle_train_5_fences_output.csv output_5
+
+CREATE TABLE combined AS
+select 
+    train_5.id,
+    train_5.area as 'true_area_train_5',
+    output_5.prediction as 'prediction_output_5',
+    abs(CAST(train_5.area as REAL) - CAST(output_5.prediction as REAL)) as 'loss',
+    (abs(CAST(train_5.area as REAL) - CAST(output_5.prediction as REAL))) / (CAST(train_5.area as REAL) ) *100 as procent_loss
+
+from train_5
+join output_5 on train_5.id = output_5.id
+;
+.output ./output/combined_train_5.csv
+select * from combined;
+
+.output ./output/large_loss_train_5.csv
+select * 
+from combined
+where procent_loss > 5
+;
+
+.output
+.header off
+select 'min procent_loss:' || min(procent_loss) from combined;
+select 'max procent_loss:' || max(procent_loss) from combined;
+select 'avg procent_loss:' || avg(procent_loss) from combined;
