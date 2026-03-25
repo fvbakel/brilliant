@@ -1,11 +1,11 @@
 import cadquery as cq
 
-kist_breedte = 500
-kist_lengte  = 1050
-kist_hoogte  = 200
-
 plank_breedte = 100
-plank_dikte   = 20
+plank_dikte   = 15
+
+kist_lengte  = 1000
+kist_breedte = 6 * plank_breedte
+kist_hoogte  = 5 * plank_breedte
 
 
 def make_lengte_plank():
@@ -29,6 +29,12 @@ def make_hoogte_plank():
     )
     return plank
 
+def make_handvat():
+    plank = (
+        cq.Workplane("XY" )
+        .box((plank_breedte/2), kist_breedte, plank_dikte)
+    )
+    return plank
 
 def make_kopkant():
     local_color = cq.Color("green")
@@ -51,6 +57,15 @@ def make_kopkant():
                     (kist_hoogte/2) - (plank_breedte/2),
                     -((kist_breedte-(2*plank_dikte))/2)+(plank_breedte/2),
                     plank_dikte,0,180,90
+                ), 
+                color=local_color
+                )
+    kopkant.add(make_handvat(),
+                name=f"kopkant_handvat", 
+                loc=cq.Location(
+                    kist_hoogte - 1.5*plank_breedte,
+                    0,
+                    plank_dikte*2,0,0,0
                 ), 
                 color=local_color
                 )
@@ -81,13 +96,13 @@ kist = (
         (kist_breedte/2)-((plank_breedte/2)),
         -(kist_lengte/2) + plank_dikte + (plank_dikte/2),
         (plank_breedte/2)+(plank_dikte/2)
-        ,0,-90,90)
+        ,0,270,90)
         )
     .add(make_kopkant(), name="kopkant_achter",loc=cq.Location(
         (kist_breedte/2)-((plank_breedte/2)),
         (kist_lengte/2) - plank_dikte - (plank_dikte/2),
-        kist_hoogte - ((plank_breedte/2)-(plank_dikte/2)) 
-        ,0,90,90)
+        ((plank_breedte/2) +(plank_dikte/2)) 
+        ,0,270,270)
         )
     .add(make_zijkant(), name="zijkant_links",loc=cq.Location(
         -((plank_breedte/2)-plank_dikte/2),
@@ -103,8 +118,6 @@ kist = (
         )
 
 )
-
-
 
 
 inGui = True
