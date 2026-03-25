@@ -89,40 +89,43 @@ def make_bodem():
                   
     return bodem
 
-kist = (
-    cq.Assembly()
-    .add(make_bodem(), name="bodem")
-    .add(make_kopkant(), name="kopkant_voor",loc=cq.Location(
-        (kist_breedte/2)-((plank_breedte/2)),
-        -(kist_lengte/2) + plank_dikte + (plank_dikte/2),
-        (plank_breedte/2)+(plank_dikte/2)
-        ,0,270,90)
-        )
-    .add(make_kopkant(), name="kopkant_achter",loc=cq.Location(
-        (kist_breedte/2)-((plank_breedte/2)),
-        (kist_lengte/2) - plank_dikte - (plank_dikte/2),
-        ((plank_breedte/2) +(plank_dikte/2)) 
-        ,0,270,270)
-        )
-    .add(make_zijkant(), name="zijkant_links",loc=cq.Location(
-        -((plank_breedte/2)-plank_dikte/2),
-        0,
-        kist_hoogte - ((plank_breedte/2)-(plank_dikte/2)) 
-        ,0,90,0)
-        )
-    .add(make_zijkant(), name="zijkant_rechts",loc=cq.Location(
-        -((plank_breedte/2)-plank_dikte/2)+kist_breedte-plank_dikte,
-        0,
-        kist_hoogte - ((plank_breedte/2)-(plank_dikte/2)) 
-        ,0,90,0)
-        )
+def make_kist():
+    kist = (
+        cq.Assembly()
+        .add(make_bodem(), name="bodem")
+        .add(make_kopkant(), name="kopkant_voor",loc=cq.Location(
+            (kist_breedte/2)-((plank_breedte/2)),
+            -(kist_lengte/2) + plank_dikte + (plank_dikte/2),
+            (plank_breedte/2)+(plank_dikte/2)
+            ,0,270,90)
+            )
+        .add(make_kopkant(), name="kopkant_achter",loc=cq.Location(
+            (kist_breedte/2)-((plank_breedte/2)),
+            (kist_lengte/2) - plank_dikte - (plank_dikte/2),
+            ((plank_breedte/2) +(plank_dikte/2)) 
+            ,0,270,270)
+            )
+        .add(make_zijkant(), name="zijkant_links",loc=cq.Location(
+            -((plank_breedte/2)-plank_dikte/2),
+            0,
+            kist_hoogte - ((plank_breedte/2)-(plank_dikte/2)) 
+            ,0,90,0)
+            )
+        .add(make_zijkant(), name="zijkant_rechts",loc=cq.Location(
+            -((plank_breedte/2)-plank_dikte/2)+kist_breedte-plank_dikte,
+            0,
+            kist_hoogte - ((plank_breedte/2)-(plank_dikte/2)) 
+            ,0,90,0)
+            )
 
-)
+    )
+    return kist
 
+kist = make_kist()
 
-inGui = True
-if inGui:
-    show_object(kist)
-else:
+if __name__ == "__main__":
     from cadquery.vis import show
+    kist.export("./tmp/kist.step")
     show(kist)
+else:
+    show_object(kist)
