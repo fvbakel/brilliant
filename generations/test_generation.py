@@ -69,27 +69,30 @@ class TestGenerations(unittest.TestCase):
         self.assertIsNotNone(c_4,"Possible to create couple 4")
         self.assertTrue(couple_rule.is_allowed(c_4),"Cousins couple is allowed")
 
-    def test_population_generator(self):
+    def test_population_simulator(self):
         max_4 = MaxChildRule()
         max_4.set_max(4)
 
-        generator = PopulationGenerator()
-        generator.child_rules.append(max_4)
-        generator.couple_rules.append(NoSiblingsCoupleRule())
-        generator.couple_rules.append(NotDeadRule())
-        generator.make_even_root_couples(2)
+        simulator = PopulationSimulation()
+        simulator.child_rules.append(max_4)
+        simulator.child_rules.append(NotDeadRule())
+        #simulator.child_rules.append(AgeCoupleRule())
+        simulator.couple_rules.append(NoSiblingsCoupleRule())
+        simulator.couple_rules.append(NotDeadRule())
+        
+        simulator.population.make_even_root_couples(2)
 
-        r = Population2Dot(generator.population)
+        r = Population2Dot(simulator.population)
         r.render(self._testMethodName + "001" + ".dot",TEST_TMP_DIR)
         
-        generator.make_children()
-        r = Population2Dot(generator.population)
+        simulator.make_children()
+        r = Population2Dot(simulator.population)
         r.render(self._testMethodName + "002" + ".dot",TEST_TMP_DIR)
 
-        generator.make_children()
-        generator.make_couples()
-        generator.make_children()
-        generator.make_children()
+        simulator.make_children()
+        simulator.make_couples()
+        simulator.make_children()
+        simulator.make_children()
 
-        r = Population2Dot(generator.population)
+        r = Population2Dot(simulator.population)
         r.render(self._testMethodName + "003" + ".dot",TEST_TMP_DIR)
