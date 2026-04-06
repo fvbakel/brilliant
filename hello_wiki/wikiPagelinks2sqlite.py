@@ -10,6 +10,7 @@ import json
 @dataclass
 class ParametersWiki2Sqlite:
     input_file:      str
+    input_link_target_file: str
     input_page_file: str
     source_url:      str
     output_file:     str
@@ -31,8 +32,9 @@ class Wiki2Sqlite:
         self._createImportTables()
         self._setMetaValues()
         self._importPagelinks()
+        self._importLinkTarget()
         self._importPages()
-        self._postImport()
+   #     self._postImport()
         self._closeOutput()
     
     def _report(self,level:str,msg: str):
@@ -69,6 +71,16 @@ class Wiki2Sqlite:
                 if line.startswith('INSERT INTO '):
                     self._parseLinkLine(count,line)
         self._endEvent('Pagelink import')
+    
+    def _importLinkTarget(self):
+        self._startEvent('Link target import')
+        count = 0
+        with open(self.parameters.input_link_target_file, 'r',encoding='utf-8',errors='replace') as in_file:
+            for line in in_file:
+                count += 1
+                if line.startswith('INSERT INTO '):
+                    self._parseLinkTargetLine(count,line)
+        self._endEvent('Link target import')
 
     def _createImportTables(self):
         self._startEvent('Create import tables')
@@ -84,8 +96,16 @@ class Wiki2Sqlite:
             CREATE TABLE `pagelinks` (
                 `pl_from` int(8) NOT NULL DEFAULT 0,
                 `pl_namespace` int(11) NOT NULL DEFAULT 0,
-                `pl_title` varbinary(255) NOT NULL DEFAULT '',
-                `pl_from_namespace` int(11) NOT NULL DEFAULT 0
+                `pl_target_id` bigint(20) NOT NULL DEFAULT 0
+            );
+        """
+        self.conn.execute(sql)
+
+        sql = """
+            CREATE TABLE `linktarget` (
+                `lt_id` bigint(20) NOT NULL DEFAULT 0,
+                `lt_namespace` int(11) NOT NULL DEFAULT 0,
+                `lt_title` varbinary(255) NOT NULL DEFAULT ''
             );
         """
         self.conn.execute(sql)
@@ -203,8 +223,6 @@ class Wiki2Sqlite:
         self.conn.close()
 
     def _parseLinkLine(self,count:int,line: str):
-        #stripped = line.replace('INSERT INTO `pagelinks` VALUES ','')
-        #sql = unicode(line, errors='replace')
         sql = line.replace("""\\\\\\\\',""","\',")
         sql = sql.replace("""\\\\',""","\',")
         sql = sql.replace("""\\\'""","''")
@@ -227,7 +245,68 @@ class Wiki2Sqlite:
                 err_file.write(sql)
         finally:
             if (count % 100) == 0:
+                self._report('INFO',f'Processed link line: {count}')
+            
+    def _parseLinkTargetLine(self,count:int,line: str):
+        sql = line.replace("""\\\\\\\\',""","\',")
+        sql = sql.replace("""\\\\',""","\',")
+        sql = sql.replace("""\\\'""","''")
+        sql = sql.replace('''\\\"''','''"''')
+        
+        try:
+            self.conn.execute(sql)
+            self.conn.commit()
+        except sqlite3.Error as e:
+            self._report('WARNING', f'Unable to parse line nr: {count}')
+            print(e)
+            self._report('INFO',f"Falling back to one by one import for line {count}\n")
+            self._parseLinkTargetLineFallBack(count,sql)
+            self._report('INFO',f"Ready falling back to one by one import for line {count}")
+        finally:
+            if (count % 100) == 0:
                 self._report('INFO','Processed link line: {}'.format(count))
+    
+    def _parseLinkTargetLineFallBack(self,count:int,sql_org:str):
+        """
+        This method splits the larger sql insert statement into smaller parts because on of the parts has a error
+
+        INSERT INTO `linktarget` VALUES (5907402,0,'Birsteiniamysis_caeca')
+        """
+        insert_prefix = "INSERT INTO `linktarget` VALUES "
+        values_raw = sql_org.replace(insert_prefix,"")[1:-2]
+        values = values_raw.split(sep="),(")
+
+        self._value_list_import(count,values)
+
+    def _value_list_import(self,count:int,values_part:list[str]):
+        insert_prefix = "INSERT INTO `linktarget` VALUES "
+        import_ok = True
+        try:
+            values_str = '),('.join(values_part)
+            sql = f'{insert_prefix} ({values_str});'
+            self.conn.execute(sql)
+            self.conn.commit()
+        except sqlite3.Error as e:
+            if len(values_part) == 1:
+                self._report('ERROR', f'Unable to insert {values_str}')
+                self._report('ERROR', f'SQL: {sql}')
+                print(e)
+                with open(self.parameters.error_file,'a') as err_file:
+                    err_file.write('\n\nerror:\n')
+                    err_file.write(e.__str__())
+                    err_file.write('\nline nr:\n')
+                    err_file.write(str(count))
+                    err_file.write('\nvalue:')
+                    err_file.write(values_str)
+                    err_file.write('\nSQL:\n')
+                    err_file.write(sql)
+                return
+            import_ok = False
+        
+        if not import_ok and len(values_part) > 1:
+            split_index = len(values_part) // 2 
+            self._value_list_import(count,values_part[:split_index])
+            self._value_list_import(count,values_part[split_index:])
     
     def _importPages(self):
         self._startEvent('Page import')
@@ -264,7 +343,7 @@ def writeSampleConfig():
     param = ParametersWiki2Sqlite(
         input_file      = 'nlwiki-latest-pagelinks.sql',
         input_page_file = 'nlwiki-latest-pages-articles-multistream-index.txt',
-        source_url      = 'https://nl.wikipedia.org/?curid='
+        source_url      = 'https://nl.wikipedia.org/?curid=',
         output_file     = 'pagelinks.db',
         error_file      = 'error.txt'
     )
