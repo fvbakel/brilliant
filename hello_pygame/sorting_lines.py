@@ -1,24 +1,48 @@
 #
 # See https://www.patternsgameprog.com/series/discover-python-and-patterns/
 # https://www.patternsgameprog.com/discover-python-and-patterns-12-command-pattern
-
 import os
 import pygame
 import random
 
 os.environ['SDL_VIDEO_CENTERED'] = '1'
 
+nr_of_compares = 0
+def compare(v1,v2):
+    global nr_of_compares
+    nr_of_compares = nr_of_compares + 1
+    if v1 == v2:
+        return 0
+    if v1 < v2:
+        return -1
+    return 1
 
-class BubbleSort():
-
+class BaseSort():
     def __init__(self,numbers: list[int]):
         self.numbers = numbers
-        self.current_index = 0
-        self.current_max_index = len(self.numbers) -1
         self.ready = False
         self.swapped = False
         self.step = 0
-        self.last_swapped = None
+
+    def _is_ready(self):
+        return False
+
+    def _swap(self,i,j):
+        org = self.numbers[i]
+        self.numbers[i] = self.numbers[j]
+        self.numbers[j] = org
+        self.swapped = True
+
+    def do_step(self):
+        pass
+
+class BubbleSort(BaseSort):
+
+    def __init__(self,numbers: list[int]):
+        super().__init__(numbers)
+        self.current_index = 0
+        self.current_max_index = len(self.numbers) -1
+
 
     def _is_ready(self):
         if self.current_max_index == 0:
@@ -29,13 +53,6 @@ class BubbleSort():
             self.current_max_index == 0
             self.ready = True
             return True
-    
-    def _swap(self,i,j):
-        org = self.numbers[i]
-        self.numbers[i] = self.numbers[j]
-        self.numbers[j] = org
-        self.swapped = True
-        self.last_swapped = j
 
     def do_step(self):
         self.step += 1
@@ -44,7 +61,7 @@ class BubbleSort():
             return
         if self.current_index == self.current_max_index:
             self.current_index = 0
-            self.current_max_index = self.last_swapped - 1
+            self.current_max_index = self.current_max_index - 1
             self.swapped = False
 
         if self.numbers[self.current_index] > self.numbers[self.current_index + 1]:
@@ -52,17 +69,13 @@ class BubbleSort():
             
         self.current_index  +=1 
 
-class CocktailSort():
+class CocktailSort(BaseSort):
 
     def __init__(self,numbers: list[int]):
-        self.numbers = numbers
+        super().__init__(numbers)
         self.current_min_index = 1
         self.current_max_index = len(self.numbers) -1
         self.current_index = 0
-        
-        self.ready = False
-        self.swapped = False
-        self.step = 0
         self.going_up = True
 
     def _is_ready(self):
@@ -74,16 +87,9 @@ class CocktailSort():
             self.current_max_index == 0
             self.ready = True
             return True
-    
-    def _swap(self,i,j):
-        org = self.numbers[i]
-        self.numbers[i] = self.numbers[j]
-        self.numbers[j] = org
-        self.swapped = True
 
     def do_step(self):
         self.step += 1
-        print(f'Processing step {self.step}')
         if self._is_ready():
             print(f'Ready in step {self.step}')
             return
@@ -114,6 +120,77 @@ class CocktailSort():
             self._swap(self.current_index,self.current_index - 1)
         self.current_index -= 1 
 
+class ChunkSort(BaseSort):
+
+    def __init__(self,numbers: list[int]):
+        super().__init__(numbers)
+        self.numbers = numbers
+        self.main_chunk = Chunk()
+        self.current_index = 0
+        self.ready = False
+
+
+    def sort(self):
+        for num in self.numbers:
+            self.main_chunk.add_value(num)
+        result = self.main_chunk.get_values()
+        return result
+
+    def do_step(self):
+        if self.ready:
+            return
+        
+        self.main_chunk.add_value(self.numbers[self.current_index])
+
+        for index,val in enumerate(self.main_chunk.get_values()):
+            self.numbers[index]=val
+
+        self.current_index +=1
+        if self.current_index == len(self.numbers):
+            print("Ready")
+            print(f'Number of compares {nr_of_compares}')
+            self.ready = True
+
+
+class Chunk():
+
+    def __init__(self):
+        self.mid_values = []
+        self.left_chunk = None
+        self.right_chunk = None
+        self.compare = compare
+
+    def add_value(self,value):
+        if len(self.mid_values) == 0:
+            self.mid_values.append(value)
+            return
+        
+        result = self.compare(value,self.mid_values[0])
+        if  result == 0:
+            self.mid_values.append(value)
+            return
+        elif result == -1:
+            if self.left_chunk is None:
+                self.left_chunk = Chunk()
+            self.left_chunk.add_value(value)
+            return
+        else:
+            if self.right_chunk is None:
+                self.right_chunk = Chunk()
+            self.right_chunk.add_value(value)
+            return
+        
+    def get_values(self):
+        result = []
+        if self.left_chunk is not None:
+            result = result + self.left_chunk.get_values()
+        result = result + self.mid_values
+        if self.right_chunk is not None:
+            result = result + self.right_chunk.get_values()
+
+        return result
+
+
 class GameState():
     def __init__(self):
         self.lines = []
@@ -131,7 +208,8 @@ class Simulation:
         for index, number in enumerate(self.numbers):
             self.game_state.lines.append([(index,self.game_state.max_y),(index,self.game_state.max_y - number)])
         
-        self.sorter = CocktailSort(self.numbers)
+        # CocktailSort, BubbleSort, ChunkSort
+        self.sorter = ChunkSort(self.numbers)
 
     def update_game_state(self):
         if self.sorter.ready:
