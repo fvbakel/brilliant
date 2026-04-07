@@ -12,6 +12,19 @@ class TestGenerations(unittest.TestCase):
 
         self.assertEqual(len(c.children),1,"Make one child")
 
+    def test_Cycle(self):
+        cycle_1 = Cycle.cycle
+        cycle_2 = Cycle.cycle
+        self.assertEqual(cycle_1,cycle_2)
+
+        Cycle.cycle.increase()
+        self.assertEqual(cycle_1.cycle_nr,2)
+
+        Cycle.cycle.increase()
+        self.assertEqual(cycle_1.cycle_nr,3)
+        
+        self.assertEqual(Cycle.cycle.cycle_nr,3)
+
     def test_population2Dot(self):
         population = Population()
         f = Creature(None,Sex.MALE)
@@ -70,11 +83,11 @@ class TestGenerations(unittest.TestCase):
         self.assertTrue(couple_rule.is_allowed(c_4),"Cousins couple is allowed")
 
     def test_population_simulator(self):
-        max_4 = MaxChildRule()
-        max_4.set_max(4)
+        max = MaxChildRule()
+        max.set_max(3)
 
         simulator = PopulationSimulation()
-        simulator.child_rules.append(max_4)
+        simulator.child_rules.append(max)
         simulator.child_rules.append(NotDeadRule())
         #simulator.child_rules.append(AgeCoupleRule())
         simulator.couple_rules.append(NoSiblingsCoupleRule())
@@ -86,13 +99,90 @@ class TestGenerations(unittest.TestCase):
         r.render(self._testMethodName + "001" + ".dot",TEST_TMP_DIR)
         
         simulator.make_children()
+        Cycle.cycle.increase()
         r = Population2Dot(simulator.population)
         r.render(self._testMethodName + "002" + ".dot",TEST_TMP_DIR)
 
         simulator.make_children()
         simulator.make_couples()
         simulator.make_children()
+        Cycle.cycle.increase()
         simulator.make_children()
+        Cycle.cycle.increase()
 
         r = Population2Dot(simulator.population)
         r.render(self._testMethodName + "003" + ".dot",TEST_TMP_DIR)
+
+        for i in range(0,8):
+            Cycle.cycle.increase()
+            simulator.die_old_creatures()
+            simulator.make_couples()
+            for i in range(0,max.max):
+                simulator.make_children()
+                Cycle.cycle.increase()
+
+        r = Population2Dot(simulator.population)
+        r.render(self._testMethodName + "004" + ".dot",TEST_TMP_DIR)
+
+    def test_max_3(self):
+        max = MaxChildRule()
+        max.set_max(3)
+
+        simulator = PopulationSimulation()
+        simulator.child_rules.append(max)
+        simulator.child_rules.append(NotDeadRule())
+        #simulator.child_rules.append(AgeCoupleRule())
+        simulator.couple_rules.append(NoSiblingsCoupleRule())
+        simulator.couple_rules.append(NotDeadRule())
+        
+        simulator.population.make_even_root_couples(3)
+
+        self.run_simulation(simulator,max,20)
+
+    def test_max_2(self):
+        max = MaxChildRule()
+        max.set_max(2)
+
+        simulator = PopulationSimulation()
+        simulator.child_rules.append(max)
+        simulator.child_rules.append(NotDeadRule())
+        simulator.child_rules.append(AgeCoupleRule())
+        simulator.couple_rules.append(NoSiblingsCoupleRule())
+        simulator.couple_rules.append(NotDeadRule())
+        
+        simulator.population.make_even_root_couples(3)
+
+        self.run_simulation(simulator,max,20)
+
+    def test_random_max(self):
+        max = RandomMaxChildRule()
+        max.set_max(5)
+
+        age_rule = AgeCoupleRule()
+        age_rule.set_min(2)
+        age_rule.set_max(8)
+
+        simulator = PopulationSimulation()
+        simulator.child_rules.append(max)
+        simulator.child_rules.append(NotDeadRule())
+        simulator.child_rules.append(age_rule)
+        simulator.couple_rules.append(NoSiblingsCoupleRule())
+        simulator.couple_rules.append(NotDeadRule())
+        
+        simulator.population.make_even_root_couples(3)
+
+        self.run_simulation(simulator,max,50)
+
+    def run_simulation(self,simulator:PopulationSimulation,max:MaxChildRule,nr_of_cycles:int):
+        r = Population2Dot(simulator.population)
+        r.render(f"{self._testMethodName}_{0}.dot",TEST_TMP_DIR)
+                
+        for i in range(1,nr_of_cycles):
+            Cycle.cycle.increase()
+            simulator.die_old_creatures()
+            simulator.make_couples()
+            simulator.make_children()
+
+        r = Population2Dot(simulator.population)
+        r.render(f"{self._testMethodName}_{i:02d}.dot",TEST_TMP_DIR)
+        

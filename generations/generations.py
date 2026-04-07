@@ -12,16 +12,12 @@ class Sex(Enum):
     MALE = 'm'
     FEMALE = 'f'
 
-class Singleton:
+class Cycle():
+    pass
 
-    instance = None
+class Cycle():
 
-    def __new__(cls):
-        if cls.instance is None:
-            cls.instance = super().__new__(cls)
-        return cls.instance
-
-class Cycle(Singleton):
+    cycle:Cycle|None = None
 
     def __init__(self):
         self.cycle_nr = 1
@@ -32,6 +28,8 @@ class Cycle(Singleton):
     def reset(self):
         self.cycle_nr = 0
 
+Cycle.cycle = Cycle()
+
 class Creature:
     LAST_ID = 0
 
@@ -39,14 +37,14 @@ class Creature:
         self.parents = parents
         self.sex = sex
         self.couples:list[Couple] = []
-        self.cycle_born = Cycle().cycle_nr
+        self.cycle_born = Cycle.cycle.cycle_nr
         self.cycle_dead = None
 
         Creature.LAST_ID += 1
         self.id = str(Creature.LAST_ID) 
 
     def die(self):
-        self.cycle_dead = Cycle().cycle_nr
+        self.cycle_dead = Cycle.cycle.cycle_nr
 
     def is_alive(self):
         if not self.cycle_dead:
@@ -56,9 +54,9 @@ class Creature:
 
     def get_age(self):
         if not self.cycle_dead:
-            return Cycle().cycle_nr - self.cycle_born
+            return Cycle.cycle.cycle_nr - self.cycle_born
         else:
-            return Cycle().cycle_nr - self.cycle_born
+            return Cycle.cycle.cycle_nr - self.cycle_born
 
 class Couple:
     def __init__(self, father:Creature,mother:Creature):
@@ -100,6 +98,10 @@ class ChildRule:
         return True
     
 class MaxChildRule(ChildRule):
+
+    def __init__(self):
+        self.max = 4
+
     def set_max(self,max:int):
         self.max = max
 
@@ -107,6 +109,9 @@ class MaxChildRule(ChildRule):
         return len(couple.children) < self.max
     
 class RandomMaxChildRule(ChildRule):
+    def __init__(self):
+        self.max = 4
+
     def set_max(self,max:int):
         self.max = max
 
@@ -116,9 +121,19 @@ class RandomMaxChildRule(ChildRule):
 
 class AgeCoupleRule(ChildRule):
 
+    def __init__(self):
+        self.max = 4
+        self.min  =1
+
+    def set_max(self,max:int):
+        self.max = max
+
+    def set_min(self,min:int):
+        self.min = min
+
     def can_have_child(self,couple:Couple) -> bool:
         def age_check(age:int):
-            if age >= 20 and age <= 40:
+            if age >= self.min and age <= self.max:
                 return True
             return False    
         return age_check(couple.father.get_age()) and age_check(couple.mother.get_age())
@@ -190,7 +205,7 @@ class PopulationSimulation:
         free_males:list[Creature] = []
         free_females:list[Creature] = []
 
-        for creature in self.population.creatures:
+        for creature in [c for c in self.population.creatures if c.is_alive()]:
             if len(creature.couples) == 0:
                 if creature.sex == Sex.MALE:
                     free_males.append(creature)
@@ -202,15 +217,18 @@ class PopulationSimulation:
 
         while (len(free_males) > 0) and (len(free_females) > 0):
             f = free_males.pop()
-            m = free_females.pop()
-            c = Couple(mother=m,father=f)
-            allowed =True
-            for rule in self.couple_rules:
-                if not rule.is_allowed(c):
-                    allowed = False
-            if allowed:
-                self.population.couples.append(c)
-                c.init_members()
+            for index,m in enumerate(free_females):
+                c = Couple(mother=m,father=f)
+                allowed =True
+                for rule in self.couple_rules:
+                    if not rule.is_allowed(c):
+                        allowed = False
+                        break
+                if allowed:
+                    m = free_females.pop(index)
+                    self.population.couples.append(c)
+                    c.init_members()
+                    break
     
     def make_children(self):
         for couple in self.population.couples:
@@ -221,6 +239,12 @@ class PopulationSimulation:
             if allowed:
                 child = couple.make_child()
                 self.population.creatures.append(child)
+    
+    def die_old_creatures(self):
+        # TODO replace with Die Rule
+        for creature in [c for c in self.population.creatures if c.is_alive()]:
+            if creature.get_age() > 10:
+                creature.die()
 
 
 class Population2Dot:
@@ -240,12 +264,23 @@ class Population2Dot:
             self._add_couple(couple)
 
     def _add_creature(self,creature:Creature):
-        node_details = '{ <label> '
-        node_details += creature.id
-        node_details += ' |{ <sex> '
-        node_details += str(creature.sex.value)
-        node_details += ' } }'
-        self.dot.node(name=creature.id,label=node_details,shape='record')
+        sex_color = 'pink'
+        if creature.sex == Sex.MALE:
+            sex_color = 'lightblue'
+        
+        alive_color = 'white'
+        if creature.is_alive():
+            alive_color = 'lightgreen'
+
+        # The html string below must:
+        # - start with '<<' 
+        # - end with '>>' 
+        # - not have extra spaces in the begin or ending to ensure proper rendering
+        node_details = f'''<<table border="0" cellspacing="0">
+                                <tr><td port="port_id" border="1" bgcolor="{alive_color}">{creature.id}</td></tr>
+                                <tr><td port="port_sex" border="1" bgcolor="{sex_color}">{creature.sex.value}</td></tr>
+                           </table>>'''
+        self.dot.node(name=creature.id,label=node_details,shape='plain')
 
     # TODO: Keep Children in subgraph
     def _add_couple(self,couple:Couple):
