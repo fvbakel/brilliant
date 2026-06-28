@@ -49,9 +49,11 @@ def extract_data(html):
     soup = BeautifulSoup(html, "html.parser")
 
     title = soup.find('meta', attrs={'property':r'og:title'})
-    klasse_match = re.search(r'(Zondag|Zaterdag) (\d)e klasse',title['content'])
-    compitition.day = klasse_match.groups()[0]
-    compitition.level = klasse_match.groups()[1]
+    if title:
+        klasse_match = re.search(r'(Zondag|Zaterdag) (\d)e klasse',title['content'])
+        if klasse_match and len(klasse_match.groups()) == 2:
+            compitition.day = klasse_match.groups()[0]
+            compitition.level = klasse_match.groups()[1]
     
     table = soup.find('table', class_='matrix table table-sm table-striped')
     rows = table.select('table tr')
@@ -80,7 +82,6 @@ def extract_data(html):
                     if away_club_index >= home_club_index:
                         away_club_index += 1
                     date = dates[date_attr]
-                    print(f"{club_name},{date},{outcome},{home},{away}")
                     compitition.results.append(ClubResult(home_club_index,away_club_index,date,home,away))
         else:
             td_dates = th_club.find_all('option')
@@ -92,7 +93,7 @@ def extract_data(html):
 
 def write_results(compitition:Compitition):
     file_name = "output.csv"
-    with open(file_name, 'w') as file:
+    with open(file_name, 'a') as file:
         for result in compitition.results:
             home_club =compitition.clubs[result.home_club_index]
             away_club = compitition.clubs[result.away_club_index]
@@ -111,16 +112,39 @@ def read_from_file():
     return file_content
 
 
-def main():
-    url = 'https://www.hollandsevelden.nl/competities/2025-2026/zuid-1/zo/5a/'
-    # html = fetch(url)
-    #htm_text = html.text
-    # save_url(html_text)
+def local_test():
     html_text = read_from_file()
     compitition = extract_data(html_text)
     write_results(compitition)
 
-    
+def get_compitition(url):
+    html = fetch(url)
+    html_text = html.text
+    compitition = extract_data(html_text)
+    return compitition
+
+def scrape_data():
+    base_url = 'https://www.hollandsevelden.nl/competities/'
+    compitition_post_fix = (
+        '2022-2023/zuid-1/zo/5a/',
+        '2022-2023/zuid-1/zo/5b/'
+    )
+
+    for post_fix in compitition_post_fix:
+        url = f"{base_url}{post_fix}"
+        print(f"getting {post_fix}")
+        try:
+            compitition = get_compitition(url)
+            write_results(compitition)
+        except Exception as e:
+            print(f"Unable to parse {post_fix}")
+            print(e)
+
+
+def main():
+    # url = 'https://www.hollandsevelden.nl/competities/2022-2023/zuid-1/zo/5a/'
+    # local_test()
+    scrape_data()
 
 
 if __name__ == "__main__":
