@@ -26,6 +26,14 @@ class ClubResult:
         self.home = home
         self.away = away
 
+class Compitition:
+
+    def __init__(self):
+        self.clubs:list[str] = []
+        self.day:str = ''
+        self.level:int = 0
+        self.results:list[ClubResult] = []
+
 def fetch(url):
     headers = {"User-Agent": USER_AGENT}
     try:
@@ -37,13 +45,18 @@ def fetch(url):
 
 
 def extract_data(html):
+    compitition = Compitition()
     soup = BeautifulSoup(html, "html.parser")
+
+    title = soup.find('meta', attrs={'property':r'og:title'})
+    klasse_match = re.search(r'(Zondag|Zaterdag) (\d)e klasse',title['content'])
+    compitition.day = klasse_match.groups()[0]
+    compitition.level = klasse_match.groups()[1]
+    
     table = soup.find('table', class_='matrix table table-sm table-striped')
     rows = table.select('table tr')
 
     dates = {}
-    clubs = []
-    results = []
     home_club_index = -1
     for row in rows:
         th_club = row.find('th', class_='club')
@@ -53,7 +66,7 @@ def extract_data(html):
             club_text = th_club.get_text(strip=True)
             
             club_name = re.sub(r'^\d+\.\s*', '', club_text)
-            clubs.append(club_name)
+            compitition.clubs.append(club_name)
             home_club_index += 1 
             for index,td_date in enumerate(td_dates):
                 if th_club and td_date:               
@@ -68,22 +81,22 @@ def extract_data(html):
                         away_club_index += 1
                     date = dates[date_attr]
                     print(f"{club_name},{date},{outcome},{home},{away}")
-                    results.append(ClubResult(home_club_index,away_club_index,date,home,away))
+                    compitition.results.append(ClubResult(home_club_index,away_club_index,date,home,away))
         else:
             td_dates = th_club.find_all('option')
             for td_date in td_dates:
                 if td_date['value'] != '':
                     dates[td_date['value']] = td_date.text
 
-    return clubs,results
+    return compitition
 
-def write_results(clubs:list[str],results:list[ClubResult]):
+def write_results(compitition:Compitition):
     file_name = "output.csv"
     with open(file_name, 'w') as file:
-        for result in results:
-            home_club = clubs[result.home_club_index]
-            away_club = clubs[result.away_club_index]
-            file.write(f"{home_club},{away_club},{result.date},{result.home},{result.away}\n")
+        for result in compitition.results:
+            home_club =compitition.clubs[result.home_club_index]
+            away_club = compitition.clubs[result.away_club_index]
+            file.write(f"{compitition.day},{compitition.level},{home_club},{away_club},{result.date},{result.home},{result.away}\n")
 
 def save_url(html):
     file_name = "data_sample.html"
@@ -101,10 +114,11 @@ def read_from_file():
 def main():
     url = 'https://www.hollandsevelden.nl/competities/2025-2026/zuid-1/zo/5a/'
     # html = fetch(url)
-    # save_url(html.text)
-    html = read_from_file()
-    clubs,result = extract_data(html)
-    write_results(clubs,result)
+    #htm_text = html.text
+    # save_url(html_text)
+    html_text = read_from_file()
+    compitition = extract_data(html_text)
+    write_results(compitition)
 
     
 
