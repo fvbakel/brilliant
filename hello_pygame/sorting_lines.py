@@ -24,7 +24,7 @@ class BaseSort():
         self.swapped = False
         self.step = 0
 
-    def _is_ready(self):
+    def _is_ready(self)->bool:
         return False
 
     def _swap(self,i,j):
@@ -50,9 +50,10 @@ class BubbleSort(BaseSort):
             return True
 
         if self.current_index == self.current_max_index and not self.swapped:
-            self.current_max_index == 0
+            self.current_max_index = 0
             self.ready = True
             return True
+        return False
 
     def do_step(self):
         self.step += 1
@@ -84,9 +85,10 @@ class CocktailSort(BaseSort):
             return True
 
         if self.current_index == self.current_max_index and not self.swapped and self.going_up:
-            self.current_max_index == 0
+            self.current_max_index = 0
             self.ready = True
             return True
+        return False
 
     def do_step(self):
         self.step += 1
