@@ -49,7 +49,7 @@ while running:
         if event.type == pygame.QUIT:
             running = False
 
-    screen.fill("black")
+    screen.fill("white")
 
     # Draw the map
     for y, row in enumerate(tile_map):
@@ -80,3 +80,4 @@ while running:
     clock.tick(60)
 
 pygame.quit()
+
