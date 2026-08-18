@@ -55,6 +55,10 @@ class TileSet:
         self._add_tile_def('T-s',  (1, 2),False,True,True,True)
         self._add_tile_def('T-w',  (2, 2),True,False,True,True)
         self._add_tile_def('none', (3, 2),False,False,False,False)
+        self._add_tile_def('b-1',  (0, 3),False,False,False,False)
+        self._add_tile_def('g-1',  (1, 3),False,False,False,False)
+        self._add_tile_def('g-2',  (2, 3),False,False,False,False)
+        self._add_tile_def('b-2',  (3, 3),False,False,False,False)
 
     def _add_tile_def(self,name:str,location:tuple[int,int],
                       has_north:bool,
@@ -152,7 +156,7 @@ class UserInterface():
             for row in range(self.tile_map.tile_height):
                 for col in range(self.tile_map.tile_width):
                     tile_def = self.tile_map.tiles[row][col]
-                    source_rect = tile_def.get_re
+                    source_rect = tile_def.get_rect()
             
                     # Position on the map
                     destination = (
