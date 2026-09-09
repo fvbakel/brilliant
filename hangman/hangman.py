@@ -9,13 +9,15 @@ class GameRound:
         self.solution = solution
 
         self.guessed:set[str] = set()
+        self.guessed_ordered:list[str] = list()
+        self.nr_of_wrong_guesses = 0
         self.size = len(self.solution)
 
     def get_word_view(self):
         return " ".join(letter if letter in self.guessed else "_" for letter in self.solution)
 
     def nr_of_guesses(self):
-        return len(self.guessed)
+        return len(self.guessed_ordered)
 
     def is_ready(self):
         for letter in self.solution:
@@ -30,9 +32,11 @@ class GameRound:
         if not reg_ex_letter.fullmatch(letter):
             raise ValueError(f"Expected one lower case letter in range [a-z], got {letter}")
         self.guessed.add(letter)
+        self.guessed_ordered.append(letter)
         if letter in self.solution:
             return True
         else:
+            self.nr_of_wrong_guesses +=1
             return False
 
 class WordList:
@@ -55,9 +59,9 @@ class WordList:
                     self.words[l] = []
                 self.words[l].append(word)
 
-    def random_word(self,lenght:int = 0):
+    def random_word(self,lenght:int = 0,min_lenght=3,max_lenght=10):
         if lenght == 0:
-            l = random.choice(list(self.words.keys()))
+            l = random.choice([l for l in self.words.keys() if l >= min_lenght and l < max_lenght ])
         elif lenght in self.words:
             l = lenght
         else:
