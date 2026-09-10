@@ -4,8 +4,6 @@ import hangman_sim  as sim
 
 class TestHangManStrategy(unittest.TestCase):
 
-
-
     def test_get_available_words(self):
         word_list= hm.WordList()
         word_list.read_wordlist()
@@ -62,49 +60,39 @@ class TestHangManStrategy(unittest.TestCase):
         round = hm.GameRound("woord")
         strategy = sim.HangManStrategyFreq(word_list)
         strategy.set_current_round(round)
-        next = strategy.guess_next()
+
+        next,result = strategy.guess_next()
         self.assertEqual(next,"e")
-        round.guess_letter(next)
 
-        next = strategy.guess_next()
+        next,result = strategy.guess_next()
         self.assertEqual(next,"a")
-        round.guess_letter(next)
 
-        next = strategy.guess_next()
+        next,result = strategy.guess_next()
         self.assertEqual(next,"o")
-        round.guess_letter(next)
 
-        next = strategy.guess_next()
+        next,result = strategy.guess_next()
         self.assertEqual(next,"r")
-        round.guess_letter(next)
 
-        next = strategy.guess_next()
+        next,result = strategy.guess_next()
         self.assertEqual(next,"d")
-        round.guess_letter(next)
 
-        next = strategy.guess_next()
+        next,result = strategy.guess_next()
         self.assertEqual(next,"b")
-        round.guess_letter(next)
 
-        next = strategy.guess_next()
+        next,result = strategy.guess_next()
         self.assertEqual(next,"k")
-        round.guess_letter(next)
 
-        next = strategy.guess_next()
+        next,result = strategy.guess_next()
         self.assertEqual(next,"m")
-        round.guess_letter(next)
 
-        next = strategy.guess_next()
+        next,result = strategy.guess_next()
         self.assertEqual(next,"n")
-        round.guess_letter(next)
 
-        next = strategy.guess_next()
+        next,result = strategy.guess_next()
         self.assertEqual(next,"v")
-        round.guess_letter(next)
 
-        next = strategy.guess_next()
+        next,result = strategy.guess_next()
         self.assertEqual(next,"w")
-        round.guess_letter(next)
 
         with self.assertRaises(ValueError):
-            strategy.guess_next()
+            next,result = strategy.guess_next()

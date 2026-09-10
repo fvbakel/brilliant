@@ -17,11 +17,10 @@ class HangmanSim():
         i = 0
         self.strategy.set_current_round(round)
         while not round.is_ready():
-            next = self.strategy.guess_next()
-            round.guess_letter(next)
+            next,result = self.strategy.guess_next()
             if verbose:
                 i += 1
-                print(f"{i:02d}, {next} : {round.get_word_view()}")
+                print(f"{i:02d}, {str(result)[0]}, {next} : {round.get_word_view()}")
         return round
 
     def solve_all(self,lenght:int=0):
@@ -75,15 +74,20 @@ class HangManStrategy():
     def get_letter_frequency(self):
         return hm.LetterFrequency(self.get_available_words())
 
-    def guess_next(self)->str:
+    def get_next_guess(self)->str:
         return "a"
+
+    def guess_next(self):
+        next = self.get_next_guess()
+        result = self.current_round.guess_letter(next)
+        return next, result
 
 class HangManStrategyFreq(HangManStrategy):
 
     def __init__(self,wordlist:hm.WordList):
         super().__init__(wordlist)
 
-    def guess_next(self,round = hm.GameRound)->str:
+    def get_next_guess(self)->str:
         if self.current_round.is_ready():
             raise ValueError("Round is ready, nothing to guess")
             
@@ -92,6 +96,11 @@ class HangManStrategyFreq(HangManStrategy):
             if letter not in self.current_round.guessed:
                 return letter
         return ""
+
+    def guess_next(self):
+        next = self.get_next_guess()
+        result = self.current_round.guess_letter(next)
+        return next, result
 
 """
 Basic idea for this stratey is to try to cut the list 
@@ -102,7 +111,7 @@ class HangManStrategyHalf(HangManStrategy):
     def __init__(self,wordlist:hm.WordList):
         super().__init__(wordlist)
 
-    def guess_next(self,round = hm.GameRound)->str:
+    def get_next_guess(self)->str:
         if self.current_round.is_ready():
             raise ValueError("Round is ready, nothing to guess")
         words = self.get_available_words()
