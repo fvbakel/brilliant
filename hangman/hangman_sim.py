@@ -70,6 +70,32 @@ class HangManStrategyFreq(HangManStrategy):
                 return letter
         return ""
 
+"""
+Basic idea for this stratey is to try to cut the list 
+of possible words in two equal halfs with the next guess
+"""
+class HangManStrategyHalf(HangManStrategy):
+
+    def __init__(self,wordlist:hm.WordList):
+        super().__init__(wordlist)
+
+    def guess_next(self,round = hm.GameRound)->str:
+        if round.is_ready():
+            raise ValueError("Round is ready, nothing to guess")
+        words = self.get_available_words(round)
+        nr_of_words = len(words)
+        half = nr_of_words // 2
+        freq = hm.LetterFrequency(words)
+        choosen_letter = ""
+        best_diff = nr_of_words + 1
+        for letter,count in freq.order_by_frequency().items():
+            if letter not in round.guessed:
+                diff = abs(half - count)
+                if diff < best_diff:
+                    best_diff = diff
+                    choosen_letter = letter
+        return choosen_letter
+
 def main():
     parser = ArgumentParser(description=
             """Simulate hangman.
