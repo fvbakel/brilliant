@@ -1,6 +1,7 @@
 import hangman as hm
 from argparse import ArgumentParser
 from pathlib import Path
+import re
 
 class HangmanSim():
 
@@ -12,12 +13,13 @@ class HangmanSim():
 
     def solve_word(self,word:str,verbose=False):
         round = hm.GameRound(word)
-        
+        i = 0
         while not round.is_ready():
             next = self.strategy.guess_next(round)
             round.guess_letter(next)
             if verbose:
-                print(f"{next} : {round.get_word_view()}")
+                i += 1
+                print(f"{i:02d}, {next} : {round.get_word_view()}")
         return round
 
     def solve_all(self):
@@ -42,7 +44,11 @@ class HangManStrategy():
 
     def get_available_words(self,round:hm.GameRound):
         reg_ex = round.get_regular_expression()
-        return list(filter(reg_ex.match,self.wordlist.words[round.size]))
+        result:list[str] = list()
+        for word in filter(reg_ex.match,self.wordlist.words[round.size]):
+            if len(round.guessed_wrong.intersection(word)) == 0:
+                result.append(word)
+        return result
 
     def get_letter_frequency(self,round:hm.GameRound):
         return hm.LetterFrequency(self.get_available_words(round))
@@ -69,14 +75,24 @@ def main():
             """Simulate hangman.
             """
         )
-    parser.add_argument("-w","--word", help="simulate the game on a single word and output the guesses", type=str, required=False, default=None)
+    parser.add_argument("-w","--word", help="Simulate the game on a single word and output the guesses", type=str, required=False, default=None)
+    parser.add_argument("-p","--pattern", help="Search the wordlist based on a pattern, example .a. where . is an unknown letter", type=str, required=False, default=None)
     args = parser.parse_args()
 
     sim = HangmanSim()
-    if args.word is None:
-        sim.solve_all()
-    else:
+    if args.word is not None:
         sim.solve_word(args.word,True)
+    elif args.pattern is not None:
+        search_pattern(args)
+    else:
+        sim.solve_all()
+
+def search_pattern(args):
+    wordlist = hm.WordList()
+    wordlist.read_wordlist()
+    size = len(args.pattern)
+    reg_ex = re.compile(args.pattern)
+    print(list(filter(reg_ex.match,wordlist.words[size])))
 
 
 if __name__ == "__main__":

@@ -4,7 +4,23 @@ import hangman_sim  as sim
 
 class TestHangManStrategy(unittest.TestCase):
 
+
+
     def test_get_available_words(self):
+        word_list= hm.WordList()
+        word_list.read_wordlist()
+        round = hm.GameRound("lol")
+        strategy = sim.HangManStrategy(word_list)
+        all = strategy.get_available_words(round)
+        self.assertGreater(len(all),10)
+        self.assertTrue('lol' in all)
+        self.assertTrue('aap' in all)
+        round.guess_letter('a')
+
+        after_a = strategy.get_available_words(round)
+        self.assertFalse('aap' in after_a)
+
+    def test_guessing(self):
         word_list= hm.WordList()
         word_list.read_wordlist()
         round = hm.GameRound("woord")

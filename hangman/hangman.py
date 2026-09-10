@@ -10,6 +10,7 @@ class GameRound:
 
         self.guessed:set[str] = set()
         self.guessed_ordered:list[str] = list()
+        self.guessed_wrong:set[str] = set()
         self.nr_of_wrong_guesses = 0
         self.size = len(self.solution)
 
@@ -40,6 +41,7 @@ class GameRound:
         if letter in self.solution:
             return True
         else:
+            self.guessed_wrong.add(letter)
             self.nr_of_wrong_guesses +=1
             return False
 
@@ -85,7 +87,7 @@ class LetterFrequency:
 
     def calculate(self):
         for word in self.list_of_words:
-            for letter in word:
+            for letter in set(word):
                 if letter not in self.stats:
                     self.stats[letter] = 0
                 self.stats[letter] += 1
