@@ -1,18 +1,39 @@
-from abc import abstractmethod
-
 import hangman as hm
+from argparse import ArgumentParser
+from pathlib import Path
 
 class HangmanSim():
 
     def __init__(self):
         self.wordlist = hm.WordList()
-        self.wordlist.read_wordlist()    
+        self.wordlist.read_wordlist()
+        self.min_lenght = 3
+        self.strategy = HangManStrategyFreq(self.wordlist) 
 
-    def one_word(self,word:str):
-        word = self.wordlist.random_word()
+    def solve_word(self,word:str,verbose=False):
         round = hm.GameRound(word)
+        
+        while not round.is_ready():
+            next = self.strategy.guess_next(round)
+            round.guess_letter(next)
+            if verbose:
+                print(f"{next} : {round.get_word_view()}")
+        return round
 
-        pass
+    def solve_all(self):
+        input_file = Path(self.wordlist.file)
+        output_file = f"{input_file.parent}/{input_file.stem}_sim.txt"
+        print(f"Writing output file: {output_file}")
+        with open(output_file, "w") as output: 
+            for nr_of_letters,words in self.wordlist.words.items():
+                if nr_of_letters < self.min_lenght:
+                    continue
+                print(f"Processing {len(words)} words of lenght {nr_of_letters}")
+                for word in words:
+                    round = self.solve_word(word)
+                    output.write(f"{word},{nr_of_letters},{round.nr_of_wrong_guesses}\n")
+        print("Ready")
+
 
 class HangManStrategy():
 
@@ -44,7 +65,19 @@ class HangManStrategyFreq(HangManStrategy):
         return ""
 
 def main():
-    pass
+    parser = ArgumentParser(description=
+            """Simulate hangman.
+            """
+        )
+    parser.add_argument("-w","--word", help="simulate the game on a single word and output the guesses", type=str, required=False, default=None)
+    args = parser.parse_args()
+
+    sim = HangmanSim()
+    if args.word is None:
+        sim.solve_all()
+    else:
+        sim.solve_word(args.word,True)
+
 
 if __name__ == "__main__":
     main()
