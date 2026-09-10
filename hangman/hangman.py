@@ -16,6 +16,10 @@ class GameRound:
     def get_word_view(self):
         return " ".join(letter if letter in self.guessed else "_" for letter in self.solution)
 
+    def get_regular_expression(self):
+        regex_str = "".join(letter if letter in self.guessed else "." for letter in self.solution)
+        return re.compile(regex_str)
+
     def nr_of_guesses(self):
         return len(self.guessed_ordered)
 
@@ -72,7 +76,28 @@ class WordList:
     def get_available_lenghts(self):
         return self.words.keys()
 
-    
+class LetterFrequency:
 
+    def __init__(self,list_of_words:list[str]):
+        self.list_of_words = list_of_words
+        self.stats:dict[str,int] = dict()
+        self.calculate()
+
+    def calculate(self):
+        for word in self.list_of_words:
+            for letter in word:
+                if letter not in self.stats:
+                    self.stats[letter] = 0
+                self.stats[letter] += 1
+
+    def order_by_frequency(self):
+        return {k: v for k, v in sorted(self.stats.items(), key=lambda item: item[1],reverse=True)}
+
+    def __str__(self)->str:
+        result:list[str] = []
+        keys = sorted(self.stats.keys())
+        for key in keys:
+            result.append(f"{key} = {self.stats[key]}")
+        return "\n".join(result)
 
     
