@@ -2,6 +2,7 @@ import hangman as hm
 from argparse import ArgumentParser
 from pathlib import Path
 import re
+from timeit import default_timer as timer
 
 class HangmanSim():
 
@@ -14,46 +15,67 @@ class HangmanSim():
     def solve_word(self,word:str,verbose=False):
         round = hm.GameRound(word)
         i = 0
+        self.strategy.set_current_round(round)
         while not round.is_ready():
-            next = self.strategy.guess_next(round)
+            next = self.strategy.guess_next()
             round.guess_letter(next)
             if verbose:
                 i += 1
                 print(f"{i:02d}, {next} : {round.get_word_view()}")
         return round
 
-    def solve_all(self):
+    def solve_all(self,lenght:int=0):
         input_file = Path(self.wordlist.file)
         output_file = f"{input_file.parent}/{input_file.stem}_sim.txt"
         print(f"Writing output file: {output_file}")
         with open(output_file, "w") as output: 
-            for nr_of_letters,words in self.wordlist.words.items():
-                if nr_of_letters < self.min_lenght:
-                    continue
-                print(f"Processing {len(words)} words of lenght {nr_of_letters}")
-                for word in words:
-                    round = self.solve_word(word)
-                    output.write(f"{word},{nr_of_letters},{round.nr_of_wrong_guesses}\n")
+            if lenght == 0:
+                for nr_of_letters,words in self.wordlist.words.items():
+                    if nr_of_letters < self.min_lenght:
+                        continue
+                    self._process_words(output, nr_of_letters, words)
+            else:
+                self._process_words(output, lenght, self.wordlist.words[lenght])
         print("Ready")
 
+    def _process_words(self, output, nr_of_letters, words):
+        print(f"Processing {len(words)} words of lenght {nr_of_letters}")
+        start = timer()
+        for word in words:
+            round = self.solve_word(word)
+            output.write(f"{word},{nr_of_letters},{round.nr_of_wrong_guesses}\n")
+        end = timer()
+        duration = end - start
+        speed = len(words) / duration
+        print(f"Ready processing {len(words)} words of lenght {nr_of_letters}. duration: {duration:.2f} sec Speed: {speed:.2f} words per second")
 
 class HangManStrategy():
 
     def __init__(self,wordlist:hm.WordList):
         self.wordlist = wordlist
+        self.current_list:list[str] = list()
+        self.current_round:hm.GameRound
 
-    def get_available_words(self,round:hm.GameRound):
-        reg_ex = round.get_regular_expression()
+    def set_current_round(self,round:hm.GameRound):
+        self.current_round = round
+        self.current_list = self.wordlist.words[self.current_round.size]
+
+    def get_available_words(self):
+        if self.current_round.nr_of_guesses() == 0:
+            return self.current_list
+        
+        reg_ex = self.current_round.get_regular_expression()
         result:list[str] = list()
-        for word in filter(reg_ex.match,self.wordlist.words[round.size]):
-            if len(round.guessed_wrong.intersection(word)) == 0:
+        for word in filter(reg_ex.match,self.current_list):
+            if len(self.current_round.guessed_wrong.intersection(word)) == 0:
                 result.append(word)
-        return result
+        self.current_list = result
+        return self.current_list
 
-    def get_letter_frequency(self,round:hm.GameRound):
-        return hm.LetterFrequency(self.get_available_words(round))
+    def get_letter_frequency(self):
+        return hm.LetterFrequency(self.get_available_words())
 
-    def guess_next(self,round:hm.GameRound)->str:
+    def guess_next(self)->str:
         return "a"
 
 class HangManStrategyFreq(HangManStrategy):
@@ -62,11 +84,12 @@ class HangManStrategyFreq(HangManStrategy):
         super().__init__(wordlist)
 
     def guess_next(self,round = hm.GameRound)->str:
-        if round.is_ready():
+        if self.current_round.is_ready():
             raise ValueError("Round is ready, nothing to guess")
-        freq = self.get_letter_frequency(round)
+            
+        freq = self.get_letter_frequency()
         for letter in freq.order_by_frequency():
-            if letter not in round.guessed:
+            if letter not in self.current_round.guessed:
                 return letter
         return ""
 
@@ -80,16 +103,16 @@ class HangManStrategyHalf(HangManStrategy):
         super().__init__(wordlist)
 
     def guess_next(self,round = hm.GameRound)->str:
-        if round.is_ready():
+        if self.current_round.is_ready():
             raise ValueError("Round is ready, nothing to guess")
-        words = self.get_available_words(round)
+        words = self.get_available_words()
         nr_of_words = len(words)
         half = nr_of_words // 2
         freq = hm.LetterFrequency(words)
         choosen_letter = ""
         best_diff = nr_of_words + 1
         for letter,count in freq.order_by_frequency().items():
-            if letter not in round.guessed:
+            if letter not in self.current_round.guessed:
                 diff = abs(half - count)
                 if diff < best_diff:
                     best_diff = diff
@@ -103,6 +126,7 @@ def main():
         )
     parser.add_argument("-w","--word", help="Simulate the game on a single word and output the guesses", type=str, required=False, default=None)
     parser.add_argument("-p","--pattern", help="Search the wordlist based on a pattern, example .a. where . is an unknown letter", type=str, required=False, default=None)
+    parser.add_argument("-l","--lenght", help="Simulate the game only for letters of given lenght", type=int, required=False, default=0)
     args = parser.parse_args()
 
     sim = HangmanSim()
@@ -110,6 +134,8 @@ def main():
         sim.solve_word(args.word,True)
     elif args.pattern is not None:
         search_pattern(args)
+    elif args.lenght is not None and args.lenght > 0:
+        sim.solve_all(args.lenght)
     else:
         sim.solve_all()
 

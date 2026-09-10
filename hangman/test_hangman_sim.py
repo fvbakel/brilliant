@@ -11,13 +11,14 @@ class TestHangManStrategy(unittest.TestCase):
         word_list.read_wordlist()
         round = hm.GameRound("lol")
         strategy = sim.HangManStrategy(word_list)
-        all = strategy.get_available_words(round)
+        strategy.set_current_round(round)
+        all = strategy.get_available_words()
         self.assertGreater(len(all),10)
         self.assertTrue('lol' in all)
         self.assertTrue('aap' in all)
         round.guess_letter('a')
 
-        after_a = strategy.get_available_words(round)
+        after_a = strategy.get_available_words()
         self.assertFalse('aap' in after_a)
 
     def test_guessing(self):
@@ -25,21 +26,22 @@ class TestHangManStrategy(unittest.TestCase):
         word_list.read_wordlist()
         round = hm.GameRound("woord")
         strategy = sim.HangManStrategy(word_list)
-        all = strategy.get_available_words(round)
+        strategy.set_current_round(round)
+        all = strategy.get_available_words()
         self.assertGreater(len(all),100)
 
         round.guess_letter("w")
-        w_all = strategy.get_available_words(round)
+        w_all = strategy.get_available_words()
         self.assertGreater(len(all),len(w_all))
 
         round.guess_letter("o")
-        wo_all = strategy.get_available_words(round)
+        wo_all = strategy.get_available_words()
         self.assertGreater(len(w_all),len(wo_all))
 
         round.guess_letter("r")
         round.guess_letter("d")
 
-        one = strategy.get_available_words(round)
+        one = strategy.get_available_words()
         self.assertEqual(len(one),1)
         self.assertEqual(one[0],"woord")
 
@@ -48,7 +50,8 @@ class TestHangManStrategy(unittest.TestCase):
         word_list.read_wordlist()
         round = hm.GameRound("woord")
         strategy = sim.HangManStrategy(word_list)
-        freq = strategy.get_letter_frequency(round)
+        strategy.set_current_round(round)
+        freq = strategy.get_letter_frequency()
         print(freq)
         print(freq.order_by_frequency())
         self.assertGreater(len(freq.stats),0)
@@ -58,49 +61,50 @@ class TestHangManStrategy(unittest.TestCase):
         word_list.read_wordlist()
         round = hm.GameRound("woord")
         strategy = sim.HangManStrategyFreq(word_list)
-        next = strategy.guess_next(round)
+        strategy.set_current_round(round)
+        next = strategy.guess_next()
         self.assertEqual(next,"e")
         round.guess_letter(next)
 
-        next = strategy.guess_next(round)
+        next = strategy.guess_next()
         self.assertEqual(next,"a")
         round.guess_letter(next)
 
-        next = strategy.guess_next(round)
+        next = strategy.guess_next()
         self.assertEqual(next,"o")
         round.guess_letter(next)
 
-        next = strategy.guess_next(round)
+        next = strategy.guess_next()
         self.assertEqual(next,"r")
         round.guess_letter(next)
 
-        next = strategy.guess_next(round)
+        next = strategy.guess_next()
         self.assertEqual(next,"d")
         round.guess_letter(next)
 
-        next = strategy.guess_next(round)
+        next = strategy.guess_next()
         self.assertEqual(next,"b")
         round.guess_letter(next)
 
-        next = strategy.guess_next(round)
+        next = strategy.guess_next()
         self.assertEqual(next,"k")
         round.guess_letter(next)
 
-        next = strategy.guess_next(round)
+        next = strategy.guess_next()
         self.assertEqual(next,"m")
         round.guess_letter(next)
 
-        next = strategy.guess_next(round)
+        next = strategy.guess_next()
         self.assertEqual(next,"n")
         round.guess_letter(next)
 
-        next = strategy.guess_next(round)
+        next = strategy.guess_next()
         self.assertEqual(next,"v")
         round.guess_letter(next)
 
-        next = strategy.guess_next(round)
+        next = strategy.guess_next()
         self.assertEqual(next,"w")
         round.guess_letter(next)
 
         with self.assertRaises(ValueError):
-            strategy.guess_next(round)
+            strategy.guess_next()
