@@ -10,13 +10,15 @@ class TestHangManStrategy(unittest.TestCase):
         round = hm.GameRound("lol")
         strategy = sim.HangManStrategy(word_list)
         strategy.set_current_round(round)
-        all = strategy.get_available_words()
+        all = strategy.current_list
         self.assertGreater(len(all),10)
         self.assertTrue('lol' in all)
         self.assertTrue('aap' in all)
-        round.guess_letter('a')
+        letter = 'a'
+        result = round.guess_letter(letter)
+        strategy.update_current_wordlist(letter,result)
 
-        after_a = strategy.get_available_words()
+        after_a = strategy.current_list
         self.assertFalse('aap' in after_a)
 
     def test_guessing(self):
@@ -25,21 +27,31 @@ class TestHangManStrategy(unittest.TestCase):
         round = hm.GameRound("woord")
         strategy = sim.HangManStrategy(word_list)
         strategy.set_current_round(round)
-        all = strategy.get_available_words()
+        
+        all = strategy.current_list
         self.assertGreater(len(all),100)
 
-        round.guess_letter("w")
-        w_all = strategy.get_available_words()
+        letter = "w"
+        is_found = round.guess_letter(letter)
+        strategy.update_current_wordlist(letter,is_found)
+        w_all = strategy.current_list
         self.assertGreater(len(all),len(w_all))
 
-        round.guess_letter("o")
-        wo_all = strategy.get_available_words()
+        letter = "o"
+        is_found = round.guess_letter(letter)
+        strategy.update_current_wordlist(letter,is_found)
+        wo_all = strategy.current_list
         self.assertGreater(len(w_all),len(wo_all))
 
-        round.guess_letter("r")
-        round.guess_letter("d")
+        letter = "r"
+        is_found = round.guess_letter(letter)
+        strategy.update_current_wordlist(letter,is_found)
 
-        one = strategy.get_available_words()
+        letter = "d"
+        is_found = round.guess_letter(letter)
+        strategy.update_current_wordlist(letter,is_found)
+
+        one = strategy.current_list
         self.assertEqual(len(one),1)
         self.assertEqual(one[0],"woord")
 

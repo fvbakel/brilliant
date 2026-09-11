@@ -20,12 +20,14 @@ class HangmanSim():
             next,result = self.strategy.guess_next()
             if verbose:
                 i += 1
-                print(f"{i:02d}, {str(result)[0]}, {next} : {round.get_word_view()}")
+                nr = len(self.strategy.current_list)
+                first = self.strategy.current_list[:7]
+                print(f"{i:02d},{str(result)[0]}, {next} : {round.get_word_view()}, {nr:06d},{first}")
         return round
 
     def solve_all(self,lenght:int=0):
         input_file = Path(self.wordlist.file)
-        output_file = f"{input_file.parent}/{input_file.stem}_sim.txt"
+        output_file = f"{input_file.parent}/{input_file.stem}_sim_{lenght}.txt"
         print(f"Writing output file: {output_file}")
         with open(output_file, "w") as output: 
             if lenght == 0:
@@ -59,6 +61,7 @@ class HangManStrategy():
         self.current_round = round
         self.current_list = self.wordlist.words[self.current_round.size]
 
+    @DeprecationWarning
     def get_available_words(self):
         if self.current_round.nr_of_guesses() == 0:
             return self.current_list
@@ -71,8 +74,38 @@ class HangManStrategy():
         self.current_list = result
         return self.current_list
 
+    def update_current_wordlist(self,last_letter:str,last_result:bool):
+        if last_result:
+            reg_ex = self.current_round.get_regular_expression()
+            pre_filter = list(filter(reg_ex.match,self.current_list))
+
+            unknown_index:list[int] = list()
+            for i,letter in enumerate(reg_ex.pattern):
+                if letter == '.':
+                    unknown_index.append(i)
+
+            result:list[str] = list()
+
+            for word in pre_filter:
+                skip = False
+                for index in unknown_index:
+                    if word[index] == last_letter:
+                        skip = True
+                        break
+                if not skip:
+                    result.append(word)
+
+            self.current_list = result
+        else:
+            # remove all that contain the last wrong guessed letter
+            result:list[str] = list()
+            for word in self.current_list:
+                if last_letter not in set(word):
+                    result.append(word)
+            self.current_list = result
+
     def get_letter_frequency(self):
-        return hm.LetterFrequency(self.get_available_words())
+        return hm.LetterFrequency(self.current_list)
 
     def get_next_guess(self)->str:
         return "a"
@@ -80,6 +113,7 @@ class HangManStrategy():
     def guess_next(self):
         next = self.get_next_guess()
         result = self.current_round.guess_letter(next)
+        self.update_current_wordlist(next,result)
         return next, result
 
 class HangManStrategyFreq(HangManStrategy):
@@ -97,10 +131,6 @@ class HangManStrategyFreq(HangManStrategy):
                 return letter
         return ""
 
-    def guess_next(self):
-        next = self.get_next_guess()
-        result = self.current_round.guess_letter(next)
-        return next, result
 
 """
 Basic idea for this stratey is to try to cut the list 
@@ -114,7 +144,7 @@ class HangManStrategyHalf(HangManStrategy):
     def get_next_guess(self)->str:
         if self.current_round.is_ready():
             raise ValueError("Round is ready, nothing to guess")
-        words = self.get_available_words()
+        words = self.current_list
         nr_of_words = len(words)
         half = nr_of_words // 2
         freq = hm.LetterFrequency(words)
