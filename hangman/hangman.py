@@ -87,9 +87,12 @@ class LetterFrequency:
 
     def calculate(self):
         for word in self.list_of_words:
-            # below is a choice, we count letter frequency per word. If one
-            # letters is multiple times in one word, this still counts as one
-            for letter in set(word):
+            # Below is a choice, we count letter frequency per word. If one
+            # letters is multiple times in one word, this counts as for each occurance
+            # the use of set to make the letters in each word unique as a big impact 
+            # on the performance
+            # for letter in set(word):
+            for letter in word:
                 if letter not in self.stats:
                     self.stats[letter] = 0
                 self.stats[letter] += 1
