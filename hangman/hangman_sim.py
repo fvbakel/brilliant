@@ -90,24 +90,35 @@ class HangManStrategy():
             self.current_list = self.word_list_cache[self.current_round.size][nr_of_guesses]
 
     def _filter_for_correct_guess(self, last_letter):
-        reg_ex = self.current_round.get_regular_expression()
-        pre_filter = list(filter(reg_ex.match,self.current_list))
-        
+        pattern = self.current_round.get_pattern()
+
+        known_index:list[int] = list()
         unknown_index:list[int] = list()
-        for i,letter in enumerate(reg_ex.pattern):
+        for i,letter in enumerate(pattern):
+            if letter == last_letter:
+                known_index.append(i)
             if letter == '.':
                 unknown_index.append(i)
 
         result:list[str] = list()
 
-        for word in pre_filter:
+        for word in self.current_list:
             skip = False
+            for index in known_index:
+                if word[index] != last_letter:
+                    skip = True
+                    break
+            if skip:
+                continue
+            
             for index in unknown_index:
                 if word[index] == last_letter:
                     skip = True
                     break
-            if not skip:
-                result.append(word)
+            if skip:
+                continue
+
+            result.append(word)
 
         self.current_list = result
 

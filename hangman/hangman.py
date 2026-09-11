@@ -17,8 +17,11 @@ class GameRound:
     def get_word_view(self):
         return " ".join(letter if letter in self.guessed else "_" for letter in self.solution)
 
+    def get_pattern(self):
+        return "".join(letter if letter in self.guessed else "." for letter in self.solution)
+    
     def get_regular_expression(self):
-        regex_str = "".join(letter if letter in self.guessed else "." for letter in self.solution)
+        regex_str = self.get_pattern()
         return re.compile(regex_str)
 
     def nr_of_guesses(self):
