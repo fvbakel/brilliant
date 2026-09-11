@@ -77,7 +77,7 @@ class HangManStrategy():
                 self._filter_wrong_guess_from_cache(last_letter, nr_of_guesses)
             else:
                 self._filter_for_wrong_guess(last_letter)
-        self.first_freq = hm.LetterFrequency(self.current_list)
+        self.current_freq = hm.LetterFrequency(self.current_list)
 
     def _filter_wrong_guess_from_cache(self, last_letter, nr_of_guesses):
         if self.current_round.size not in self.word_list_cache:
@@ -92,7 +92,7 @@ class HangManStrategy():
     def _filter_for_correct_guess(self, last_letter):
         reg_ex = self.current_round.get_regular_expression()
         pre_filter = list(filter(reg_ex.match,self.current_list))
-
+        
         unknown_index:list[int] = list()
         for i,letter in enumerate(reg_ex.pattern):
             if letter == '.':
