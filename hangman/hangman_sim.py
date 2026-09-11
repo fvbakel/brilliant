@@ -56,47 +56,67 @@ class HangManStrategy():
         self.wordlist = wordlist
         self.current_list:list[str] = list()
         self.current_round:hm.GameRound
-        self.freq_cache:dict[int,hm.LetterFrequency] = dict()
+        self.first_freq_cache:dict[int,hm.LetterFrequency] = dict()
         self.current_freq:hm.LetterFrequency
+        self.word_list_cache:dict[int,dict[int,list[str]]] = dict()
         
 
     def set_current_round(self,round:hm.GameRound):
         self.current_round = round
         self.current_list = self.wordlist.words[self.current_round.size]
-        if self.current_round.size not in self.freq_cache:
-            self.freq_cache[self.current_round.size] = hm.LetterFrequency(self.current_list)
-        self.current_freq = self.freq_cache[self.current_round.size]
+        if self.current_round.size not in self.first_freq_cache:
+            self.first_freq_cache[self.current_round.size] = hm.LetterFrequency(self.current_list)
+        self.current_freq = self.first_freq_cache[self.current_round.size]
 
     def update_current_wordlist(self,last_letter:str,last_result:bool):
         if last_result:
-            reg_ex = self.current_round.get_regular_expression()
-            pre_filter = list(filter(reg_ex.match,self.current_list))
-
-            unknown_index:list[int] = list()
-            for i,letter in enumerate(reg_ex.pattern):
-                if letter == '.':
-                    unknown_index.append(i)
-
-            result:list[str] = list()
-
-            for word in pre_filter:
-                skip = False
-                for index in unknown_index:
-                    if word[index] == last_letter:
-                        skip = True
-                        break
-                if not skip:
-                    result.append(word)
-
-            self.current_list = result
+            self._filter_for_correct_guess(last_letter)
         else:
-            # remove all that contain the last wrong guessed letter
-            result:list[str] = list()
-            for word in self.current_list:
-                if last_letter not in set(word):
-                    result.append(word)
-            self.current_list = result
+            nr_of_guesses = self.current_round.nr_of_guesses()
+            if  nr_of_guesses == self.current_round.nr_of_wrong_guesses:
+                self._filter_wrong_guess_from_cache(last_letter, nr_of_guesses)
+            else:
+                self._filter_for_wrong_guess(last_letter)
         self.first_freq = hm.LetterFrequency(self.current_list)
+
+    def _filter_wrong_guess_from_cache(self, last_letter, nr_of_guesses):
+        if self.current_round.size not in self.word_list_cache:
+            self.word_list_cache[self.current_round.size] = dict()
+        if nr_of_guesses not in self.word_list_cache[self.current_round.size]:
+            self.word_list_cache[self.current_round.size] = dict()
+            self._filter_for_wrong_guess(last_letter)
+            self.word_list_cache[self.current_round.size][nr_of_guesses] = self.current_list
+        else:
+            self.current_list = self.word_list_cache[self.current_round.size][nr_of_guesses]
+
+    def _filter_for_correct_guess(self, last_letter):
+        reg_ex = self.current_round.get_regular_expression()
+        pre_filter = list(filter(reg_ex.match,self.current_list))
+
+        unknown_index:list[int] = list()
+        for i,letter in enumerate(reg_ex.pattern):
+            if letter == '.':
+                unknown_index.append(i)
+
+        result:list[str] = list()
+
+        for word in pre_filter:
+            skip = False
+            for index in unknown_index:
+                if word[index] == last_letter:
+                    skip = True
+                    break
+            if not skip:
+                result.append(word)
+
+        self.current_list = result
+
+    def _filter_for_wrong_guess(self, last_letter):
+        result:list[str] = list()
+        for word in self.current_list:
+            if last_letter not in set(word):
+                result.append(word)
+        self.current_list = result
 
     def get_letter_frequency(self):
         return self.current_freq
