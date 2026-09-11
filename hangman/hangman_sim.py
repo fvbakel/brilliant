@@ -150,8 +150,8 @@ class HangManStrategyFreq(HangManStrategy):
         if self.current_round.is_ready():
             raise ValueError("Round is ready, nothing to guess")
         
-        if len(self.current_list) == 1:
-            # single word left
+        if len(self.current_list) < 3:
+            # only one or two words left, no need to caculate the frequency
             for letter in self.current_list[0]:
                 if letter not in self.current_round.guessed:
                     return letter    
