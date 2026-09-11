@@ -1,0 +1,51 @@
+.separator ,
+.header off
+
+CREATE TABLE raw_data (word,size int,nr_wrong int);
+.import /home/fvbakel/tmp/basiswoorden-gekeurd-filtered_sim.txt raw_data
+
+.header on
+select count(*) from raw_data;
+
+select size,count(*) 
+from raw_data
+group by size
+order by size
+;
+
+select size,nr_wrong,count(*)
+from raw_data
+group by size, nr_wrong
+order by size, nr_wrong
+;
+
+select distinct nr_wrong, 
+    CASE
+        when nr_wrong < 1 then 'win'
+        ELSE 'lose'
+    end
+from raw_data
+where size = 28
+;
+
+CREATE TABLE win_data as 
+    SELECT word,size,nr_wrong,
+    CASE
+        when nr_wrong < 8 then 'win'
+        else 'lose'
+    END as result
+    from raw_data
+;
+
+select count(*) from win_data;
+
+CREATE TABLE sum_data as 
+select size,result,(select count(*) from raw_data r where r.size = w.size) as total,count(*) as nr
+from win_data w
+group by size, result
+order by size, result
+;
+
+--.output /home/fvbakel/tmp/basiswoorden-gekeurd-filtered_sumary.txt
+select size,result,total,nr,round((nr*1.0 / total*1.0) * 100, 1) as percentage
+from sum_data;
