@@ -110,7 +110,7 @@ class HangManStrategy():
                     break
             if skip:
                 continue
-            
+
             for index in unknown_index:
                 if word[index] == last_letter:
                     skip = True
@@ -149,7 +149,13 @@ class HangManStrategyFreq(HangManStrategy):
     def get_next_guess(self)->str:
         if self.current_round.is_ready():
             raise ValueError("Round is ready, nothing to guess")
-            
+        
+        if len(self.current_list) == 1:
+            # single word left
+            for letter in self.current_list[0]:
+                if letter not in self.current_round.guessed:
+                    return letter    
+        # More than one word
         freq = self.get_letter_frequency()
         for letter in freq.order_by_frequency():
             if letter not in self.current_round.guessed:
