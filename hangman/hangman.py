@@ -35,7 +35,7 @@ class GameRound:
 
     def guess_letter(self,letter:str):
         if not reg_ex_letter.fullmatch(letter):
-            raise ValueError(f"Expected one lower case letter in range [a-z], got {letter}")
+            raise ValueError(f"Expected one lower case letter in range [a-z], got '{letter}'")
         self.guessed.add(letter)
         self.guessed_ordered.append(letter)
         if letter in self.solution:

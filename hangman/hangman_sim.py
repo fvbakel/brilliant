@@ -56,23 +56,16 @@ class HangManStrategy():
         self.wordlist = wordlist
         self.current_list:list[str] = list()
         self.current_round:hm.GameRound
+        self.freq_cache:dict[int,hm.LetterFrequency] = dict()
+        self.current_freq:hm.LetterFrequency
+        
 
     def set_current_round(self,round:hm.GameRound):
         self.current_round = round
         self.current_list = self.wordlist.words[self.current_round.size]
-
-    @DeprecationWarning
-    def get_available_words(self):
-        if self.current_round.nr_of_guesses() == 0:
-            return self.current_list
-        
-        reg_ex = self.current_round.get_regular_expression()
-        result:list[str] = list()
-        for word in filter(reg_ex.match,self.current_list):
-            if len(self.current_round.guessed_wrong.intersection(word)) == 0:
-                result.append(word)
-        self.current_list = result
-        return self.current_list
+        if self.current_round.size not in self.freq_cache:
+            self.freq_cache[self.current_round.size] = hm.LetterFrequency(self.current_list)
+        self.current_freq = self.freq_cache[self.current_round.size]
 
     def update_current_wordlist(self,last_letter:str,last_result:bool):
         if last_result:
@@ -103,9 +96,10 @@ class HangManStrategy():
                 if last_letter not in set(word):
                     result.append(word)
             self.current_list = result
+        self.first_freq = hm.LetterFrequency(self.current_list)
 
     def get_letter_frequency(self):
-        return hm.LetterFrequency(self.current_list)
+        return self.current_freq
 
     def get_next_guess(self)->str:
         return "a"
