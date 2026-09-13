@@ -16,18 +16,29 @@ class WikiDownload:
 
     def _download_url(self,url:str):
         params = {'stream':True}
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
+            'Accept-Encoding': 'gzip, deflate',
+            'Connection': 'keep-alive',
+        }
         local_filename = url.split('/')[-1]
         
         print(f'Download {local_filename} started')
-        response = requests.get(url, params=params)
+        response = requests.get(url, params=params, headers=headers)
 
         total_bits = 0
-        if response.status_code == 200:
-            with open(local_filename, 'wb') as f:
-                for chunk in response.iter_content(chunk_size=1024):
-                    if chunk:
-                        total_bits += 1024
-                        f.write(chunk)
+        if response.status_code != 200:
+            print(f"Error {response.status_code} for {url}")
+            return
+
+        with open(local_filename, 'wb') as f:
+            for chunk in response.iter_content(chunk_size=1024):
+                if chunk:
+                    total_bits += 1024
+                    f.write(chunk)
+
         print(f'Download {local_filename} ready')
 
     def download(self):
