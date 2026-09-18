@@ -24,8 +24,8 @@ class RelationDirection(ExtendedEnum):
 class EventLog:
 
     def __init__(self):
-        self.start_time = None
-        self.last_time  = None
+        self.start_time:float
+        self.last_time:float
 
     def report(self,level:str,msg: str):
         print('{}: {}'.format(level,msg))
@@ -77,12 +77,12 @@ class Page:
     
 class PagesDb:
     def __init__(self, db_file:str):
-        self.db_file                    = db_file
-        self._conn                      = None
-        self._eventLog                  = EventLog()
+        self.db_file                        = db_file
+        self._conn:sqlite3.Connection|None  = None
+        self._eventLog                      = EventLog()
 
         self._open_db()
-        self.source_url                 = self._getSourceUrl()
+        self.source_url                     = self._getSourceUrl()
     
     def _getSourceUrl(self):
         cursor = self._conn.cursor()

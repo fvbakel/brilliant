@@ -37,10 +37,12 @@ Take the following steps:
 
 ## The database
 
-The database has two tables:
+The resulting database that is created after the wiki import has two tables:
 
 1. ```pages```
 2. ```pagelinks```
+
+The pages table is the same as the original, imported from wikipedia. The pagelinks table is not the original table, but a new table that contains the rlation between two pages pased on their page ids. All that is not in namespace main (0) is removed. The result is a smaller database that is easier and faster to query.
 
 The example below illustrates how the two tables can be used.
 

@@ -1,25 +1,105 @@
+-- simple select from pages
+select * from pages where title = 'Riethoven';
+-- result: 280719|Riethoven
+ 
+-- select links to Riethoven
+select * from linktarget where lt_title = 'Riethoven';
+-- result: 423120|0|Riethoven
+
+-- select the pages that link to this page
+select count(*) 
+from pagelinks 
+where pl_target_id = 423120;
+
+-- result 114, from different namespaces
+
+-- namespace 0 is the main namespace we are interested in
 select 
-    p.title    as from_title,
-    l.pl_title as to_title
+    p.title  as from_title,
+    lt.lt_title as to_title
     from pagelinks l
-    join pages p on p.page_id = l.pl_from
+    left join linktarget lt on lt.lt_id = l.pl_target_id
+    left join pages p on p.page_id = l.pl_from  
  where 
-    l.pl_title = 'Riethoven'
+        l.pl_namespace = 0 and
+        lt.lt_namespace = 0 and
+        lt.lt_title = 'Riethoven'
 ;
 
--- Make a link to the pages in pagelink that are not in pages
-select 
-    l.pl_from  as pl_from,
-    l.pl_title as to_title,
-    'https://nl.wikipedia.org/?curid=' || l.pl_from as link
-    from pagelinks l
-    left join pages p on p.page_id = l.pl_from
- where 
-        l.pl_title = 'Riethoven'
-    and p.title is null
+/* Start all post processing in manual steps
+
+*/
+select count(*) from linktarget where lt_namespace != 0;
+-- before: 3.216.936
+select count(*) from pagelinks where pl_namespace != 0;
+-- before: 30.161.910
+
+-- so we can drop all the namespace = 0 records
+-- from both tables
+delete from linktarget where lt_namespace != 0;
+
+delete from pagelinks where pl_namespace != 0;
+
+-- cleanup the database after these mass deletes
+vacuum;
+.exit 
+-- step 1 done
+-- make indexes
+
+
+create index i_linktarget_tmp 
+    on linktarget(lt_title)
 ;
--- Conclusion:
--- these pageslink from user personal pages.
+
+create index i_linktarget_tmp_id
+    on linktarget(lt_id)
+;
+
+create index i_pages 
+    on pages (page_id)
+;
+
+create index i_pages_title
+    on pages (title)
+;
+
+create index i_pagelinks_target_id_tmp
+    on pagelinks (pl_target_id)
+;
+
+create table pagelinks_clean as
+    SELECT 
+        l.pl_from       as pl_from,
+        p_to.page_id    as pl_to
+    from pagelinks l
+        join linktarget lt on lt.lt_id = l.pl_target_id
+        join pages p_from on p_from.page_id = l.pl_from
+        join pages p_to on p_to.title = replace(lt.lt_title,'_',' ')
+;
+
+drop table pagelinks;
+
+alter table pagelinks_clean rename to pagelinks;
+
+drop table linktarget;
+
+create index i_pagelinks_from
+    on pagelinks(pl_from,pl_to)
+;
+
+create index i_pagelinks_to
+    on pagelinks(pl_to,pl_from)
+;
+
+vacuum;
+
+/* End all post processing in manual steps
+
+-- new counts after namespace cleanup
+select count(*) from linktarget;
+-- before: 9.822.438     after: 6.605.502
+select count(*) from pagelinks;
+-- before: 126.030.098   after: 95.868.188
 
 --
 -- Find all from pagelinks that pl_from is not in pages
@@ -30,8 +110,8 @@ WHERE
     p.page_id is NULL
 ;
 
--- results in   81723159
--- original has 98551055
+-- results in   81.723.159
+-- original has 98.551.055
 create table pagelinks_clean as
     SELECT 
         l.pl_from  as pl_from,

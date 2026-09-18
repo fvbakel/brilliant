@@ -15,25 +15,26 @@ class ParametersWiki2Sqlite:
     source_url:      str
     output_file:     str
     error_file:      str
+    mode:            str
 
 class Wiki2Sqlite:
 
     def __init__(self, parameters: ParametersWiki2Sqlite):
         self.parameters = parameters
         #self.out_file = None
-        self.conn = None
-        self.start_time = None
-        self.last_time  = None
+        self.conn:sqlite3.Connection
+        self.start_time:float
+        self.last_time:float
 
     def convert(self):
         self.start_time = time.perf_counter()
         self.last_time = self.start_time
         self._openOutput()
-        self._createImportTables()
-        self._setMetaValues()
-        self._importPagelinks()
-        self._importLinkTarget()
-        self._importPages()
+        #self._createImportTables()
+        #self._setMetaValues()
+        #self._importPagelinks()
+        #self._importLinkTarget()
+        #self._importPages()
    #     self._postImport()
         self._closeOutput()
     
@@ -121,11 +122,48 @@ class Wiki2Sqlite:
         self._endEvent('Create import tables')
     
     def _postImport(self):
-        event = 'Post process: create a temp index'
+
+        event = 'Post process: Drop all that is not in the main namespace from linktarget'
         self._startEvent(event)
         sql = """
-            create index i_pagelinks_tmp 
-                on pagelinks(pl_title)
+            delete from linktarget where lt_namespace != 0;
+        """
+        self.conn.execute(sql)
+        self._endEvent(event)
+
+        event = 'Post process: Drop all that is not in the main namespace from pagelinks'
+        self._startEvent(event)
+        sql = """
+            delete from pagelinks where pl_namespace != 0;;
+        """
+        self.conn.execute(sql)
+        self._endEvent(event)
+
+        event = 'Post process: create a temp index on linktarget title'
+        self._startEvent(event)
+        sql = """
+            create index i_linktarget_tmp 
+                on linktarget(lt_title)
+            ;
+        """
+        self.conn.execute(sql)
+        self._endEvent(event)
+
+        event = 'Post process: create a temp index on linktarget id'
+        self._startEvent(event)
+        sql = """
+            create index i_linktarget_tmp_id
+                on linktarget(lt_id)
+            ;
+        """
+        self.conn.execute(sql)
+        self._endEvent(event)
+
+        event = 'Post process: create a temp index on pagelink target id'
+        self._startEvent(event)
+        sql = """
+            create index i_pagelinks_target_id_tmp
+                on pagelinks (pl_target_id)
             ;
         """
         self.conn.execute(sql)
@@ -154,14 +192,15 @@ class Wiki2Sqlite:
         event = 'Post process: create new table'
         self._startEvent(event)
         sql = """
-            create table pagelinks_clean as
-                SELECT 
-                    l.pl_from       as pl_from,
-                    p_to.page_id    as pl_to
-                    FROM pagelinks l
-                    join pages p_from on p_from.page_id = l.pl_from
-                    join pages p_to on p_to.title = replace(l.pl_title,'_',' ')
-            ;
+                create table pagelinks_clean as
+                    SELECT 
+                        l.pl_from       as pl_from,
+                        p_to.page_id    as pl_to
+                    from pagelinks l
+                        join linktarget lt on lt.lt_id = l.pl_target_id
+                        join pages p_from on p_from.page_id = l.pl_from
+                        join pages p_to on p_to.title = replace(lt.lt_title,'_',' ')
+                ;
         """
         self.conn.execute(sql)
         self._endEvent(event)
@@ -213,7 +252,7 @@ class Wiki2Sqlite:
     def _openOutput(self):
         #self.out_file = open(self.parameters.output_file,'w')
         db_file = Path(self.parameters.output_file)
-        if db_file.exists():
+        if db_file.exists() and self.parameters.mode == 'all':
             os.remove(self.parameters.output_file)
         self.conn = sqlite3.connect(self.parameters.output_file)
         self.conn.execute('PRAGMA journal_mode = OFF')
@@ -281,9 +320,9 @@ class Wiki2Sqlite:
     def _value_list_import(self,count:int,values_part:list[str]):
         insert_prefix = "INSERT INTO `linktarget` VALUES "
         import_ok = True
+        values_str = '),('.join(values_part)
+        sql = f'{insert_prefix} ({values_str});'
         try:
-            values_str = '),('.join(values_part)
-            sql = f'{insert_prefix} ({values_str});'
             self.conn.execute(sql)
             self.conn.commit()
         except sqlite3.Error as e:
@@ -342,10 +381,12 @@ def loadParameters(configFilename):
 def writeSampleConfig():
     param = ParametersWiki2Sqlite(
         input_file      = 'nlwiki-latest-pagelinks.sql',
+        input_link_target_file = 'nlwiki-latest-linktarget.sql',
         input_page_file = 'nlwiki-latest-pages-articles-multistream-index.txt',
         source_url      = 'https://nl.wikipedia.org/?curid=',
         output_file     = 'pagelinks.db',
-        error_file      = 'error.txt'
+        error_file      = 'error.txt',
+        mode            = 'all'
     )
 
     #write it back to the file
